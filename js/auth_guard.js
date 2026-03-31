@@ -1,6 +1,4 @@
-//patient/js/auth_guard.js
-
-// js/patient/patient-guard.js
+// js/patient/auth_guard.js
 
 (function patientGuard() {
     const token = localStorage.getItem('access_token');
@@ -10,7 +8,8 @@
     if (!token) {
         if (currentPage !== 'index.html') {
             console.warn("Restricted. Redirecting to Patient Login.");
-            window.location.replace('index.html');
+            // 🚨 FIX: Added dot-slash for GitHub Pages compatibility
+            window.location.replace('./index.html'); 
         }
         return;
     }
@@ -31,12 +30,13 @@
 
         // Teleport logged-in users away from the login screen
         if (currentPage === 'index.html') {
-            window.location.replace('home.html');
+            // 🚨 FIX: Added dot-slash for GitHub Pages compatibility
+            window.location.replace('./home.html');
         }
 
     } catch (error) {
         localStorage.removeItem('access_token');
-        window.location.replace('index.html');
+        window.location.replace('./index.html');
     }
 })();
 

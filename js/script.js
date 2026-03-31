@@ -31,7 +31,7 @@ const isIndexPage = window.location.pathname.endsWith('index.html') || window.lo
 const activeUserSession = localStorage.getItem('currentUser');
 
 function proceedToNextPage() {
-    const targetUrl = localStorage.getItem('redirectAfterAuth') || 'home.html';
+    const targetUrl = localStorage.getItem('redirectAfterAuth') || './home.html';
     localStorage.removeItem('redirectAfterAuth'); 
     window.location.href = targetUrl;
 }
@@ -42,7 +42,7 @@ if (isIndexPage && activeUserSession) {
 
 window.goToLogin = function() {
     localStorage.setItem('redirectAfterAuth', window.location.href);
-    window.location.href = 'index.html';
+    window.location.href = './index.html';
 };
 
 // ==========================================
@@ -147,8 +147,8 @@ if (signupFormEl) {
         const password = inputs[3].value;
 
         try {
-            // Hit the FastAPI Backend (Assuming you have a POST /users/register route)
-            const response = await fetch(`${API_BASE}/users/register`, {
+            // 🚨 FIX APPLIED HERE: Changed /users/register to /auth/register
+            const response = await fetch(`${API_BASE}/auth/register`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
@@ -185,13 +185,10 @@ if (loginFormEl) {
         
         try {
             // Hit the FastAPI Patient Login Route
-            // NEW BULLETPROOF CODE
-            // 1. Pack the data as URL-Encoded Form Data, NOT JSON
             const formData = new URLSearchParams();
-            formData.append('username', loginEmail); // FastAPI DEMANDS the word 'username' here!
+            formData.append('username', loginEmail); 
             formData.append('password', loginPassword);
 
-            // 2. Send the request
             const response = await fetch(`${API_BASE}/auth/login`, {
                 method: 'POST',
                 headers: { 
@@ -246,6 +243,7 @@ if (tabLogin && tabSignup) {
     tabLogin.addEventListener('click', () => switchTab(true));
     tabSignup.addEventListener('click', () => switchTab(false));
 }
+
 const searchInput = document.getElementById('global-search');
 const resultsDropdown = document.getElementById('search-results');
 
@@ -289,7 +287,6 @@ if (userSearchInput) {
         if (query.length < 3) return hideSearchResults();
 
         try {
-            // Fixed the hardcoded localhost URL here to use the API_BASE router
             const response = await fetch(`${API_BASE}/home/search?q=${encodeURIComponent(query)}`);
             const data = await response.json();
             
