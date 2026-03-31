@@ -1,0 +1,80 @@
+<!DOCTYPE html> <!--service.html-->
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Vision - Our Healthcare Services</title>
+    <link rel="stylesheet" href="css/payment.css"> 
+    <link rel="stylesheet" href="css/services.css"> 
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body class="bg-main">
+
+    <header class="top-header">
+        <div class="content-wrapper header-content">
+            <div class="header-left">
+                <a href="home.html" class="back-arrow"><i class="fa-solid fa-arrow-left"></i></a>
+                <div class="brand">
+                    <div class="logo-circle"><i class="fa-solid fa-heart-pulse"></i></div>
+                    <div class="brand-text">
+                        <strong>Vision</strong>
+                        <span>Our Services</span>
+                    </div>
+                </div>
+            </div>
+            <button id="theme-toggle" class="icon-button" aria-label="Toggle Dark Mode">
+                <i class="fa-regular fa-moon" id="theme-icon"></i>
+            </button>
+        </div>
+    </header>
+
+    <main class="content-wrapper services-layout">
+        
+        <div class="services-header">
+            <h1>Our Healthcare Services</h1>
+            <p>Comprehensive healthcare services delivered to your doorstep</p>
+        </div>
+
+        <div class="services-search-container">
+            <i class="fa-solid fa-magnifying-glass search-icon"></i>
+            <input type="text" id="service-search" placeholder="Search services...">
+        </div>
+
+        <div class="services-filter-tabs" id="filter-tabs">
+            <button class="filter-tab active" data-filter="All">All</button>
+            <button class="filter-tab" data-filter="Consultation">Consultation</button>
+            <button class="filter-tab" data-filter="Lab Tests">Lab Tests</button>
+            <button class="filter-tab" data-filter="Therapy">Therapy</button>
+            <button class="filter-tab" data-filter="Pharmacy">Pharmacy</button>
+            <button class="filter-tab" data-filter="Nursing">Nursing</button>
+        </div>
+
+        <div class="services-grid" id="services-grid">
+            </div>
+
+        <div class="bottom-features-grid">
+            <div class="feature-banner feature-blue">
+                <div class="feature-icon"><i class="fa-solid fa-video"></i></div>
+                <h3>Online Consultations</h3>
+                <p>Connect with doctors via video call from anywhere</p>
+            </div>
+            <div class="feature-banner feature-purple">
+                <div class="feature-icon"><i class="fa-solid fa-location-dot"></i></div>
+                <h3>Home Services</h3>
+                <p>Healthcare professionals visit you at home</p>
+            </div>
+            <div class="feature-banner feature-green">
+                <div class="feature-icon"><i class="fa-regular fa-clock"></i></div>
+                <h3>24/7 Support</h3>
+                <p>Round-the-clock customer assistance available</p>
+            </div>
+        </div>
+
+    </main>
+
+    <script src="js/script.js"></script>
+    <script src="js/auth_guard.js"></script>
+    <script src="js/services.js"></script>
+</body>
+</html>

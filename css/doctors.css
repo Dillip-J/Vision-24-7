@@ -1,0 +1,353 @@
+/* --- Global Variables for Exact Theme Matching --- */
+:root {
+    --page-bg: #F8FAFC;
+    --nav-bg: #FFFFFF;
+    --card-bg: #FFFFFF;
+    --border-color: #E2E8F0;
+    --input-bg: #FFFFFF;
+    --text-primary: #0F172A;
+    --text-secondary: #64748B;
+    --brand-blue: #2563EB;
+    --exp-bg: #EFF6FF;
+    --exp-text: #2563EB;
+    --success-green: #10B981;
+    --star-yellow: #F59E0B;
+}
+
+[data-theme="dark"] {
+    --page-bg: #0F172A;
+    --nav-bg: #1E293B;
+    --card-bg: #1E293B;
+    --border-color: #334155;
+    --input-bg: #0F172A; /* Match search bar to dark mode */
+    --text-primary: #F8FAFC;
+    --text-secondary: #94A3B8;
+    --brand-blue: #3B82F6;
+    --exp-bg: rgba(59, 130, 246, 0.1);
+    --exp-text: #60A5FA;
+}
+
+/* --- Base & Alignments --- */
+body.bg-main {
+    background-color: var(--page-bg);
+    margin: 0;
+    font-family: 'Inter', sans-serif;
+    color: var(--text-primary);
+}
+
+/* The Secret to Perfect Alignment: Centralized Wrapper */
+.content-wrapper {
+    max-width: 1060px; /* Exact width from Figma */
+    margin: 0 auto;
+    width: 100%;
+    padding-left: 20px;
+    padding-right: 20px;
+}
+
+/* --- Top Navigation --- */
+.top-header {
+    background-color: var(--nav-bg);
+    border-bottom: 1px solid var(--border-color);
+    padding: 16px 0;
+    position: sticky;
+    top: 0;
+    z-index: 50;
+}
+
+.header-content {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.header-left {
+    display: flex;
+    align-items: center;
+    gap: 24px;
+}
+
+.back-arrow {
+    color: var(--text-primary);
+    font-size: 1.2rem;
+    text-decoration: none;
+}
+
+.brand {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.logo-circle {
+    background-color: var(--brand-blue);
+    color: white;
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.85rem;
+}
+
+.brand-text {
+    display: flex;
+    flex-direction: column;
+}
+
+.brand-text strong { color: var(--brand-blue); font-size: 1.05rem; }
+.brand-text span { color: var(--text-secondary); font-size: 0.75rem; font-weight: 500;}
+
+.icon-button {
+    background: transparent;
+    border: none;
+    color: var(--text-primary);
+    font-size: 1.2rem;
+    cursor: pointer;
+}
+
+/* --- Main Layout --- */
+.page-container {
+    padding-top: 40px;
+    padding-bottom: 80px;
+}
+
+.title-header {
+    margin-bottom: 32px;
+}
+
+.title-header h1 {
+    font-size: 1.8rem;
+    color: var(--text-primary);
+    margin-bottom: 6px;
+}
+
+.title-header p {
+    color: var(--text-secondary);
+    font-size: 0.95rem;
+}
+
+/* --- Search & Filters --- */
+.search-filter-container {
+    margin-bottom: 32px;
+}
+
+.search-row {
+    position: relative;
+    margin-bottom: 16px;
+}
+
+.search-row input {
+    width: 100%;
+    background-color: var(--input-bg);
+    border: 1px solid var(--border-color);
+    padding: 14px 16px 14px 44px; /* Corrected Padding */
+    border-radius: 8px;
+    font-size: 0.95rem;
+    color: var(--text-primary);
+    outline: none;
+}
+
+.search-icon {
+    position: absolute;
+    left: 16px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: var(--text-secondary);
+}
+
+.filter-row {
+    display: flex;
+    gap: 16px;
+}
+
+.select-wrapper {
+    flex: 1;
+    position: relative;
+}
+
+.select-wrapper select {
+    width: 100%;
+    appearance: none;
+    background-color: var(--card-bg);
+    border: 1px solid var(--border-color);
+    padding: 12px 36px 12px 16px;
+    border-radius: 8px;
+    font-size: 0.9rem;
+    color: var(--text-primary);
+    cursor: pointer;
+    outline: none;
+}
+
+.select-wrapper::after {
+    content: '\f107';
+    font-family: 'Font Awesome 6 Free';
+    font-weight: 900;
+    position: absolute;
+    right: 16px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: var(--text-secondary);
+    pointer-events: none;
+}
+
+.more-filters-btn {
+    background-color: transparent;
+    border: 1px solid var(--border-color);
+    padding: 0 24px;
+    border-radius: 8px;
+    color: var(--text-primary);
+    font-size: 0.9rem;
+    font-weight: 500;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    cursor: pointer;
+}
+
+.results-count {
+    color: var(--text-secondary);
+    font-size: 0.95rem;
+    margin-bottom: 20px;
+}
+
+.results-count strong {
+    color: var(--text-primary);
+}
+
+/* --- Doctor Cards --- */
+.doctor-list {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+.doctor-card {
+    background-color: var(--card-bg);
+    border: 1px solid var(--border-color);
+    border-radius: 12px;
+    padding: 24px;
+    display: flex;
+    gap: 24px;
+}
+
+.doc-avatar {
+    position: relative;
+    width: 130px; /* Fixed sizing to match design */
+    height: 130px;
+    flex-shrink: 0;
+}
+
+.doc-avatar img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    border-radius: 12px;
+}
+
+.verified-badge {
+    position: absolute;
+    bottom: -4px;
+    right: -4px;
+    background-color: var(--success-green);
+    color: white;
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    font-size: 0.75rem;
+    border: 3px solid var(--card-bg);
+}
+
+.doc-info {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+}
+
+.doc-title-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 4px;
+}
+
+.doc-title-row h2 {
+    font-size: 1.25rem;
+    color: var(--text-primary);
+}
+
+.exp-badge {
+    background-color: var(--exp-bg);
+    color: var(--exp-text);
+    padding: 4px 12px;
+    border-radius: 16px;
+    font-size: 0.8rem;
+    font-weight: 600;
+}
+
+.doc-specialty {
+    color: var(--brand-blue);
+    font-size: 0.95rem;
+    font-weight: 500;
+    margin-bottom: 12px;
+}
+
+.doc-stats {
+    display: flex;
+    gap: 24px;
+    font-size: 0.9rem;
+    margin-bottom: 16px;
+}
+
+.rating { font-weight: 600; color: var(--text-primary); }
+.rating i { color: var(--star-yellow); }
+.reviews, .time { color: var(--text-secondary); }
+
+.doc-langs {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 24px;
+    font-size: 0.85rem;
+}
+
+.lang-label { color: var(--text-secondary); }
+
+.lang-pill {
+    border: 1px solid var(--border-color);
+    padding: 2px 10px;
+    border-radius: 12px;
+    color: var(--text-primary);
+}
+
+.doc-actions {
+    display: flex;
+    gap: 12px;
+    margin-top: auto;
+}
+
+.btn-primary, .btn-outline {
+    padding: 10px 18px;
+    border-radius: 8px; /* Rounded pill style from Figma */
+    font-size: 0.9rem;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    cursor: pointer;
+}
+
+.btn-primary {
+    background-color: var(--brand-blue);
+    color: white;
+    border: none;
+}
+
+.btn-outline {
+    background-color: transparent;
+    color: var(--brand-blue);
+    border: 1px solid var(--brand-blue);
+}

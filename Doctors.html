@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Vision - Find Doctors</title>
+    <link rel="stylesheet" href="css/home.css"> 
+    <link rel="stylesheet" href="css/doctors.css"> 
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body class="bg-main">
+
+    <header class="top-header">
+        <div class="content-wrapper header-content">
+            <div class="header-left">
+                <a href="home.html" class="back-arrow"><i class="fa-solid fa-arrow-left"></i></a>
+                <div class="brand">
+                    <div class="logo-circle"><i class="fa-solid fa-heart-pulse"></i></div>
+                    <div class="brand-text">
+                        <strong>Vision</strong>
+                        <span>Find Doctors</span>
+                    </div>
+                </div>
+            </div>
+            <button id="theme-toggle" class="icon-button" aria-label="Toggle Dark Mode">
+                <i class="fa-regular fa-moon" id="theme-icon"></i>
+            </button>
+        </div>
+    </header>
+
+    <main class="content-wrapper page-container">
+        
+        <div class="title-header">
+            <h1>Find Your Doctor</h1>
+            <p>Browse our network of verified healthcare professionals</p>
+        </div>
+
+        <div class="search-filter-container">
+            <div class="search-row">
+                <i class="fa-solid fa-magnifying-glass search-icon"></i>
+                <input type="text" id="doctor-search" placeholder="Search by doctor name or specialty...">
+            </div>
+            
+            <div class="filter-row">
+                <div class="select-wrapper">
+                    <select id="filter-specialty">
+                        <option value="all">All Specialties</option>
+                        <option value="Cardiologist">Cardiologist</option>
+                        <option value="Orthopedic">Orthopedic</option>
+                        <option value="General Physician">General Physician</option>
+                        <option value="Pediatrician">Pediatrician</option>
+                        <option value="Dermatologist">Dermatologist</option>
+                    </select>
+                </div>
+                
+                <div class="select-wrapper">
+                    <select id="filter-type">
+                        <option value="all">All Types</option>
+                        <option value="video">Video Consult</option>
+                        <option value="home">Home Visit</option>
+                    </select>
+                </div>
+
+                <div class="select-wrapper">
+                    <select id="sort-rating">
+                        <option value="highest">Highest Rated</option>
+                        <option value="lowest">Lowest Rated</option>
+                    </select>
+                </div>
+
+                <button class="more-filters-btn">
+                    <i class="fa-solid fa-filter"></i> More Filters
+                </button>
+            </div>
+        </div>
+
+        <div class="results-count">Showing <strong id="doctor-count">0</strong> doctors</div>
+
+        <div class="doctor-list" id="doctor-list">
+            </div>
+
+    </main>
+
+    <script src="js/script.js"></script>
+    <script src="js/auth_guard.js"></script>
+    <script src="js/doctors.js"></script> </body>
+</html>
+
+        

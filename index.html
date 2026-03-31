@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Vision - Healthcare at your convenience</title>
+    <link rel="stylesheet" href="css/index.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body>
+
+    <button id="theme-toggle" class="theme-toggle" aria-label="Toggle Dark Mode">
+        <i class="fa-solid fa-moon" id="theme-icon"></i>
+    </button>
+
+    <div class="auth-container">
+        <div class="brand-header">
+            <div class="logo-circle">
+                <i class="fa-solid fa-heart-pulse"></i>
+            </div>
+            <h1 class="brand-letter">V</h1>
+            <p class="brand-tagline">Healthcare at your convenience</p>
+        </div>
+
+        <div class="auth-card">
+            <div class="auth-tabs">
+                <button class="tab active" id="tab-login">Login</button>
+                <button class="tab" id="tab-signup">Sign Up</button>
+            </div>
+
+            <form id="form-login" class="auth-form active-form">
+                <h2>Welcome Back</h2>
+                <p class="form-subtitle">Login to access your healthcare services</p>
+
+                <div class="input-group">
+                    <label>Email</label>
+                    <input type="email" placeholder="john.doe@example.com" required>
+                </div>
+
+                <div class="input-group">
+                    <label>Password</label>
+                    <input type="password" placeholder="••••••••" required>
+                </div>
+
+                <button type="submit" class="btn-primary">Login</button>
+            </form>
+
+            <form id="form-signup" class="auth-form">
+                <h2>Create Account</h2>
+                <p class="form-subtitle">Sign up to start your healthcare journey</p>
+
+                <div class="input-group">
+                    <label>Full Name</label>
+                    <input type="text" placeholder="Your Name" required>
+                </div>
+
+                <div class="input-group">
+                    <label>Email</label>
+                    <input type="email" placeholder="mail@example.com" required>
+                </div>
+
+                <div class="input-group">
+                    <label>Phone Number</label>
+                    <input type="tel" placeholder="+91 234 567 8900" required>
+                </div>
+
+                <div class="input-group">
+                    <label>Password</label>
+                    <input type="password" placeholder="••••••••" required>
+                </div>
+
+                <div class="input-group">
+                    <label>Confirm Password</label>
+                    <input type="password" placeholder="••••••••" required>
+                </div>
+
+                <button type="submit" class="btn-primary">Sign Up</button>
+            </form>
+        </div>
+    </div>
+    <script src="js/script.js"></script>
+    <script src="js/auth_guard.js"></script>
+</body>
+</html>

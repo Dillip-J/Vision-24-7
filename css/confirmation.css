@@ -1,0 +1,213 @@
+/* --- Confirmation Page Specific Styles --- */
+.confirm-container {
+    max-width: 520px;
+    margin: 60px auto;
+    padding: 0 20px;
+    animation: slideUpFade 0.5s ease-out forwards;
+}
+
+@keyframes slideUpFade {
+    from { opacity: 0; transform: translateY(20px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+/* --- Success Header --- */
+.success-header {
+    text-align: center;
+    margin-bottom: 32px;
+}
+
+.success-halo {
+    width: 100px;
+    height: 100px;
+    background-color: #ECFDF5; /* Very light green */
+    border-radius: 50%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    margin: 0 auto 24px auto;
+}
+
+.success-circle {
+    width: 64px;
+    height: 64px;
+    background-color: #10B981; /* Solid green */
+    border-radius: 50%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    color: white;
+    font-size: 2rem;
+    box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
+}
+
+.success-header h1 {
+    font-size: 2rem;
+    color: var(--text-primary);
+    margin-bottom: 8px;
+    font-weight: 700;
+}
+
+.success-header p {
+    color: var(--text-secondary);
+    font-size: 1rem;
+}
+
+/* --- Details Card --- */
+.details-card {
+    background-color: var(--card-bg);
+    border: 1px solid var(--border-color);
+    border-radius: 16px;
+    padding: 24px 32px;
+    margin-bottom: 24px;
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+}
+
+.detail-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.border-bottom {
+    border-bottom: 1px solid var(--border-color);
+    padding-bottom: 16px;
+    margin-bottom: -8px; /* Offset gap */
+}
+
+.detail-label {
+    color: var(--text-secondary);
+    font-size: 0.95rem;
+}
+
+.text-blue {
+    color: var(--brand-blue);
+    font-weight: 600;
+    font-size: 1.05rem;
+    letter-spacing: 0.5px;
+}
+
+.detail-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 16px;
+}
+
+.detail-icon {
+    color: var(--brand-blue);
+    font-size: 1.2rem;
+    margin-top: 2px;
+}
+
+.detail-text {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.detail-sub {
+    color: var(--text-secondary);
+    font-size: 0.85rem;
+}
+
+.detail-text strong {
+    color: var(--text-primary);
+    font-size: 1rem;
+    font-weight: 600;
+}
+
+.detail-muted {
+    color: var(--text-secondary);
+    font-size: 0.9rem;
+}
+
+/* --- What's Next Card --- */
+.whats-next-card {
+    background-color: var(--card-bg);
+    border: 1px solid var(--border-color);
+    border-radius: 16px;
+    padding: 24px 32px;
+    margin-bottom: 32px;
+}
+
+.whats-next-title {
+    font-size: 1.1rem;
+    font-weight: 600;
+    color: var(--text-primary);
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 16px;
+}
+
+.whats-next-title i {
+    color: var(--brand-blue);
+}
+
+.whats-next-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.whats-next-list li {
+    position: relative;
+    padding-left: 20px;
+    color: var(--text-secondary);
+    font-size: 0.95rem;
+    line-height: 1.5;
+}
+
+.whats-next-list li::before {
+    content: "•";
+    color: var(--brand-blue);
+    font-size: 1.5rem;
+    position: absolute;
+    left: 0;
+    top: -4px;
+}
+
+/* --- Action Buttons --- */
+.action-buttons {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+}
+
+.btn-primary, .btn-outline-home {
+    padding: 14px;
+    border-radius: 8px;
+    font-size: 1rem;
+    font-weight: 600;
+    cursor: pointer;
+    text-align: center;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 8px;
+    font-family: inherit;
+    transition: all 0.2s;
+}
+
+.btn-primary {
+    background-color: var(--brand-blue);
+    color: white;
+    border: none;
+}
+.btn-primary:hover { opacity: 0.9; }
+
+.btn-outline-home {
+    background-color: var(--page-bg);
+    color: var(--text-primary);
+    border: 1px solid var(--border-color);
+}
+.btn-outline-home:hover { border-color: var(--brand-blue); }
+
+/* --- Dark Mode Specifics --- */
+[data-theme="dark"] .success-halo { background-color: rgba(16, 185, 129, 0.1); }
+[data-theme="dark"] .btn-outline-home { background-color: var(--card-bg); }

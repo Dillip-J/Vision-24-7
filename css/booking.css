@@ -1,0 +1,252 @@
+/* --- Booking Page Specific Styles --- */
+
+.booking-layout {
+    display: grid;
+    grid-template-columns: 1fr 380px; /* Exact proportions from Figma */
+    gap: 32px;
+    padding-top: 40px;
+    padding-bottom: 80px;
+}
+
+/* --- Left Column --- */
+.booking-flow {
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+}
+
+.doc-header-card {
+    background: var(--card-bg);
+    border: 1px solid var(--border-color);
+    border-radius: 12px;
+    padding: 24px;
+    display: flex;
+    gap: 20px;
+    align-items: center;
+}
+
+.doc-header-avatar {
+    width: 80px;
+    height: 80px;
+    flex-shrink: 0;
+}
+
+.doc-header-avatar img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    border-radius: 12px;
+}
+
+.doc-header-details {
+    flex: 1;
+}
+
+.doc-header-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 4px;
+}
+
+.doc-header-top h2 {
+    font-size: 1.25rem;
+    color: var(--text-primary);
+}
+
+.badge-visit-type {
+    background-color: var(--exp-bg);
+    color: var(--brand-blue);
+    padding: 6px 12px;
+    border-radius: 20px;
+    font-size: 0.85rem;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.doc-exp {
+    color: var(--text-secondary);
+    font-size: 0.9rem;
+}
+
+/* Common Section Styling */
+.booking-section {
+    background: var(--card-bg);
+    border: 1px solid var(--border-color);
+    border-radius: 12px;
+    padding: 24px;
+}
+
+.section-title-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+}
+
+.section-title {
+    font-size: 1.1rem;
+    font-weight: 600;
+    color: var(--text-primary);
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 20px;
+}
+
+.section-title i { color: var(--brand-blue); }
+
+.duration-text { color: var(--text-secondary); font-size: 0.9rem; }
+
+/* Date Selection */
+.date-scroll-container {
+    display: flex;
+    gap: 12px;
+    overflow-x: auto;
+    padding-bottom: 16px;
+    scrollbar-width: none; /* Hide default scrollbar */
+}
+.date-scroll-container::-webkit-scrollbar { display: none; }
+
+.date-card {
+    border: 1px solid var(--border-color);
+    border-radius: 12px;
+    padding: 16px 20px;
+    min-width: 90px;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.2s;
+    background: transparent;
+    color: var(--text-primary);
+}
+
+.date-card.active {
+    background-color: var(--brand-blue);
+    border-color: var(--brand-blue);
+    color: white;
+}
+
+.date-card span { display: block; font-size: 0.85rem; margin-bottom: 4px; opacity: 0.8;}
+.date-card strong { display: block; font-size: 1.1rem; }
+
+.scroll-indicator {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    color: var(--border-color);
+}
+.scroll-track {
+    flex: 1; height: 6px; background: var(--border-color); border-radius: 4px; position: relative;
+}
+.scroll-thumb {
+    width: 30%; height: 100%; background: var(--text-secondary); border-radius: 4px;
+}
+
+/* Time Selection */
+.time-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 16px;
+}
+
+.time-slot {
+    padding: 12px 0;
+    text-align: center;
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    font-size: 0.95rem;
+    font-weight: 500;
+    color: var(--text-primary);
+    background: transparent;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.time-slot:hover { border-color: var(--brand-blue); }
+
+.time-slot.active {
+    background-color: var(--brand-blue);
+    border-color: var(--brand-blue);
+    color: white;
+}
+
+.time-slot.disabled {
+    background-color: var(--input-bg);
+    color: var(--text-secondary);
+    opacity: 0.5;
+    cursor: not-allowed;
+    border-color: var(--border-color);
+}
+
+/* Patient Form */
+.patient-form { display: flex; flex-direction: column; gap: 20px; }
+
+.form-row.two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+
+.input-group label, .form-row > label {
+    display: block; font-size: 0.9rem; font-weight: 500; margin-bottom: 8px; color: var(--text-primary);
+}
+
+.patient-form input[type="text"], .patient-form input[type="number"], .patient-form textarea {
+    width: 100%;
+    padding: 12px;
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    background-color: var(--input-bg);
+    color: var(--text-primary);
+    font-family: inherit;
+    font-size: 0.95rem;
+    outline: none;
+}
+.patient-form input:focus, .patient-form textarea:focus { border-color: var(--brand-blue); }
+
+.radio-group { display: flex; gap: 24px; }
+.radio-label { display: flex; align-items: center; gap: 8px; font-size: 0.95rem; color: var(--text-primary); cursor: pointer; }
+
+/* --- Right Column: Sidebar --- */
+.booking-sidebar { position: relative; }
+
+.summary-card {
+    background: var(--card-bg);
+    border: 1px solid var(--border-color);
+    border-radius: 12px;
+    padding: 24px;
+    position: sticky;
+    top: 100px;
+}
+
+.summary-card h3 { font-size: 1.25rem; color: var(--text-primary); margin-bottom: 24px; }
+
+.summary-doc-info { margin-bottom: 24px; }
+.summary-label { display: block; font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 4px; }
+.summary-doc-info strong { display: block; font-size: 1.1rem; color: var(--text-primary); }
+.mt-2 { margin-top: 16px; }
+.mt-3 { margin-top: 24px; }
+.text-blue { color: var(--brand-blue) !important; }
+
+.summary-datetime {
+    background: var(--page-bg);
+    border-radius: 8px;
+    padding: 16px;
+    margin-bottom: 24px;
+}
+
+.sum-row { display: flex; align-items: flex-start; gap: 12px; margin-bottom: 16px; }
+.sum-row:last-child { margin-bottom: 0; }
+.sum-row i { color: var(--brand-blue); font-size: 1.1rem; margin-top: 2px; }
+.sum-sub { display: block; font-size: 0.8rem; color: var(--text-secondary); margin-bottom: 2px; }
+.sum-row strong { font-size: 0.95rem; color: var(--text-primary); }
+
+.summary-costs { margin-bottom: 24px; }
+.cost-row { display: flex; justify-content: space-between; font-size: 0.95rem; color: var(--text-secondary); margin-bottom: 12px; }
+.cost-divider { border: none; border-top: 1px dashed var(--border-color); margin: 16px 0; }
+.total-row { color: var(--text-primary); font-weight: 600; align-items: center; margin-bottom: 0;}
+.total-price { font-size: 1.5rem; font-weight: 700; }
+
+.full-width { width: 100%; justify-content: center; font-size: 1rem; padding: 14px; }
+.full-width:disabled { opacity: 0.6; cursor: not-allowed; }
+
+.terms-text { text-align: center; font-size: 0.8rem; color: var(--text-secondary); margin-top: 16px; }
+.terms-text a { color: var(--brand-blue); text-decoration: none; font-weight: 500; }

@@ -1,0 +1,234 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Vision - Payment</title>
+    <link rel="stylesheet" href="css/home.css">
+    <link rel="stylesheet" href="css/book.css"> 
+    <link rel="stylesheet" href="css/payment.css"> 
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body class="bg-main">
+
+    <header class="top-header">
+        <div class="content-wrapper header-content">
+            <div class="header-left">
+                <a href="book.html" class="back-arrow"><i class="fa-solid fa-arrow-left"></i></a>
+                <div class="brand">
+                    <div class="logo-circle"><i class="fa-solid fa-heart-pulse"></i></div>
+                    <div class="brand-text">
+                        <strong>Vision</strong>
+                        <span>Payment</span>
+                    </div>
+                </div>
+            </div>
+            <button id="theme-toggle" class="icon-button" aria-label="Toggle Dark Mode">
+                <i class="fa-regular fa-moon" id="theme-icon"></i>
+            </button>
+        </div>
+    </header>
+
+    <main class="content-wrapper booking-layout">
+        
+        <div class="booking-flow">
+            
+            <div class="secure-badge-top">
+                <i class="fa-solid fa-shield-halved"></i> Secure & encrypted payment
+            </div>
+
+            <section class="booking-card">
+                <h2 class="card-title">Select Payment Method</h2>
+                
+                <div class="payment-methods-list">
+                    <div class="payment-method-row" id="method-card">
+                        <div class="method-radio">
+                            <input type="radio" name="payment_method" value="card">
+                            <span class="custom-radio"></span>
+                        </div>
+                        <div class="method-icon blue-bg"><i class="fa-regular fa-credit-card"></i></div>
+                        <div class="method-details">
+                            <strong>Credit / Debit Card</strong>
+                            <span>Visa, Mastercard, Amex</span>
+                        </div>
+                    </div>
+
+                    <div class="payment-method-row" id="method-upi">
+                        <div class="method-radio">
+                            <input type="radio" name="payment_method" value="upi">
+                            <span class="custom-radio"></span>
+                        </div>
+                        <div class="method-icon purple-bg"><i class="fa-solid fa-wallet"></i></div>
+                        <div class="method-details">
+                            <strong>UPI / Digital Wallet</strong>
+                            <span>Google Pay, PhonePe, Paytm</span>
+                        </div>
+                    </div>
+
+                    <div class="payment-method-row active" id="method-netbanking">
+                        <div class="method-radio">
+                            <input type="radio" name="payment_method" value="netbanking" checked>
+                            <span class="custom-radio"></span>
+                        </div>
+                        <div class="method-icon green-bg"><i class="fa-solid fa-building-columns"></i></div>
+                        <div class="method-details">
+                            <strong>Net Banking</strong>
+                            <span>All major banks supported</span>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <div class="payment-panel" id="panel-card" style="display: none;">
+                <section class="booking-card">
+                    <h2 class="card-title"><i class="fa-solid fa-lock text-blue"></i> Card Details</h2>
+                    <form class="payment-form" id="form-card">
+                        <div class="form-row">
+                            <label>Card Number</label>
+                            <input type="text" placeholder="1234 5678 9012 3456" id="cc-number" maxlength="19">
+                        </div>
+                        <div class="form-row">
+                            <label>Cardholder Name</label>
+                            <input type="text" placeholder="John Doe" id="cc-name">
+                        </div>
+                        <div class="form-row two-col">
+                            <div class="input-group">
+                                <label>Expiry Date</label>
+                                <input type="text" placeholder="MM/YY" id="cc-exp" maxlength="5">
+                            </div>
+                            <div class="input-group">
+                                <label>CVV</label>
+                                <input type="password" placeholder="123" id="cc-cvv" maxlength="4">
+                            </div>
+                        </div>
+                    </form>
+                </section>
+            </div>
+
+            <div class="payment-panel" id="panel-upi" style="display: none;">
+                <section class="booking-card">
+                    <h2 class="card-title"><i class="fa-solid fa-wallet text-purple"></i> UPI Details</h2>
+                    <form class="payment-form" id="form-upi">
+                        <div class="form-row">
+                            <label>Enter UPI ID</label>
+                            <input type="text" placeholder="username@upi" id="upi-id">
+                        </div>
+                        <p class="sub-text mt-2">A payment request will be sent to your UPI app.</p>
+                    </form>
+                </section>
+            </div>
+
+            <div class="payment-panel active-panel" id="panel-netbanking">
+                
+                <section class="booking-card">
+                    <h2 class="card-title">Select Your Bank</h2>
+                    <div class="bank-grid" id="bank-grid">
+                        <button type="button" class="bank-btn active" data-bank="HDFC Bank"><i class="fa-solid fa-building-columns"></i> HDFC Bank</button>
+                        <button type="button" class="bank-btn" data-bank="ICICI Bank"><i class="fa-solid fa-building-columns"></i> ICICI Bank</button>
+                        <button type="button" class="bank-btn" data-bank="SBI"><i class="fa-solid fa-building-columns"></i> SBI</button>
+                        <button type="button" class="bank-btn" data-bank="Axis Bank"><i class="fa-solid fa-building-columns"></i> Axis Bank</button>
+                        <button type="button" class="bank-btn" data-bank="Kotak Bank"><i class="fa-solid fa-building-columns"></i> Kotak Bank</button>
+                        <button type="button" class="bank-btn" data-bank="Other"><i class="fa-solid fa-building-columns"></i> Other</button>
+                    </div>
+                </section>
+
+                <section class="booking-card">
+                    <h2 class="card-title">
+                        <i class="fa-solid fa-lock text-blue"></i> <span id="dynamic-bank-name">HDFC Bank</span> Login
+                    </h2>
+                    <p class="sub-text">Enter your net banking credentials to proceed with the payment</p>
+                    
+                    <form class="payment-form mt-4" id="form-netbanking">
+                        <div class="form-row">
+                            <label>Customer ID / User ID</label>
+                            <input type="text" placeholder="Enter your customer ID" id="nb-user" required>
+                        </div>
+                        <div class="form-row">
+                            <label>Password</label>
+                            <input type="password" placeholder="Enter your password" id="nb-pass" required>
+                        </div>
+                        <div class="security-banner">
+                            <i class="fa-solid fa-shield-halved"></i> Your banking credentials are encrypted and secure. We never store your password.
+                        </div>
+                    </form>
+                </section>
+
+            </div>
+
+        </div>
+
+        <aside class="booking-sidebar">
+            <div class="summary-card">
+                <h3 class="summary-title">Booking Summary</h3>
+                
+                <div class="pay-doc-block">
+                    <img id="pay-doc-img" src="" alt="Doctor Avatar">
+                    <div class="pay-doc-info">
+                        <span class="summary-label">Doctor</span>
+                        <strong id="pay-doc-name">...</strong>
+                        <span class="summary-label mt-2">Specialization</span>
+                        <strong class="text-blue pay-doc-spec" id="pay-doc-spec">...</strong>
+                    </div>
+                </div>
+
+                <div class="pay-summary-list">
+                    <div class="sum-row">
+                        <i class="fa-regular fa-calendar text-blue"></i>
+                        <div>
+                            <span class="sum-sub">Date</span>
+                            <strong id="pay-date">...</strong>
+                        </div>
+                    </div>
+                    <div class="sum-row">
+                        <i class="fa-regular fa-clock text-blue"></i>
+                        <div>
+                            <span class="sum-sub">Time</span>
+                            <strong id="pay-time">...</strong>
+                        </div>
+                    </div>
+                    <div class="sum-row">
+                        <i class="fa-solid fa-location-dot text-blue"></i>
+                        <div>
+                            <span class="sum-sub">Type</span>
+                            <strong id="pay-type">...</strong>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="summary-costs">
+                    <div class="cost-row">
+                        <span>Consultation Fee</span>
+                        <span id="pay-fee">...</span>
+                    </div>
+                    <div class="cost-row">
+                        <span>Visit Charges</span>
+                        <span id="pay-visit">...</span>
+                    </div>
+                    <div class="cost-row">
+                        <span>Platform Fee</span>
+                        <span id="pay-platform">...</span>
+                    </div>
+                    <hr class="cost-divider">
+                    <div class="cost-row total-row">
+                        <span>Total Amount</span>
+                        <span class="total-price text-blue" id="pay-total">...</span>
+                    </div>
+                </div>
+
+                <button class="btn-pay-main" id="confirm-pay-btn">
+                    Pay <span id="btn-amount">$0</span>
+                </button>
+
+                <div class="secure-footer">
+                    <i class="fa-solid fa-lock"></i> 100% secure payment powered by SSL encryption
+                </div>
+            </div>
+        </aside>
+
+    </main>
+    <script src="js/script.js"></script>
+    <script src="js/auth_guard.js"></script>
+    <script src="js/payment.js"></script>
+</body>
+</html>

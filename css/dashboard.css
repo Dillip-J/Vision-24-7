@@ -1,0 +1,466 @@
+/* --- Dashboard Specific Styles --- */
+
+.dashboard-layout {
+    padding-top: 32px;
+    padding-bottom: 80px;
+    display: flex;
+    flex-direction: column;
+    gap: 32px;
+}
+
+/* --- Stats Row --- */
+.stats-row {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 24px;
+}
+
+.stat-card {
+    background: var(--card-bg);
+    border: 1px solid var(--border-color);
+    border-radius: 16px;
+    padding: 24px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.stat-info {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.stat-title {
+    color: var(--text-secondary);
+    font-size: 0.95rem;
+    font-weight: 500;
+}
+
+.stat-value {
+    color: var(--text-primary);
+    font-size: 2.2rem;
+    font-weight: 700;
+    line-height: 1;
+}
+
+.stat-icon {
+    width: 56px;
+    height: 56px;
+    border-radius: 12px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    font-size: 1.5rem;
+}
+
+/* Stat Colors */
+.icon-blue { background-color: #EFF6FF; color: #3B82F6; }
+.icon-green { background-color: #ECFDF5; color: #10B981; }
+.icon-purple { background-color: #F3E8FF; color: #9333EA; }
+
+[data-theme="dark"] .icon-blue { background-color: rgba(59, 130, 246, 0.15); color: #60A5FA; }
+[data-theme="dark"] .icon-green { background-color: rgba(16, 185, 129, 0.15); color: #34D399; }
+[data-theme="dark"] .icon-purple { background-color: rgba(147, 51, 234, 0.15); color: #C084FC; }
+
+/* --- Tabs --- */
+.dash-tabs-container {
+    display: flex;
+    justify-content: center;
+}
+
+.dash-tabs {
+    background-color: var(--card-bg); /* Fits light mode greyish tone */
+    border: 1px solid var(--border-color);
+    border-radius: 50px;
+    padding: 6px;
+    display: flex;
+    gap: 4px;
+    width: 100%;
+}
+
+.dash-tab {
+    flex: 1;
+    background: transparent;
+    border: none;
+    padding: 14px 24px;
+    border-radius: 50px;
+    color: var(--text-secondary);
+    font-size: 0.95rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.dash-tab:hover {
+    color: var(--text-primary);
+}
+
+.dash-tab.active {
+    background-color: var(--page-bg);
+    color: var(--text-primary);
+    box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+}
+
+[data-theme="dark"] .dash-tabs { background-color: var(--card-bg); border-color: var(--border-color); }
+[data-theme="dark"] .dash-tab.active { background-color: var(--border-color); color: var(--text-primary); }
+
+/* --- Appointments List --- */
+.section-header-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 24px;
+}
+
+.section-header-row h2 {
+    font-size: 1.4rem;
+    color: var(--text-primary);
+}
+
+.btn-primary-small {
+    background-color: var(--brand-blue);
+    color: white;
+    padding: 10px 20px;
+    border-radius: 8px;
+    font-size: 0.95rem;
+    font-weight: 600;
+    text-decoration: none;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.appointments-list {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+.apt-card {
+    background-color: var(--card-bg);
+    border: 1px solid var(--border-color);
+    border-radius: 16px;
+    padding: 24px;
+    display: flex;
+    gap: 24px;
+}
+
+.apt-avatar {
+    width: 64px;
+    height: 64px;
+    background-color: #EFF6FF;
+    color: #3B82F6;
+    border-radius: 50%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    font-size: 1.1rem;
+    font-weight: 600;
+    flex-shrink: 0;
+}
+
+[data-theme="dark"] .apt-avatar { background-color: rgba(59, 130, 246, 0.15); color: #60A5FA; }
+
+.apt-content {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+}
+
+.apt-top-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 6px;
+}
+
+.apt-title-group {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.apt-title-group h3 {
+    font-size: 1.15rem;
+    color: var(--text-primary);
+}
+
+.status-badge {
+    padding: 4px 10px;
+    border-radius: 20px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    text-transform: lowercase;
+}
+
+.status-upcoming { background-color: #EFF6FF; color: #3B82F6; }
+.status-completed { background-color: #ECFDF5; color: #10B981; }
+
+[data-theme="dark"] .status-upcoming { background-color: rgba(59, 130, 246, 0.15); color: #60A5FA; }
+[data-theme="dark"] .status-completed { background-color: rgba(16, 185, 129, 0.15); color: #34D399; }
+
+.apt-id {
+    color: var(--brand-blue);
+    font-weight: 600;
+    font-size: 0.9rem;
+}
+
+.apt-doctor {
+    color: var(--text-secondary);
+    font-size: 0.95rem;
+    margin-bottom: 16px;
+}
+
+.apt-meta-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 16px;
+    margin-bottom: 20px;
+}
+
+.meta-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    color: var(--text-secondary);
+    font-size: 0.95rem;
+}
+
+.meta-item i {
+    color: var(--brand-blue);
+}
+
+.apt-actions {
+    display: flex;
+    gap: 12px;
+}
+
+.btn-action, .btn-action-outline {
+    padding: 8px 16px;
+    border-radius: 8px;
+    font-size: 0.9rem;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    cursor: pointer;
+    font-family: inherit;
+    border: none;
+}
+
+.btn-action {
+    background-color: var(--brand-blue);
+    color: white;
+}
+
+.btn-action-outline {
+    background-color: transparent;
+    color: var(--text-primary);
+    border: 1px solid var(--border-color);
+}
+
+.btn-action-outline:hover {
+    background-color: var(--page-bg);
+}
+
+[data-theme="dark"] .btn-action-outline:hover { background-color: rgba(255,255,255,0.05); }
+
+/* --- Reports & Empty State Styles --- */
+.empty-state {
+    text-align: center;
+    padding: 60px 20px;
+    background: var(--card-bg);
+    border: 1px solid var(--border-color);
+    border-radius: 16px;
+    color: var(--text-secondary);
+}
+.empty-state i {
+    font-size: 3rem;
+    color: var(--border-color);
+    margin-bottom: 16px;
+}
+
+/* Report Card specific tweaks */
+.report-icon {
+    width: 64px;
+    height: 64px;
+    background-color: #F3E8FF;
+    color: #9333EA;
+    border-radius: 12px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    font-size: 1.8rem;
+    flex-shrink: 0;
+}
+[data-theme="dark"] .report-icon { background-color: rgba(147, 51, 234, 0.15); color: #C084FC; }
+
+.btn-download {
+    background-color: transparent;
+    color: var(--brand-blue);
+    border: 1px solid var(--brand-blue);
+}
+.btn-download:hover {
+    background-color: var(--brand-blue);
+    color: white;
+}
+/* ========================================= */
+/* --- Booking Details Modal Styles ---      */
+/* ========================================= */
+
+.modal-overlay {
+    position: fixed;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background: rgba(0, 0, 0, 0.4);
+    backdrop-filter: blur(2px);
+    z-index: 1000;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 20px;
+    animation: fadeInOverlay 0.2s ease;
+}
+
+@keyframes fadeInOverlay { from { opacity: 0; } to { opacity: 1; } }
+@keyframes slideUpModal { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+
+.modal-container {
+    background: var(--card-bg);
+    width: 100%;
+    max-width: 600px;
+    border-radius: 16px;
+    display: flex;
+    flex-direction: column;
+    max-height: 90vh;
+    position: relative;
+    box-shadow: 0 10px 40px rgba(0,0,0,0.15);
+    animation: slideUpModal 0.3s ease;
+}
+
+.modal-close {
+    position: absolute;
+    top: 24px; right: 24px;
+    background: transparent;
+    border: none;
+    font-size: 1.2rem;
+    color: var(--text-secondary);
+    cursor: pointer;
+    z-index: 10;
+    transition: color 0.2s;
+}
+.modal-close:hover { color: var(--text-primary); }
+
+.modal-header {
+    padding: 24px 32px;
+    border-bottom: 1px solid var(--border-color);
+}
+.modal-header h2 { font-size: 1.4rem; color: var(--text-primary); margin-bottom: 4px; }
+.modal-header p { color: var(--text-secondary); font-size: 0.95rem; }
+
+/* Custom Scrollable Area */
+.modal-scroll-content {
+    padding: 24px 32px;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 32px;
+}
+.modal-scroll-content::-webkit-scrollbar { width: 6px; }
+.modal-scroll-content::-webkit-scrollbar-thumb { background: var(--border-color); border-radius: 4px; }
+
+/* Banner Styles (Green for Completed, Blue for Upcoming) */
+.modal-status-banner {
+    border: 1px solid var(--success-green);
+    background-color: #F0FDF4;
+    padding: 16px 20px;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+}
+
+.modal-status-banner.upcoming {
+    border-color: var(--brand-blue);
+    background-color: #EFF6FF;
+}
+
+.banner-icon {
+    width: 40px; height: 40px;
+    background-color: white;
+    border-radius: 50%;
+    display: flex; justify-content: center; align-items: center;
+    color: var(--success-green);
+    font-size: 1.1rem;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+}
+.modal-status-banner.upcoming .banner-icon { color: var(--brand-blue); }
+
+.banner-text { flex: 1; display: flex; flex-direction: column; }
+.banner-text strong { color: var(--text-primary); font-size: 1.1rem; }
+.banner-text span { color: var(--text-secondary); font-size: 0.85rem; }
+.modal-status-banner .status-badge { margin-left: auto; }
+
+/* General Sections */
+.modal-section { display: flex; flex-direction: column; gap: 16px; }
+.section-title {
+    color: var(--brand-blue);
+    font-weight: 600;
+    font-size: 1.05rem;
+    display: flex; align-items: center; gap: 8px;
+}
+
+/* Provider Card inside Modal */
+.provider-card {
+    border: 1px solid var(--border-color);
+    border-radius: 12px; padding: 16px;
+    display: flex; align-items: center; gap: 16px;
+}
+.provider-avatar {
+    width: 56px; height: 56px;
+    background: #EFF6FF; color: #3B82F6;
+    border-radius: 50%; display: flex; justify-content: center; align-items: center;
+    font-weight: 600; font-size: 1.1rem; flex-shrink: 0;
+}
+.provider-info { display: flex; flex-direction: column; gap: 2px; }
+.provider-info strong { color: var(--text-primary); font-size: 1.05rem; }
+.provider-info span { color: var(--text-secondary); font-size: 0.9rem; }
+.provider-stats { display: flex; gap: 16px; margin-top: 4px; font-size: 0.85rem; color: var(--text-secondary); }
+.text-yellow { color: #F59E0B; }
+
+/* Info Grids */
+.info-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+.info-item { display: flex; flex-direction: column; gap: 4px; }
+.info-item.full-width { grid-column: 1 / -1; }
+.info-item label { color: var(--text-secondary); font-size: 0.85rem; }
+.info-item strong { color: var(--text-primary); font-size: 0.95rem; font-weight: 500; display: flex; align-items: center; gap: 6px; }
+
+.text-purple { color: #9333EA; }
+.text-blue { color: var(--brand-blue); }
+.text-large { font-size: 1.6rem !important; font-weight: 700 !important; }
+
+/* Footer */
+.modal-footer {
+    padding: 20px 32px;
+    border-top: 1px solid var(--border-color);
+    display: flex;
+    gap: 12px;
+    background: var(--card-bg);
+    border-radius: 0 0 16px 16px;
+}
+
+/* Card Hover to indicate it's clickable */
+.apt-card {
+    cursor: pointer;
+    transition: box-shadow 0.2s, border-color 0.2s;
+}
+.apt-card:hover {
+    border-color: var(--brand-blue);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.03);
+}
+
+/* --- Dark Mode Overrides for Modal --- */
+[data-theme="dark"] .modal-status-banner { background-color: rgba(16, 185, 129, 0.1); border-color: rgba(16, 185, 129, 0.2); }
+[data-theme="dark"] .modal-status-banner.upcoming { background-color: rgba(59, 130, 246, 0.1); border-color: rgba(59, 130, 246, 0.2); }
+[data-theme="dark"] .banner-icon { background-color: var(--card-bg); }
+[data-theme="dark"] .provider-avatar { background: rgba(59, 130, 246, 0.15); color: #60A5FA; }

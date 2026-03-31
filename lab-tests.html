@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Vision - Lab Tests</title>
+    <link rel="stylesheet" href="css/payment.css"> 
+    <link rel="stylesheet" href="css/services.css"> 
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body class="bg-main">
+
+    <header class="top-header">
+        <div class="content-wrapper header-content">
+            <div class="header-left">
+                <a href="home.html" class="back-arrow"><i class="fa-solid fa-arrow-left"></i></a>
+                <div class="brand">
+                    <div class="logo-circle"><i class="fa-solid fa-flask"></i></div>
+                    <div class="brand-text">
+                        <strong>Vision</strong>
+                        <span>Lab Tests</span>
+                    </div>
+                </div>
+            </div>
+            <button id="theme-toggle" class="icon-button" aria-label="Toggle Dark Mode">
+                <i class="fa-regular fa-moon" id="theme-icon"></i>
+            </button>
+        </div>
+    </header>
+
+    <main class="content-wrapper services-layout" id="lab-tests-page">
+        
+        <div class="services-header">
+            <h1>Lab Tests & Diagnostics</h1>
+            <p>Accurate sample collection from the comfort of your home</p>
+        </div>
+
+        <div class="services-search-container" style="margin-bottom: 16px;">
+            <i class="fa-solid fa-magnifying-glass search-icon"></i>
+            <input type="text" id="service-search" placeholder="Search tests...">
+        </div>
+
+        <div class="services-grid" id="services-grid">
+            </div>
+
+    </main>
+
+    <script src="js/script.js"></script>
+    <script src="js/auth_guard.js"></script>
+    <script src="js/lab-tests.js"></script>
+</body>
+</html>

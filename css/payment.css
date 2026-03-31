@@ -1,0 +1,261 @@
+/* --- Global Overrides for Payment Page --- */
+:root {
+    --page-bg: #F8FAFC;
+    --card-bg: #FFFFFF;
+    --border-color: #E2E8F0;
+    --brand-blue: #0066FF; 
+    --text-primary: #0F172A;
+    --text-secondary: #64748B;
+    --success-green: #10B981;
+    --exp-bg: #EFF6FF; /* Active payment card background */
+}
+
+/* --- Reusing the Dark Mode Architecture --- */
+[data-theme="dark"] {
+    --page-bg: #0F172A;
+    --card-bg: #1E293B;
+    --border-color: #334155;
+    --brand-blue: #3B82F6;
+    --text-primary: #F8FAFC;
+    --text-secondary: #94A3B8;
+    --exp-bg: rgba(59, 130, 246, 0.1); 
+}
+
+/* ... keep the rest of your payment.css exactly as it is below this ... */
+
+body.bg-main {
+    background-color: var(--page-bg);
+    margin: 0;
+    font-family: 'Inter', sans-serif;
+    color: var(--text-primary);
+}
+
+.content-wrapper {
+    max-width: 1100px;
+    margin: 0 auto;
+    padding: 0 20px;
+}
+
+/* Header Re-use */
+.top-header {
+    background-color: var(--card-bg);
+    border-bottom: 1px solid var(--border-color);
+    padding: 16px 0;
+    position: sticky;
+    top: 0;
+    z-index: 50;
+}
+.header-content { display: flex; justify-content: space-between; align-items: center; }
+.header-left { display: flex; align-items: center; gap: 24px; }
+.back-arrow { color: var(--text-primary); font-size: 1.2rem; text-decoration: none; }
+.brand { display: flex; align-items: center; gap: 12px; }
+.logo-circle { background-color: var(--brand-blue); color: white; width: 32px; height: 32px; border-radius: 50%; display: flex; justify-content: center; align-items: center; }
+.brand-text strong { color: var(--brand-blue); font-size: 1.1rem; display: block;}
+.brand-text span { color: var(--text-secondary); font-size: 0.75rem; }
+.icon-button { background: transparent; border: none; font-size: 1.2rem; cursor: pointer; color: var(--text-primary);}
+
+/* Layout */
+.booking-layout {
+    display: grid;
+    grid-template-columns: 1fr 380px;
+    gap: 32px;
+    padding-top: 32px;
+    padding-bottom: 80px;
+}
+.booking-flow { display: flex; flex-direction: column; gap: 24px; }
+
+/* Helpers */
+.text-blue { color: var(--brand-blue); }
+.text-purple { color: #9333EA; }
+.mt-2 { margin-top: 8px; }
+.mt-4 { margin-top: 24px; }
+.sub-text { color: var(--text-secondary); font-size: 0.9rem; margin-top: 8px; }
+
+/* --- Left Column Elements --- */
+.secure-badge-top {
+    text-align: center;
+    color: var(--success-green);
+    font-weight: 500;
+    font-size: 0.95rem;
+    margin-bottom: 8px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 8px;
+}
+
+.booking-card {
+    background: var(--card-bg);
+    border: 1px solid var(--border-color);
+    border-radius: 12px;
+    padding: 24px;
+}
+
+.card-title {
+    font-size: 1.15rem;
+    font-weight: 600;
+    color: var(--text-primary);
+    margin-bottom: 20px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+/* Payment Methods List */
+.payment-methods-list { display: flex; flex-direction: column; gap: 16px; }
+
+.payment-method-row {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    padding: 16px 20px;
+    border: 1px solid var(--border-color);
+    border-radius: 12px;
+    cursor: pointer;
+    background-color: transparent;
+    transition: all 0.2s ease;
+}
+
+/* Exact Active State from Figma: No background change, just blue border */
+.payment-method-row.active {
+    border: 2px solid var(--brand-blue);
+}
+
+.method-radio input { display: none; }
+.custom-radio {
+    width: 20px;
+    height: 20px;
+    border: 2px solid var(--border-color);
+    border-radius: 50%;
+    display: inline-block;
+    position: relative;
+}
+.payment-method-row.active .custom-radio {
+    border-color: var(--brand-blue);
+}
+.payment-method-row.active .custom-radio::after {
+    content: '';
+    position: absolute;
+    top: 50%; left: 50%; transform: translate(-50%, -50%);
+    width: 10px; height: 10px;
+    background-color: var(--brand-blue);
+    border-radius: 50%;
+}
+
+.method-icon {
+    width: 44px; height: 44px;
+    border-radius: 8px;
+    display: flex; justify-content: center; align-items: center;
+    font-size: 1.2rem;
+}
+.blue-bg { background-color: #EFF6FF; color: #2563EB; }
+.purple-bg { background-color: #F3E8FF; color: #9333EA; }
+.green-bg { background-color: #ECFDF5; color: #10B981; }
+
+.method-details strong { display: block; color: var(--text-primary); font-size: 1rem; margin-bottom: 4px; }
+.method-details span { color: var(--text-secondary); font-size: 0.85rem; }
+
+/* Panels */
+.payment-panel { display: none; animation: fadeIn 0.3s; flex-direction: column; gap: 24px; }
+.payment-panel.active-panel { display: flex; }
+@keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
+
+/* Forms */
+.payment-form { display: flex; flex-direction: column; gap: 20px; }
+.form-row label { display: block; font-size: 0.9rem; font-weight: 500; margin-bottom: 8px; color: var(--text-primary); }
+.payment-form input {
+    width: 100%; padding: 14px;
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    font-size: 0.95rem; font-family: inherit;
+    outline: none; 
+    color: var(--text-primary);
+    background-color: var(--card-bg); /* ADD THIS LINE! */
+}
+.payment-form input:focus { border-color: var(--brand-blue); }
+.two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+
+/* Bank Grid */
+.bank-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+.bank-btn {
+    background-color: var(--card-bg);
+    border: 1px solid var(--border-color);
+    padding: 16px; border-radius: 8px;
+    color: var(--text-primary); font-size: 0.95rem; font-weight: 500;
+    display: flex; align-items: center; gap: 12px; cursor: pointer;
+    font-family: inherit; transition: all 0.2s;
+}
+.bank-btn i { color: var(--text-secondary); font-size: 1.1rem; }
+.bank-btn.active { background-color: var(--brand-blue); border-color: var(--brand-blue); color: white; }
+.bank-btn.active i { color: white; }
+
+/* Security Banner */
+.security-banner {
+    background-color: #FFFBEB; border: 1px solid #FEF3C7; color: #B45309;
+    padding: 16px; border-radius: 8px; font-size: 0.85rem;
+    display: flex; align-items: flex-start; gap: 12px; line-height: 1.5;
+    margin-top: 12px;
+}
+
+/* --- Right Column: Summary Box --- */
+.booking-sidebar { position: relative; }
+.summary-card {
+    background: var(--card-bg);
+    border: 1px solid var(--border-color);
+    border-radius: 12px; padding: 24px;
+    position: sticky; top: 100px;
+}
+.summary-title { font-size: 1.15rem; color: var(--text-primary); margin-bottom: 24px; font-weight: 600; }
+
+.pay-doc-block { display: flex; align-items: center; gap: 16px; margin-bottom: 24px; }
+.pay-doc-block img { width: 60px; height: 60px; border-radius: 12px; object-fit: cover; }
+.pay-doc-info { display: flex; flex-direction: column; }
+.summary-label { font-size: 0.8rem; color: var(--text-secondary); margin-bottom: 2px; }
+.pay-doc-info strong { color: var(--text-primary); font-size: 1rem; font-weight: 600;}
+.pay-doc-spec { font-size: 0.9rem; font-weight: 500; }
+
+.pay-summary-list { display: flex; flex-direction: column; gap: 16px; margin-bottom: 24px; }
+.sum-row { display: flex; align-items: flex-start; gap: 12px; }
+.sum-row i { margin-top: 2px; font-size: 1.1rem;}
+.sum-sub { display: block; font-size: 0.8rem; color: var(--text-secondary); margin-bottom: 2px; }
+.sum-row strong { font-size: 0.95rem; color: var(--text-primary); font-weight: 500;}
+
+.summary-costs { margin-bottom: 24px; }
+.cost-row { display: flex; justify-content: space-between; font-size: 0.95rem; color: var(--text-secondary); margin-bottom: 12px; }
+.cost-divider { border: none; border-top: 1px dashed var(--border-color); margin: 16px 0; }
+.total-row { color: var(--text-primary); font-weight: 600; font-size: 1.05rem; align-items: center; margin-bottom: 0;}
+.total-price { font-size: 1.4rem; font-weight: 700; }
+
+.btn-pay-main {
+    width: 100%; background-color: var(--brand-blue); color: white;
+    border: none; padding: 14px; border-radius: 8px;
+    font-size: 1rem; font-weight: 600; cursor: pointer;
+    display: flex; justify-content: center; align-items: center; gap: 8px;
+}
+
+.secure-footer {
+    margin-top: 16px; background-color: #F0FDF4; color: #15803D;
+    padding: 12px; border-radius: 8px; font-size: 0.8rem;
+    text-align: center; display: flex; align-items: center; justify-content: center; gap: 8px;
+}
+
+/* --- Payment Page Dark Mode Specifics --- */
+[data-theme="dark"] .blue-bg { background-color: rgba(37, 99, 235, 0.2); color: #60A5FA; }
+[data-theme="dark"] .purple-bg { background-color: rgba(147, 51, 234, 0.2); color: #C084FC; }
+[data-theme="dark"] .green-bg { background-color: rgba(16, 185, 129, 0.2); color: #34D399; }
+
+[data-theme="dark"] .bank-btn { background-color: var(--card-bg); border-color: var(--border-color); }
+[data-theme="dark"] .bank-btn:hover { border-color: var(--brand-blue); }
+[data-theme="dark"] .bank-btn.active { background-color: var(--brand-blue); color: white; }
+
+[data-theme="dark"] .security-banner {
+    background-color: rgba(245, 158, 11, 0.1);
+    border-color: rgba(245, 158, 11, 0.2);
+    color: #FCD34D;
+}
+
+[data-theme="dark"] .secure-footer {
+    background-color: rgba(16, 185, 129, 0.1);
+    border: 1px solid rgba(16, 185, 129, 0.2);
+    color: #34D399;
+}

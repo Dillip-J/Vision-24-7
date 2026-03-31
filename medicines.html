@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Vision - Order Medicines</title>
+    <link rel="stylesheet" href="css/home.css"> 
+    <link rel="stylesheet" href="css/doctors.css"> 
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body class="bg-main">
+
+    <header class="top-header">
+        <div class="content-wrapper header-content">
+            <div class="header-left">
+                <a href="home.html" class="back-arrow"><i class="fa-solid fa-arrow-left"></i></a>
+                <div class="brand">
+                    <div class="logo-circle" style="background-color: #10B981;"><i class="fa-solid fa-pills"></i></div>
+                    <div class="brand-text">
+                        <strong style="color: #10B981;">Vision</strong>
+                        <span>Pharmacy</span>
+                    </div>
+                </div>
+            </div>
+            <button id="theme-toggle" class="icon-button"><i class="fa-regular fa-moon" id="theme-icon"></i></button>
+        </div>
+    </header>
+
+    <main class="content-wrapper page-container">
+        <div class="title-header">
+            <h1>Order Medicines</h1>
+            <p>Fast and reliable delivery from verified local pharmacies</p>
+        </div>
+
+        <div class="search-filter-container" style="justify-content: flex-start;">
+            <div class="search-row" style="max-width: 500px; width: 100%;">
+                <i class="fa-solid fa-magnifying-glass search-icon"></i>
+                <input type="text" id="pharmacy-search" placeholder="Search by pharmacy name...">
+            </div>
+        </div>
+
+        <div class="results-count">Showing <strong id="pharmacy-count">0</strong> pharmacies</div>
+
+        <div class="doctor-list" id="pharmacy-list"></div>
+
+    </main>
+
+    <script src="js/script.js"></script>
+    <script src="js/auth_guard.js"></script>
+    <script src="js/medicines.js"></script>
+</body>
+</html>
