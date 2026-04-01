@@ -161,7 +161,11 @@ if (signupFormEl) {
 
             if (!response.ok) {
                 const errorData = await response.json();
-                alert(`Signup Failed: ${errorData.detail}`);
+                if (errorData.detail && typeof errorData.detail === 'string' && errorData.detail.toLowerCase().includes('already')) {
+                    alert("Email is already registered");
+                } else {
+                    alert(`Signup Failed: ${errorData.detail}`);
+                }
                 return;
             }
 
