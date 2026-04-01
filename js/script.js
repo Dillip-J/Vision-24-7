@@ -16,7 +16,6 @@ if (window.location.hostname === '127.0.0.1' || window.location.hostname === 'lo
 // ==========================================
 // --- 0. INSTANT GLOBAL THEME MANAGER ---
 // ==========================================
-// Runs immediately to prevent flashing
 (function() {
     const savedTheme = localStorage.getItem('theme');
     if (savedTheme === 'dark') {
@@ -27,7 +26,7 @@ if (window.location.hostname === '127.0.0.1' || window.location.hostname === 'lo
 // ==========================================
 // --- 1. Global Navigation & Routing Logic ---
 // ==========================================
-const isIndexPage = window.location.pathname.endsWith('index.html') || window.location.pathname === '/';
+const isIndexPage = window.location.pathname.endsWith('index.html') || window.location.pathname === '/' || window.location.pathname.endsWith('/patient/');
 const activeUserSession = localStorage.getItem('currentUser');
 
 function proceedToNextPage() {
@@ -50,12 +49,11 @@ window.goToLogin = function() {
 // ==========================================
 document.addEventListener('DOMContentLoaded', () => {
     
-    // --- A. Independent Theme Toggle Logic (Works on ALL pages) ---
+    // --- A. Independent Theme Toggle Logic ---
     const themeToggleBtn = document.getElementById('theme-toggle');
     const themeIcon = document.getElementById('theme-icon');
 
     if (themeToggleBtn && themeIcon) {
-        // Set correct icon on load
         if (document.documentElement.getAttribute('data-theme') === 'dark') {
             themeIcon.className = 'fa-solid fa-sun';
         } else {
@@ -76,13 +74,11 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    // --- B. Dynamic Auth Actions (For pages that have nav-actions) ---
+    // --- B. Dynamic Auth Actions ---
     const navActions = document.getElementById('nav-actions');
 
-    // Only inject login/logout buttons if the nav-actions container exists on the page
     if (navActions) {
         if (activeUserSession) {
-            // Logged In
             navActions.innerHTML = `
                 <a href="dashboard.html" class="icon-btn" style="text-decoration:none;" title="Dashboard"><i class="fa-solid fa-border-all"></i></a>
                 <a href="profile.html" class="icon-btn" style="text-decoration:none;" title="Profile"><i class="fa-regular fa-user"></i></a>
@@ -93,11 +89,11 @@ document.addEventListener('DOMContentLoaded', () => {
             document.getElementById('logout-btn').addEventListener('click', (e) => {
                 e.preventDefault();
                 localStorage.removeItem('currentUser'); 
+                localStorage.removeItem('access_token'); // Ensure token is also destroyed
                 window.location.reload(); 
             });
 
         } else {
-            // Not Logged In
             navActions.innerHTML = `
                 <button class="icon-btn" id="theme-toggle-dynamic" title="Toggle Theme"><i class="fa-regular fa-moon" id="theme-icon-dynamic"></i></button>
                 <button onclick="goToLogin()" style="border: none; cursor: pointer; display:flex; align-items:center; gap:8px; padding: 8px 16px; border-radius: 8px; background-color: var(--brand-blue); color: white; font-size: 0.9rem; font-weight: 600;">
@@ -106,7 +102,6 @@ document.addEventListener('DOMContentLoaded', () => {
             `;
         }
 
-        // Because we dynamically injected a NEW theme button inside navActions, we must bind it!
         const dynThemeBtn = document.getElementById('theme-toggle-dynamic');
         const dynThemeIcon = document.getElementById('theme-icon-dynamic');
         
@@ -129,9 +124,8 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 });
 
-
 // ==========================================
-// --- 3. Auth Form Submissions (REAL API CONNECTED) ---
+// --- 3. Auth Form Submissions (BULLETPROOF) ---
 // ==========================================
 const loginFormEl = document.getElementById('form-login');
 const signupFormEl = document.getElementById('form-signup');
@@ -140,22 +134,28 @@ const signupFormEl = document.getElementById('form-signup');
 if (signupFormEl) {
     signupFormEl.addEventListener('submit', async (e) => {
         e.preventDefault(); 
-        const inputs = signupFormEl.querySelectorAll('input');
-        const fullName = inputs[0].value;
-        const email = inputs[1].value.toLowerCase();
-        const phone = inputs[2].value;
-        const password = inputs[3].value;
+        
+        // Use IDs to prevent browser extensions from breaking the array order
+        const nameVal = document.getElementById('signup-name').value;
+        const emailVal = document.getElementById('signup-email').value.toLowerCase();
+        const phoneVal = document.getElementById('signup-phone').value;
+        const passVal = document.getElementById('signup-password').value;
+        const confirmVal = document.getElementById('signup-confirm').value;
+
+        if (passVal !== confirmVal) {
+            alert("Passwords do not match!");
+            return;
+        }
 
         try {
-            // 🚨 FIX APPLIED HERE: Changed /users/register to /auth/register
             const response = await fetch(`${API_BASE}/auth/register`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
-                    name: fullName,
-                    email: email,
-                    phone: phone,
-                    password: password
+                    name: nameVal,
+                    email: emailVal,
+                    phone: phoneVal,
+                    password: passVal
                 })
             });
 
@@ -169,7 +169,7 @@ if (signupFormEl) {
             switchTab(true); // Switch UI to login tab
 
         } catch (err) {
-            console.error(err);
+            console.error("Signup Fetch Error:", err);
             alert("Could not connect to the server.");
         }
     });
@@ -179,12 +179,12 @@ if (signupFormEl) {
 if (loginFormEl) {
     loginFormEl.addEventListener('submit', async (e) => {
         e.preventDefault();
-        const inputs = loginFormEl.querySelectorAll('input');
-        const loginEmail = inputs[0].value.toLowerCase();
-        const loginPassword = inputs[1].value;
+        
+        // Use IDs to prevent browser extensions from breaking the array order
+        const loginEmail = document.getElementById('login-email').value.toLowerCase();
+        const loginPassword = document.getElementById('login-password').value;
         
         try {
-            // Hit the FastAPI Patient Login Route
             const formData = new URLSearchParams();
             formData.append('username', loginEmail); 
             formData.append('password', loginPassword);
@@ -206,14 +206,13 @@ if (loginFormEl) {
             
             // SECURITY: Save the JWT Token from FastAPI!
             localStorage.setItem('access_token', data.access_token);
-            // Save basic user info for the UI
             localStorage.setItem('currentUser', JSON.stringify(data.user));
 
             proceedToNextPage(); 
 
         } catch (err) {
-            console.error(err);
-            alert("Server is offline. Please start Uvicorn.");
+            console.error("Login Fetch Error:", err);
+            alert("Server is offline.");
         }
     });
 }
@@ -223,79 +222,79 @@ if (loginFormEl) {
 // ==========================================
 const tabLogin = document.getElementById('tab-login');
 const tabSignup = document.getElementById('tab-signup');
-const formLogin = document.getElementById('form-login');
-const formSignup = document.getElementById('form-signup');
+
+// We have to re-select these inside the function scope to ensure they aren't null
+window.switchTab = function(showLogin) {
+    const fLogin = document.getElementById('form-login');
+    const fSignup = document.getElementById('form-signup');
+    
+    if (!fLogin || !fSignup || !tabLogin || !tabSignup) return;
+
+    if (showLogin) {
+        tabLogin.classList.add('active');
+        tabSignup.classList.remove('active');
+        fLogin.classList.add('active-form');
+        fSignup.classList.remove('active-form');
+    } else {
+        tabSignup.classList.add('active');
+        tabLogin.classList.remove('active');
+        fSignup.classList.add('active-form');
+        fLogin.classList.remove('active-form');
+    }
+}
 
 if (tabLogin && tabSignup) {
-    function switchTab(showLogin) {
-        if (showLogin) {
-            tabLogin.classList.add('active');
-            tabSignup.classList.remove('active');
-            formLogin.classList.add('active-form');
-            formSignup.classList.remove('active-form');
-        } else {
-            tabSignup.classList.add('active');
-            tabLogin.classList.remove('active');
-            formSignup.classList.add('active-form');
-            formLogin.classList.remove('active-form');
-        }
-    }
     tabLogin.addEventListener('click', () => switchTab(true));
     tabSignup.addEventListener('click', () => switchTab(false));
 }
 
+// ==========================================
+// --- 5. Global Search Logic ---
+// ==========================================
 const searchInput = document.getElementById('global-search');
 const resultsDropdown = document.getElementById('search-results');
 
 if (searchInput) {
     searchInput.addEventListener('input', async (e) => {
-        const query = e.target.value;
-        if (query.length < 3) return;
-
-        const response = await fetch(`${API_BASE}/home/search?q=${encodeURIComponent(query)}`);
-        const data = await response.json();
-
-        // Clear and show results
-        resultsDropdown.innerHTML = '';
-        
-        // Append Doctors
-        if (data.doctors) {
-            data.doctors.forEach(doc => {
-                resultsDropdown.innerHTML += `<div onclick="location.href='doctors.html?id=${doc.provider_id}'">
-                    Dr. ${doc.name} - ${doc.category}
-                </div>`;
-            });
-        }
-
-        // Append Services
-        if (data.services) {
-            data.services.forEach(ser => {
-                resultsDropdown.innerHTML += `<div onclick="location.href='services.html?id=${ser.service_id}'">
-                    Service: ${ser.service_name}
-                </div>`;
-            });
-        }
-    });
-}
-
-// script.js - User Global Search
-const userSearchInput = document.getElementById('global-search');
-
-if (userSearchInput) {
-    userSearchInput.addEventListener('input', async (e) => {
         const query = e.target.value.trim();
-        if (query.length < 3) return hideSearchResults();
+        if (query.length < 3) {
+            if (resultsDropdown) resultsDropdown.innerHTML = '';
+            return;
+        }
 
         try {
             const response = await fetch(`${API_BASE}/home/search?q=${encodeURIComponent(query)}`);
             const data = await response.json();
+
+            // Clear and show results
+            if (resultsDropdown) {
+                resultsDropdown.innerHTML = '';
+                
+                // Append Doctors
+                if (data.doctors) {
+                    data.doctors.forEach(doc => {
+                        resultsDropdown.innerHTML += `<div onclick="location.href='doctors.html?id=${doc.provider_id}'">
+                            Dr. ${doc.name} - ${doc.category}
+                        </div>`;
+                    });
+                }
+
+                // Append Services
+                if (data.services) {
+                    data.services.forEach(ser => {
+                        resultsDropdown.innerHTML += `<div onclick="location.href='services.html?id=${ser.service_id}'">
+                            Service: ${ser.service_name}
+                        </div>`;
+                    });
+                }
+            }
             
-            // Logic to render the 'Discovery' results (Doctors & Services)
+            // Also call custom render if it exists on the page
             if (typeof renderUserSearchResults === 'function') {
                 renderUserSearchResults(data);
             }
         } catch (err) {
-            console.error("User Search Error:", err);
+            console.error("Search Error:", err);
         }
     });
 }
