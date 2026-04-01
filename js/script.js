@@ -130,6 +130,19 @@ document.addEventListener('DOMContentLoaded', () => {
 const loginFormEl = document.getElementById('form-login');
 const signupFormEl = document.getElementById('form-signup');
 
+// Ensure "Enter" key submits forms explicitly
+[loginFormEl, signupFormEl].forEach(form => {
+    if (!form) return;
+    form.querySelectorAll('input').forEach(input => {
+        input.addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                form.querySelector('button[type="submit"]').click();
+            }
+        });
+    });
+});
+
 // --- PATIENT SIGNUP ---
 if (signupFormEl) {
     signupFormEl.addEventListener('submit', async (e) => {
@@ -162,7 +175,7 @@ if (signupFormEl) {
             if (!response.ok) {
                 const errorData = await response.json();
                 if (errorData.detail && typeof errorData.detail === 'string' && errorData.detail.toLowerCase().includes('already')) {
-                    alert("Email is already registered");
+                    alert("account already is there on this mail");
                 } else {
                     alert(`Signup Failed: ${errorData.detail}`);
                 }
@@ -174,7 +187,7 @@ if (signupFormEl) {
 
         } catch (err) {
             console.error("Signup Fetch Error:", err);
-            alert("Could not connect to the server.");
+            alert("Server connection failed. The server is currently disconnected.");
         }
     });
 }
@@ -216,7 +229,7 @@ if (loginFormEl) {
 
         } catch (err) {
             console.error("Login Fetch Error:", err);
-            alert("Server is offline.");
+            alert("Server connection failed. The server is currently disconnected.");
         }
     });
 }
