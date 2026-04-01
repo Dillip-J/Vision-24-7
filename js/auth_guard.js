@@ -8,6 +8,7 @@
     if (!token) {
         if (currentPage !== 'index.html') {
             console.warn("Restricted. Redirecting to Patient Login.");
+            localStorage.removeItem('currentUser'); // Prevent infinite loop
             // 🚨 FIX: Added dot-slash for GitHub Pages compatibility
             window.location.replace('./index.html'); 
         }
@@ -36,6 +37,7 @@
 
     } catch (error) {
         localStorage.removeItem('access_token');
+        localStorage.removeItem('currentUser'); // Prevent infinite loop
         window.location.replace('./index.html');
     }
 })();
