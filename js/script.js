@@ -1,3 +1,4 @@
+//js/script.js
 // ==========================================
 // 🚨 SMART API ROUTER
 // ==========================================
@@ -29,10 +30,27 @@
 const isIndexPage = window.location.pathname.endsWith('index.html') || window.location.pathname === '/' || window.location.pathname.endsWith('/patient/');
 const activeUserSession = localStorage.getItem('currentUser');
 
+// 🚨 THE ROUTING ENGINE: Makes your top Navbar buttons work on every page!
+document.addEventListener('DOMContentLoaded', () => {
+    document.querySelectorAll('[data-nav]').forEach(element => {
+        element.addEventListener('click', (e) => {
+            e.preventDefault(); 
+            const targetPage = element.getAttribute('data-nav');
+            window.location.assign(targetPage);
+        });
+    });
+});
+
 function proceedToNextPage() {
-    const targetUrl = localStorage.getItem('redirectAfterAuth') || './home.html';
+    const targetUrl = localStorage.getItem('redirectAfterAuth');
     localStorage.removeItem('redirectAfterAuth'); 
-    window.location.href = targetUrl;
+    
+    // Force the browser to go strictly to home.html if no target is saved
+    if (targetUrl) {
+        window.location.assign(targetUrl);
+    } else {
+        window.location.assign('home.html');
+    }
 }
 
 if (isIndexPage && activeUserSession) {
@@ -148,7 +166,6 @@ if (signupFormEl) {
     signupFormEl.addEventListener('submit', async (e) => {
         e.preventDefault(); 
         
-        // Use IDs to prevent browser extensions from breaking the array order
         const nameVal = document.getElementById('signup-name').value;
         const emailVal = document.getElementById('signup-email').value.toLowerCase();
         const phoneVal = document.getElementById('signup-phone').value;
@@ -161,6 +178,7 @@ if (signupFormEl) {
         }
 
         try {
+            // Notice: API_BASE comes globally from config.js now!
             const response = await fetch(`${API_BASE}/auth/register`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -175,7 +193,7 @@ if (signupFormEl) {
             if (!response.ok) {
                 const errorData = await response.json();
                 if (errorData.detail && typeof errorData.detail === 'string' && errorData.detail.toLowerCase().includes('already')) {
-                    alert("account already is there on this mail");
+                    alert("Account already exists on this email.");
                 } else {
                     alert(`Signup Failed: ${errorData.detail}`);
                 }
@@ -183,7 +201,7 @@ if (signupFormEl) {
             }
 
             alert("Account created successfully! Please log in.");
-            switchTab(true); // Switch UI to login tab
+            switchTab(true); 
 
         } catch (err) {
             console.error("Signup Fetch Error:", err);
@@ -197,7 +215,6 @@ if (loginFormEl) {
     loginFormEl.addEventListener('submit', async (e) => {
         e.preventDefault();
         
-        // Use IDs to prevent browser extensions from breaking the array order
         const loginEmail = document.getElementById('login-email').value.toLowerCase();
         const loginPassword = document.getElementById('login-password').value;
         
@@ -240,7 +257,6 @@ if (loginFormEl) {
 const tabLogin = document.getElementById('tab-login');
 const tabSignup = document.getElementById('tab-signup');
 
-// We have to re-select these inside the function scope to ensure they aren't null
 window.switchTab = function(showLogin) {
     const fLogin = document.getElementById('form-login');
     const fSignup = document.getElementById('form-signup');
@@ -283,11 +299,9 @@ if (searchInput) {
             const response = await fetch(`${API_BASE}/home/search?q=${encodeURIComponent(query)}`);
             const data = await response.json();
 
-            // Clear and show results
             if (resultsDropdown) {
                 resultsDropdown.innerHTML = '';
                 
-                // Append Doctors
                 if (data.doctors) {
                     data.doctors.forEach(doc => {
                         resultsDropdown.innerHTML += `<div onclick="location.href='doctors.html?id=${doc.provider_id}'">
@@ -296,7 +310,6 @@ if (searchInput) {
                     });
                 }
 
-                // Append Services
                 if (data.services) {
                     data.services.forEach(ser => {
                         resultsDropdown.innerHTML += `<div onclick="location.href='services.html?id=${ser.service_id}'">
@@ -306,7 +319,6 @@ if (searchInput) {
                 }
             }
             
-            // Also call custom render if it exists on the page
             if (typeof renderUserSearchResults === 'function') {
                 renderUserSearchResults(data);
             }
@@ -345,7 +357,6 @@ function showNetworkToast(isOnline) {
     }
 }
 
-// Run once on load just in case they open the app without internet
 if (!navigator.onLine) showNetworkToast(false);
 // // --- Tab Switching Logic (Only runs if tabs exist on the page) ---
 // const tabLogin = document.getElementById('tab-login');
