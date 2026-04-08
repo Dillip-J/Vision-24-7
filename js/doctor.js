@@ -1,18 +1,4 @@
 // js/doctors.js
-// ==========================================
-// 🚨 SMART API ROUTER
-// ==========================================
-// let API_BASE;
-
-// if (window.location.hostname === '127.0.0.1' || window.location.hostname === 'localhost') {
-//     // 💻 LOCAL MODE: You are testing on your laptop
-//     API_BASE = 'http://127.0.0.1:8000';
-//     console.log("🔌 Connected to LOCAL Backend");
-// } else {
-//     // 🌍 LIVE MODE: You are on the real internet
-//     API_BASE = 'https://backend-depolyment-1.onrender.com'; 
-//     console.log("☁️ Connected to LIVE Cloud Backend");
-// }
 document.addEventListener('DOMContentLoaded', () => {
     
     const doctorList = document.getElementById('doctor-list');
@@ -21,12 +7,11 @@ document.addEventListener('DOMContentLoaded', () => {
     const filterSpecialty = document.getElementById('filter-specialty');
 
     // ==========================================
-    // --- 1. THE MESSENGER (CATCH DATA FROM HOME PAGE) ---
+    // --- 1. THE MESSENGER ---
     // ==========================================
     const autoSpecialty = localStorage.getItem('autoSearchSpecialty');
     if (autoSpecialty && filterSpecialty) {
         const searchStr = autoSpecialty.trim().toLowerCase();
-        
         let matchFound = Array.from(filterSpecialty.options).find(opt => opt.value.trim().toLowerCase() === searchStr);
         
         if (matchFound) {
@@ -43,7 +28,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // ==========================================
-    // --- 2. FASTAPI DATA FETCH (With Offline Caching) ---
+    // --- 2. FASTAPI DATA FETCH ---
     // ==========================================
     async function fetchApprovedDoctors() {
         try {
@@ -53,7 +38,6 @@ document.addEventListener('DOMContentLoaded', () => {
             const freshData = await response.json();
             localStorage.setItem('eterna_cache_doctors', JSON.stringify(freshData));
             return freshData;
-
         } catch (err) {
             console.warn("Network Error: Loading real doctors from local cache...");
             const cachedData = localStorage.getItem('eterna_cache_doctors');
@@ -62,7 +46,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // ==========================================
-    // --- 3. RENDER & FILTER DOCTORS ---
+    // --- 3. DYNAMIC RENDER & FILTER ---
     // ==========================================
     async function renderDoctors() {
         const providers = await fetchApprovedDoctors();
@@ -103,8 +87,10 @@ document.addEventListener('DOMContentLoaded', () => {
             const providerId = doc.provider_id || doc.id; 
             const displayCategory = doc.category || 'Specialist';
             
-            const consultFee = 500; 
-            const visitCharge = 200; 
+            // 🚨 NO HARDCODING: Pulling prices dynamically from the DB (with safe fallbacks)
+            const consultFee = parseFloat(doc.price) || parseFloat(doc.base_price) || 500; 
+            const visitCharge = parseFloat(doc.home_visit_charge) || 200; 
+            const platformFee = 15; // Usually a flat platform config rate
 
             const card = `
                 <div class="doctor-card">
@@ -122,10 +108,10 @@ document.addEventListener('DOMContentLoaded', () => {
                             <span class="rating">⭐ 4.9 <span class="reviews">(Dynamic DB)</span></span>
                         </div>
                         <div class="doc-actions">
-                            <button class="btn-primary" onclick="initiateDocBooking('${providerId}', 'Video Consult', '${doc.name}', '${displayCategory}', '${imgUrl}')">
+                            <button class="btn-primary" onclick="initiateDocBooking('${providerId}', 'Video Consult', '${doc.name}', '${displayCategory}', '${imgUrl}', ${consultFee}, 0, ${platformFee})">
                                 <i class="fa-solid fa-video"></i> Video - ₹${consultFee}
                             </button>
-                            <button class="btn-outline" onclick="initiateDocBooking('${providerId}', 'Home Visit', '${doc.name}', '${displayCategory}', '${imgUrl}')">
+                            <button class="btn-outline" onclick="initiateDocBooking('${providerId}', 'Home Visit', '${doc.name}', '${displayCategory}', '${imgUrl}', ${consultFee}, ${visitCharge}, ${platformFee})">
                                 <i class="fa-solid fa-location-dot"></i> Home - ₹${consultFee + visitCharge}
                             </button>
                         </div>
@@ -136,13 +122,9 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    // ==========================================
-    // --- 4. ATTACH LISTENERS & INITIALIZE ---
-    // ==========================================
     if (searchInput) searchInput.addEventListener('input', renderDoctors);
     if (filterSpecialty) filterSpecialty.addEventListener('change', renderDoctors);
 
-    // Run the initial render, THEN wipe the messenger memory
     renderDoctors().then(() => {
         localStorage.removeItem('autoSearchSpecialty'); 
         localStorage.removeItem('autoSearchQuery'); 
@@ -150,18 +132,19 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 // ==========================================
-// --- 5. GLOBAL ROUTING & AUTH GUARD ---
+// --- 5. DYNAMIC GLOBAL ROUTING ---
 // ==========================================
-window.initiateDocBooking = function(docId, type, docName, docCat, docImg) {
+// 🚨 Accepts dynamic fees as arguments
+window.initiateDocBooking = function(docId, type, docName, docCat, docImg, fee, visitFee, platFee) {
     const bookingData = {
         provider_id: docId, 
         doctorName: docName.includes('Dr.') ? docName : 'Dr. ' + docName, 
         doctorSpecialty: docCat, 
         visitType: type, 
         doctorImage: docImg, 
-        consultationFee: 500, 
-        visitCharge: type === 'Home Visit' ? 200 : 0, 
-        platformFee: 15
+        consultationFee: fee, 
+        visitCharge: visitFee, 
+        platformFee: platFee
     };
     
     localStorage.setItem('pendingBooking', JSON.stringify(bookingData));
