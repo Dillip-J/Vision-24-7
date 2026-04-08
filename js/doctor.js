@@ -6,8 +6,13 @@ document.addEventListener('DOMContentLoaded', () => {
     const searchInput = document.getElementById('doctor-search');
     const filterSpecialty = document.getElementById('filter-specialty');
 
+    // --- 1. GLOBAL MEMORY (Get Lat/Lon) ---
+    // 🚨 THIS FIXES THE 9,000KM DISTANCE BUG
+    let userLat = parseFloat(localStorage.getItem('user_lat')) || 0.0;
+    let userLon = parseFloat(localStorage.getItem('user_lon')) || 0.0;
+
     // ==========================================
-    // --- 1. THE MESSENGER ---
+    // --- 2. THE MESSENGER ---
     // ==========================================
     const autoSpecialty = localStorage.getItem('autoSearchSpecialty');
     if (autoSpecialty && filterSpecialty) {
@@ -28,11 +33,12 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // ==========================================
-    // --- 2. FASTAPI DATA FETCH ---
+    // --- 3. FASTAPI DATA FETCH ---
     // ==========================================
     async function fetchApprovedDoctors() {
         try {
-            const response = await fetch(`${API_BASE}/home/nearest?lat=0&lon=0&category=Doctor`);
+            // 🚨 USE REAL GPS COORDINATES NOW!
+            const response = await fetch(`${API_BASE}/home/nearest?lat=${userLat}&lon=${userLon}&category=Doctor`);
             if (!response.ok) throw new Error("API Offline");
             
             const freshData = await response.json();
@@ -46,7 +52,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // ==========================================
-    // --- 3. DYNAMIC RENDER & FILTER ---
+    // --- 4. DYNAMIC RENDER & FILTER ---
     // ==========================================
     async function renderDoctors() {
         const providers = await fetchApprovedDoctors();
@@ -83,14 +89,16 @@ document.addEventListener('DOMContentLoaded', () => {
         if(doctorList) doctorList.innerHTML = '';
         
         filtered.forEach(doc => {
-            const imgUrl = doc.profile_photo_url ? `${API_BASE}${doc.profile_photo_url}` : (doc.profilePic || "https://images.unsplash.com/photo-1559839734-2b71ea197ec2?q=80&w=200&auto=format&fit=crop");
+            const imgUrl = doc.profile_photo_url ? `${API_BASE}${doc.profile_photo_url}` : (doc.profilePic || "images/default-avatar.png");
             const providerId = doc.provider_id || doc.id; 
             const displayCategory = doc.category || 'Specialist';
             
-            // 🚨 NO HARDCODING: Pulling prices dynamically from the DB (with safe fallbacks)
+            // Extracting distances!
+            const distance = doc.distance_km !== "Unknown" ? `${doc.distance_km} km away` : "";
+
             const consultFee = parseFloat(doc.price) || parseFloat(doc.base_price) || 500; 
             const visitCharge = parseFloat(doc.home_visit_charge) || 200; 
-            const platformFee = 15; // Usually a flat platform config rate
+            const platformFee = 15; 
 
             const card = `
                 <div class="doctor-card">
@@ -103,7 +111,10 @@ document.addEventListener('DOMContentLoaded', () => {
                             <h2>${doc.name.includes('Dr.') ? doc.name : 'Dr. ' + doc.name}</h2>
                             <span class="exp-badge"><i class="fa-solid fa-shield-halved"></i> Verified</span>
                         </div>
-                        <div class="doc-specialty">${displayCategory}</div>
+                        <div class="doc-specialty">
+                            ${displayCategory} 
+                            ${distance ? `<span style="font-size:0.85rem; color: var(--text-secondary); margin-left:10px;"><i class="fa-solid fa-location-dot"></i> ${distance}</span>` : ''}
+                        </div>
                         <div class="doc-stats">
                             <span class="rating">⭐ 4.9 <span class="reviews">(Dynamic DB)</span></span>
                         </div>
@@ -134,7 +145,6 @@ document.addEventListener('DOMContentLoaded', () => {
 // ==========================================
 // --- 5. DYNAMIC GLOBAL ROUTING ---
 // ==========================================
-// 🚨 Accepts dynamic fees as arguments
 window.initiateDocBooking = function(docId, type, docName, docCat, docImg, fee, visitFee, platFee) {
     const bookingData = {
         provider_id: docId, 
@@ -144,7 +154,8 @@ window.initiateDocBooking = function(docId, type, docName, docCat, docImg, fee, 
         doctorImage: docImg, 
         consultationFee: fee, 
         visitCharge: visitFee, 
-        platformFee: platFee
+        platformFee: platFee,
+        address: type === 'Home Visit' ? (localStorage.getItem('user_address') || "Location not set") : "Platform Default"
     };
     
     localStorage.setItem('pendingBooking', JSON.stringify(bookingData));

@@ -6,11 +6,10 @@
 
     // 1. Not Logged In
     if (!token) {
-        if (currentPage !== 'index.html') {
+        if (currentPage !== 'index.html' && currentPage !== '') {
             console.warn("Restricted. Redirecting to Patient Login.");
-            localStorage.removeItem('currentUser'); // Prevent infinite loop
-            // 🚨 FIX: Added dot-slash for GitHub Pages compatibility
-            window.location.replace('./index.html'); 
+            localStorage.removeItem('currentUser'); 
+            window.location.replace('index.html'); 
         }
         return;
     }
@@ -21,24 +20,26 @@
         
         // Kick intruders to their correct portals
         if (payload.role === 'admin') {
-            window.location.replace('../admin/index.html');
+            window.location.replace('admin/index.html');
             return;
         }
         if (payload.role !== 'user') {
-            window.location.replace('../provider/index.html');
+            window.location.replace('provider/index.html');
             return;
         }
 
         // Teleport logged-in users away from the login screen
-        if (currentPage === 'index.html') {
-            // 🚨 FIX: Added dot-slash for GitHub Pages compatibility
-            window.location.replace('./home.html');
+        if (currentPage === 'index.html' || currentPage === '') {
+            window.location.replace('home.html');
         }
 
     } catch (error) {
+        // 🚨 PREVENT INFINITE LOOP: Only redirect if they aren't already on the login page!
         localStorage.removeItem('access_token');
-        localStorage.removeItem('currentUser'); // Prevent infinite loop
-        window.location.replace('./index.html');
+        localStorage.removeItem('currentUser'); 
+        if (currentPage !== 'index.html' && currentPage !== '') {
+            window.location.replace('index.html');
+        }
     }
 })();
 
@@ -48,7 +49,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const navLoginBtn = document.getElementById('nav-login-btn');
         if (navLoginBtn) {
             navLoginBtn.textContent = 'My Dashboard';
-            navLoginBtn.href = 'profile.html'; 
+            navLoginBtn.href = 'home.html'; // Usually patients go to home/dashboard, not profile directly
         }
     }
 });
