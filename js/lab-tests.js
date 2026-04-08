@@ -4,6 +4,13 @@ document.addEventListener('DOMContentLoaded', () => {
     const searchInput = document.getElementById('lab-search');
     const countDisplay = document.getElementById('lab-count');
 
+    // ==========================================
+    // --- 1. GLOBAL MEMORY (Get Lat/Lon) ---
+    // ==========================================
+    // 🚨 THIS FIXES THE 9,000KM DISTANCE BUG FOR LABS
+    let userLat = parseFloat(localStorage.getItem('user_lat')) || 0.0;
+    let userLon = parseFloat(localStorage.getItem('user_lon')) || 0.0;
+
     const autoQuery = localStorage.getItem('autoSearchQuery');
     if (autoQuery && searchInput) {
         searchInput.value = autoQuery.trim(); 
@@ -13,7 +20,8 @@ document.addEventListener('DOMContentLoaded', () => {
     async function renderLabs() {
         let providers = [];
         try {
-            const response = await fetch(`${API_BASE}/home/nearest?lat=0&lon=0&category=Lab`);
+            // 🚨 USE REAL GPS COORDINATES NOW!
+            const response = await fetch(`${API_BASE}/home/nearest?lat=${userLat}&lon=${userLon}&category=Lab`);
             if (!response.ok) throw new Error("API Offline");
             
             providers = await response.json();
@@ -53,14 +61,15 @@ document.addEventListener('DOMContentLoaded', () => {
             const displayCategory = lab.category || 'Diagnostic Center';
             const providerId = lab.provider_id || lab.id; 
             
-            // 🚨 NO HARDCODING: Dynamic Prices
+            // 🚨 NO HARDCODING: Dynamic Prices & Distance
+            const distance = lab.distance_km !== "Unknown" && lab.distance_km !== null ? `${lab.distance_km} km away` : "";
             const baseTestFee = parseFloat(lab.price) || 45; 
             const homeCollectionFee = parseFloat(lab.home_collection_charge) || 10;
             const platformFee = 2;
 
             const card = `
                 <div class="doctor-card">
-                    <div class="doc-avatar" style="background: #EFF6FF; color: #0284C7; display: flex; justify-content: center; align-items: center; font-size: 2.5rem; overflow: hidden;">
+                    <div class="doc-avatar" style="background: #EFF6FF; color: #0284C7; display: flex; justify-content: center; align-items: center; font-size: 2.5rem; overflow: hidden; border-radius: 12px;">
                         ${imgUrl ? `<img src="${imgUrl}" style="width:100%; height:100%; object-fit:cover;">` : `<i class="fa-solid fa-microscope"></i>`}
                     </div>
                     <div class="doc-info">
@@ -68,7 +77,10 @@ document.addEventListener('DOMContentLoaded', () => {
                             <h2>${lab.name}</h2>
                             <span class="exp-badge"><i class="fa-solid fa-shield-halved"></i> NABL Verified</span>
                         </div>
-                        <div class="doc-specialty">${displayCategory}</div>
+                        <div class="doc-specialty">
+                            ${displayCategory}
+                            ${distance ? `<span style="font-size:0.85rem; color: var(--text-secondary); margin-left:10px;"><i class="fa-solid fa-location-dot"></i> ${distance}</span>` : ''}
+                        </div>
                         <div class="doc-stats">
                             <span class="rating"><i class="fa-solid fa-truck-medical"></i> Home Collection: ₹${homeCollectionFee}</span>
                         </div>
@@ -88,7 +100,10 @@ document.addEventListener('DOMContentLoaded', () => {
     renderLabs();
 });
 
-// 🚨 Accepts dynamic fees
+// ==========================================
+// --- 5. DYNAMIC GLOBAL ROUTING ---
+// ==========================================
+// 🚨 Accepts dynamic fees and passes saved address
 window.initiateLabBooking = function(labId, labName, labCat, labImg, testFee, visitFee, platFee) {
     const defaultImg = "https://images.unsplash.com/photo-1579154204601-01588f351e67?q=80&w=200&auto=format&fit=crop";
     
@@ -100,7 +115,9 @@ window.initiateLabBooking = function(labId, labName, labCat, labImg, testFee, vi
         doctorImage: labImg || defaultImg, 
         consultationFee: testFee, 
         visitCharge: visitFee,    
-        platformFee: platFee
+        platformFee: platFee,
+        // 🚨 Pass the GPS address forward!
+        address: localStorage.getItem('user_address') || "Current Location"
     };
 
     localStorage.setItem('pendingBooking', JSON.stringify(bookingData));
