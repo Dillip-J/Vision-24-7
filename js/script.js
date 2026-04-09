@@ -204,8 +204,6 @@ if (loginFormEl) {
         submitBtn.disabled = true;
         
         try {
-            // 🚨 THE FIX: Reverted to Form Data (URLSearchParams) 
-            // FastAPI OAuth2PasswordBearer strictly expects this format!
             const formData = new URLSearchParams();
             formData.append('username', loginEmail); 
             formData.append('password', loginPassword);
@@ -219,7 +217,16 @@ if (loginFormEl) {
             });
 
             if (!response.ok) {
-                alert("Incorrect email or password.");
+                // 🚨 THE FIX: Taking off the blindfold
+                const errorData = await response.json().catch(() => ({}));
+                console.error("Backend Error Details:", errorData);
+                
+                // Show the exact error Python is throwing
+                const errorMessage = typeof errorData.detail === 'string' 
+                    ? errorData.detail 
+                    : JSON.stringify(errorData.detail || errorData);
+                
+                alert(`Login Failed: ${errorMessage}`);
                 return;
             }
 
@@ -347,6 +354,7 @@ function showNetworkToast(isOnline) {
 }
 
 if (!navigator.onLine) showNetworkToast(false);
+
 // ==========================================
 // --- Universal Password Visibility Toggle ---
 // ==========================================
