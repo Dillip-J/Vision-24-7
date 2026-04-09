@@ -1,18 +1,4 @@
-//js/script.js
-// ==========================================
-// 🚨 SMART API ROUTER
-// ==========================================
-// let API_BASE;
-
-// if (window.location.hostname === '127.0.0.1' || window.location.hostname === 'localhost' || window.location.protocol === 'file:') {
-//     // 💻 LOCAL MODE: You are testing on your laptop
-//     API_BASE = 'http://127.0.0.1:8000';
-//     console.log("🔌 Connected to LOCAL Backend");
-// } else {
-//     // 🌍 LIVE MODE: You are on the real internet
-//     API_BASE = 'https://vision-backend-9lw7.onrender.com'; 
-//     console.log("☁️ Connected to LIVE Cloud Backend");
-// }
+// js/script.js
 
 // ==========================================
 // --- 0. INSTANT GLOBAL THEME MANAGER ---
@@ -30,7 +16,6 @@
 const isIndexPage = window.location.pathname.endsWith('index.html') || window.location.pathname === '/' || window.location.pathname.endsWith('/patient/');
 const activeUserSession = localStorage.getItem('currentUser');
 
-// 🚨 THE ROUTING ENGINE: Makes your top Navbar buttons work on every page!
 document.addEventListener('DOMContentLoaded', () => {
     document.querySelectorAll('[data-nav]').forEach(element => {
         element.addEventListener('click', (e) => {
@@ -45,7 +30,6 @@ function proceedToNextPage() {
     const targetUrl = localStorage.getItem('redirectAfterAuth');
     localStorage.removeItem('redirectAfterAuth'); 
     
-    // Force the browser to go strictly to home.html if no target is saved
     if (targetUrl) {
         window.location.assign(targetUrl);
     } else {
@@ -67,7 +51,6 @@ window.goToLogin = function() {
 // ==========================================
 document.addEventListener('DOMContentLoaded', () => {
     
-    // --- A. Independent Theme Toggle Logic ---
     const themeToggleBtn = document.getElementById('theme-toggle');
     const themeIcon = document.getElementById('theme-icon');
 
@@ -92,7 +75,6 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    // --- B. Dynamic Auth Actions ---
     const navActions = document.getElementById('nav-actions');
 
     if (navActions) {
@@ -107,7 +89,7 @@ document.addEventListener('DOMContentLoaded', () => {
             document.getElementById('logout-btn').addEventListener('click', (e) => {
                 e.preventDefault();
                 localStorage.removeItem('currentUser'); 
-                localStorage.removeItem('access_token'); // Ensure token is also destroyed
+                localStorage.removeItem('access_token'); 
                 window.location.reload(); 
             });
 
@@ -143,12 +125,11 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 // ==========================================
-// --- 3. Auth Form Submissions (BULLETPROOF) ---
+// --- 3. Auth Form Submissions ---
 // ==========================================
 const loginFormEl = document.getElementById('form-login');
 const signupFormEl = document.getElementById('form-signup');
 
-// Ensure "Enter" key submits forms explicitly
 [loginFormEl, signupFormEl].forEach(form => {
     if (!form) return;
     form.querySelectorAll('input').forEach(input => {
@@ -178,7 +159,6 @@ if (signupFormEl) {
         }
 
         try {
-            // Notice: API_BASE comes globally from config.js now!
             const response = await fetch(`${API_BASE}/auth/register`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -224,30 +204,27 @@ if (loginFormEl) {
         submitBtn.disabled = true;
         
         try {
-            // 🚨 THE FIX: Send a JSON package matching your Python LoginRequest model!
+            // 🚨 THE FIX: Reverted to Form Data (URLSearchParams) 
+            // FastAPI OAuth2PasswordBearer strictly expects this format!
+            const formData = new URLSearchParams();
+            formData.append('username', loginEmail); 
+            formData.append('password', loginPassword);
+
             const response = await fetch(`${API_BASE}/auth/login`, {
                 method: 'POST',
                 headers: { 
-                    'Content-Type': 'application/json' 
+                    'Content-Type': 'application/x-www-form-urlencoded' 
                 },
-                body: JSON.stringify({
-                    email: loginEmail,
-                    password: loginPassword
-                })
+                body: formData
             });
 
             if (!response.ok) {
-                if (response.status === 422) {
-                    alert("System configuration error. Please contact support.");
-                } else {
-                    alert("Incorrect email or password.");
-                }
+                alert("Incorrect email or password.");
                 return;
             }
 
             const data = await response.json();
             
-            // SECURITY: Save the JWT Token from FastAPI!
             localStorage.setItem('access_token', data.access_token);
             localStorage.setItem('currentUser', JSON.stringify(data.user));
 
@@ -341,7 +318,7 @@ if (searchInput) {
 }
 
 // ==========================================
-// --- GLOBAL OFFLINE DETECTOR ---
+// --- 6. GLOBAL OFFLINE DETECTOR ---
 // ==========================================
 window.addEventListener('offline', () => showNetworkToast(false));
 window.addEventListener('online', () => showNetworkToast(true));
