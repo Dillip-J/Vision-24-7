@@ -199,6 +199,30 @@ h2 {
     background-color: var(--primary-hover);
 }
 
+.password-wrapper {
+    position: relative;
+    display: flex;
+    align-items: center;
+    width: 100%;
+}
+
+.password-wrapper input {
+    width: 100%;
+    padding-right: 40px; /* Leaves space so text doesn't hit the icon */
+}
+
+.toggle-password {
+    position: absolute;
+    right: 15px; 
+    cursor: pointer;
+    color: var(--text-secondary, #6b7280); 
+    transition: color 0.3s ease;
+}
+
+.toggle-password:hover {
+    color: var(--brand-blue, #2563eb); 
+}
+
 @keyframes fadeIn {
     from { opacity: 0; transform: translateY(5px); }
     to { opacity: 1; transform: translateY(0); }

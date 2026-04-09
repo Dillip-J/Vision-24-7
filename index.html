@@ -40,7 +40,10 @@
 
                 <div class="input-group">
                     <label>Password</label>
-                    <input type="password" id="login-password" placeholder="••••••••" required>
+                    <div class="password-wrapper">
+                        <input type="password" id="login-password" placeholder="••••••••" required>
+                        <i class="fa-regular fa-eye toggle-password" data-target="login-password"></i>
+                    </div>
                 </div>
 
                 <button type="submit" class="btn-primary">Login</button>
@@ -67,12 +70,18 @@
 
                 <div class="input-group">
                     <label>Password</label>
-                    <input type="password" id="signup-password" placeholder="••••••••" required>
+                    <div class="password-wrapper">
+                        <input type="password" id="signup-password" placeholder="••••••••" required>
+                        <i class="fa-regular fa-eye toggle-password" data-target="signup-password"></i>
+                    </div>
                 </div>
 
                 <div class="input-group">
                     <label>Confirm Password</label>
-                    <input type="password" id="signup-confirm" placeholder="••••••••" required>
+                    <div class="password-wrapper">
+                        <input type="password" id="signup-confirm" placeholder="••••••••" required>
+                        <i class="fa-regular fa-eye toggle-password" data-target="signup-confirm"></i>
+                    </div>
                 </div>
 
                 <button type="submit" class="btn-primary">Sign Up</button>

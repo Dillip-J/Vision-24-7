@@ -348,22 +348,25 @@ function showNetworkToast(isOnline) {
 
 if (!navigator.onLine) showNetworkToast(false);
 // ==========================================
-// --- Password Visibility Toggle ---
+// --- Universal Password Visibility Toggle ---
 // ==========================================
-const togglePasswordBtn = document.getElementById('toggle-password');
-const passwordInput = document.getElementById('login-password');
+document.querySelectorAll('.toggle-password').forEach(icon => {
+    icon.addEventListener('click', function() {
+        // Find the specific input this icon belongs to
+        const targetId = this.getAttribute('data-target');
+        const inputField = document.getElementById(targetId);
 
-if (togglePasswordBtn && passwordInput) {
-    togglePasswordBtn.addEventListener('click', function () {
-        // Toggle the input type between 'password' and 'text'
-        const type = passwordInput.getAttribute('type') === 'password' ? 'text' : 'password';
-        passwordInput.setAttribute('type', type);
+        if (inputField) {
+            // Toggle type
+            const newType = inputField.getAttribute('type') === 'password' ? 'text' : 'password';
+            inputField.setAttribute('type', newType);
 
-        // Toggle the FontAwesome icon classes
-        this.classList.toggle('fa-eye');
-        this.classList.toggle('fa-eye-slash');
+            // Toggle icon look
+            this.classList.toggle('fa-eye');
+            this.classList.toggle('fa-eye-slash');
+        }
     });
-}
+});
 // // --- Tab Switching Logic (Only runs if tabs exist on the page) ---
 // const tabLogin = document.getElementById('tab-login');
 // const tabSignup = document.getElementById('tab-signup');
