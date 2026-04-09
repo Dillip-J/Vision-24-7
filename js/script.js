@@ -218,21 +218,30 @@ if (loginFormEl) {
         const loginEmail = document.getElementById('login-email').value.toLowerCase();
         const loginPassword = document.getElementById('login-password').value;
         
+        const submitBtn = loginFormEl.querySelector('button[type="submit"]');
+        const originalText = submitBtn.textContent;
+        submitBtn.textContent = "Logging in...";
+        submitBtn.disabled = true;
+        
         try {
-            const formData = new URLSearchParams();
-            formData.append('username', loginEmail); 
-            formData.append('password', loginPassword);
-
+            // 🚨 THE FIX: Send a JSON package matching your Python LoginRequest model!
             const response = await fetch(`${API_BASE}/auth/login`, {
                 method: 'POST',
                 headers: { 
-                    'Content-Type': 'application/x-www-form-urlencoded' 
+                    'Content-Type': 'application/json' 
                 },
-                body: formData
+                body: JSON.stringify({
+                    email: loginEmail,
+                    password: loginPassword
+                })
             });
 
             if (!response.ok) {
-                alert("Incorrect email or password.");
+                if (response.status === 422) {
+                    alert("System configuration error. Please contact support.");
+                } else {
+                    alert("Incorrect email or password.");
+                }
                 return;
             }
 
@@ -247,6 +256,9 @@ if (loginFormEl) {
         } catch (err) {
             console.error("Login Fetch Error:", err);
             alert("Server connection failed. The server is currently disconnected.");
+        } finally {
+            submitBtn.textContent = originalText;
+            submitBtn.disabled = false;
         }
     });
 }
