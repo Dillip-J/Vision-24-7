@@ -5,7 +5,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const searchInput = document.getElementById('pharmacy-search');
     const countDisplay = document.getElementById('pharmacy-count');
     
-    // UI Elements for Location Banner (If you added them to your HTML)
+    // UI Elements for Location Banner
     const locationText = document.getElementById('current-location-text');
     const updateLocBtn = document.getElementById('btn-update-location');
 
@@ -54,7 +54,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
                 updateLocationUI();
 
-                // 🚨 SYNC TO CLOUD
+                // SYNC TO CLOUD
                 const token = localStorage.getItem('access_token');
                 if (token) {
                     try {
@@ -104,7 +104,6 @@ document.addEventListener('DOMContentLoaded', () => {
     async function renderPharmacies() {
         let providers = [];
         try {
-            // 🚨 Send the GPS math to the backend!
             const response = await fetch(`${API_BASE}/home/nearest?lat=${userLat}&lon=${userLon}&category=Pharmacy`);
             if (!response.ok) throw new Error("API Offline");
             
@@ -145,7 +144,6 @@ document.addEventListener('DOMContentLoaded', () => {
             const displayCategory = pharm.category || 'Medicines & Equipment';
             const providerId = pharm.provider_id || pharm.id; 
 
-            // 🚨 FETCH DYNAMIC ETA & DISTANCE FROM BACKEND
             const eta = pharm.eta_string || "45-60 mins";
             const distance = pharm.distance_km !== "Unknown" ? `${pharm.distance_km} km away` : "";
             const deliveryCharge = parseFloat(pharm.delivery_charge) || 50;
@@ -168,7 +166,7 @@ document.addEventListener('DOMContentLoaded', () => {
                             </span>
                         </div>
                         <div class="doc-actions">
-                            <button class="btn-primary" onclick="initiateMedicineOrder('${providerId}', '${pharm.name}', '${imgUrl}', ${deliveryCharge}, ${platformFee}, '${eta}')">
+                            <button class="btn-primary" style="background-color: #10B981; border-color: #10B981;" onclick="initiateMedicineOrder('${providerId}', '${pharm.name}', '${imgUrl}', ${deliveryCharge}, ${platformFee}, '${eta}')">
                                 <i class="fa-solid fa-bag-shopping"></i> Request (Delivery: ₹${deliveryCharge})
                             </button>
                         </div>
@@ -191,9 +189,9 @@ document.addEventListener('DOMContentLoaded', () => {
 window.initiateMedicineOrder = function(pharmId, pharmName, pharmImg, deliveryCharge, platFee, eta) {
     const defaultImg = "https://images.unsplash.com/photo-1587854692152-cbe668df9731?q=80&w=200&auto=format&fit=crop";
 
-    // 🚨 Passing the exact ETA and saved address to the Checkout!
     const bookingData = {
         provider_id: pharmId, 
+        provider_type: "Pharmacy", // 🚨 FIX 2: Added this so Payment engine knows what to do!
         doctorName: pharmName, 
         doctorSpecialty: `Prescription Order (ETA: ${eta})`, 
         visitType: "Delivery",

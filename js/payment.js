@@ -5,10 +5,12 @@ document.addEventListener('DOMContentLoaded', () => {
     // ==========================================
     // --- 1. LOAD PENDING BOOKING DATA ---
     // ==========================================
-    // We assume the previous page saved the booking details into sessionStorage before redirecting here
-    const bookingDataStr = sessionStorage.getItem('pendingBooking');
+    // 🚨 THE FIX: Use localStorage, because book.js saved it there!
+    const bookingDataStr = localStorage.getItem('pendingBooking');
+    const activeBookingId = localStorage.getItem('activeBookingId');
+    const paymentTotalAmount = localStorage.getItem('paymentTotalAmount');
     
-    if (!bookingDataStr) {
+    if (!bookingDataStr || !activeBookingId) {
         console.warn("Unauthorized access: No booking data found. Redirecting to Doctor directory.");
         window.location.replace('doctors.html');
         return;
@@ -26,7 +28,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // ==========================================
     // --- 2. DYNAMIC SIDEBAR ADAPTATION ---
     // ==========================================
-    const providerType = bookingData.provider_type || 'Doctor'; // 'Doctor', 'Pharmacy', or 'Lab'
+    const providerType = bookingData.provider_type || 'Doctor'; 
     
     // DOM Elements
     const docImg = document.getElementById('pay-doc-img');
@@ -44,19 +46,18 @@ document.addEventListener('DOMContentLoaded', () => {
     const btnAmount = document.getElementById('btn-amount');
 
     // Set Provider Details
-    if (docImg) docImg.src = bookingData.provider_image ? `${API_BASE}${bookingData.provider_image}` : 'images/default-avatar.png';
-    if (docName) docName.textContent = bookingData.provider_name;
-    if (docSpec) docSpec.textContent = bookingData.service_name || bookingData.category;
+    if (docImg) docImg.src = bookingData.doctorImage || bookingData.provider_image || 'assets/default-doc.png';
+    if (docName) docName.textContent = bookingData.doctorName || bookingData.provider_name;
+    if (docSpec) docSpec.textContent = bookingData.doctorSpecialty || bookingData.category;
 
     // Adapt Labels based on Provider Type
-    const labelDoc = document.querySelector('.summary-label'); // First label (Doctor)
-    const labelSpec = document.querySelectorAll('.summary-label')[1]; // Second label (Specialization)
+    const labelDoc = document.querySelector('.summary-label'); 
+    const labelSpec = document.querySelectorAll('.summary-label')[1]; 
     
     if (providerType === 'Pharmacy') {
         if(labelDoc) labelDoc.textContent = 'Pharmacy';
         if(labelSpec) labelSpec.textContent = 'Order Items';
         if(dateEl) dateEl.textContent = 'Today';
-        // 🚨 ZOMATO STYLE ASAP DELIVERY
         if(timeEl) timeEl.innerHTML = '<span style="color: #10B981; font-weight: bold;"><i class="fa-solid fa-bolt"></i> ASAP (30-45 mins)</span>';
         if(typeEl) typeEl.textContent = 'Home Delivery';
     } 
@@ -71,16 +72,17 @@ document.addEventListener('DOMContentLoaded', () => {
         // Doctor
         if(labelDoc) labelDoc.textContent = 'Doctor';
         if(labelSpec) labelSpec.textContent = 'Specialization';
-        if(dateEl) dateEl.textContent = bookingData.date;
-        if(timeEl) timeEl.textContent = bookingData.time;
-        if(typeEl) typeEl.textContent = bookingData.is_online ? 'Video Consult' : 'Clinic Visit';
+        if(dateEl) dateEl.textContent = "See Dashboard"; // We didn't pass the date to payment page, it's saved in DB
+        if(timeEl) timeEl.textContent = "See Dashboard";
+        if(typeEl) typeEl.textContent = bookingData.visitType;
     }
 
-    // Calculate Costs (Mock logic - replace with real backend pricing later)
-    const baseFee = bookingData.price || 500;
-    const visitFee = providerType === 'Pharmacy' ? 40 : (bookingData.is_online ? 0 : 100);
-    const platformFee = 25;
-    const totalAmount = baseFee + visitFee + platformFee;
+    // 🚨 THE FIX: Read the exact Math that book.js calculated!
+    const baseFee = bookingData.consultationFee || bookingData.price || 500;
+    const visitFee = bookingData.visitCharge || 0;
+    const platformFee = bookingData.platformFee || 0;
+    // Fallback to recalculating if paymentTotalAmount is missing
+    const totalAmount = paymentTotalAmount ? parseFloat(paymentTotalAmount) : (baseFee + visitFee + platformFee);
 
     // Format Currency
     const formatCurrency = (amount) => new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR' }).format(amount);
@@ -100,27 +102,22 @@ document.addEventListener('DOMContentLoaded', () => {
 
     methodRows.forEach(row => {
         row.addEventListener('click', () => {
-            // Remove active classes
             methodRows.forEach(r => r.classList.remove('active'));
             panels.forEach(p => { p.style.display = 'none'; p.classList.remove('active-panel'); });
             
-            // Check the radio button
             const radio = row.querySelector('input[type="radio"]');
             radio.checked = true;
             row.classList.add('active');
 
-            // Show matching panel
             const panelId = `panel-${radio.value}`;
             const targetPanel = document.getElementById(panelId);
             if (targetPanel) {
                 targetPanel.style.display = 'block';
-                // Small delay to trigger CSS fade-in if needed
                 setTimeout(() => targetPanel.classList.add('active-panel'), 10);
             }
         });
     });
 
-    // Bank Selection highlighting
     const bankBtns = document.querySelectorAll('.bank-btn');
     const dynamicBankName = document.getElementById('dynamic-bank-name');
     
@@ -134,7 +131,6 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     });
 
-    // Auto-space Credit Card Number
     const ccInput = document.getElementById('cc-number');
     if(ccInput) {
         ccInput.addEventListener('input', function (e) {
@@ -156,7 +152,6 @@ document.addEventListener('DOMContentLoaded', () => {
     if (payBtn) {
         payBtn.addEventListener('click', async () => {
             
-            // Validate the currently selected payment form
             const activeRadio = document.querySelector('input[name="payment_method"]:checked').value;
             if (activeRadio === 'netbanking') {
                 const user = document.getElementById('nb-user').value;
@@ -173,7 +168,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
             }
 
-            // Lock Button
             const originalHtml = payBtn.innerHTML;
             payBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Processing...';
             payBtn.disabled = true;
@@ -181,55 +175,13 @@ document.addEventListener('DOMContentLoaded', () => {
             // Step 1: Simulate Payment Gateway Delay
             await new Promise(resolve => setTimeout(resolve, 2000));
 
-            // Step 2: Send Final Booking to Backend
-            try {
-                // Formatting datetime for FastAPI depending on provider type
-                let finalDateTime;
-                if (providerType === 'Pharmacy') {
-                    // For ASAP delivery, use current time
-                    finalDateTime = new Date().toISOString(); 
-                } else {
-                    // Doctor/Lab uses specific booked time
-                    finalDateTime = `${bookingData.date}T${bookingData.time}:00`; 
-                }
-
-                const payload = {
-                    provider_id: bookingData.provider_id || "00000000-0000-0000-0000-000000000000",
-                    scheduled_time: finalDateTime,
-                    order_notes: bookingData.notes || `Paid via: ${activeRadio}`,
-                    delivery_address: bookingData.address || "Platform Default",
-                    // Adding optional fields you might have in your Booking schema
-                    doctor_service_id: bookingData.service_id || null
-                };
-
-                const response = await fetch(`${API_BASE}/bookings/`, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'Authorization': `Bearer ${token}` 
-                    },
-                    body: JSON.stringify(payload)
-                });
-
-                if (!response.ok) {
-                    const err = await response.json();
-                    throw new Error(err.detail || "Database failed to register booking.");
-                }
-
-                const data = await response.json(); // Assumes backend returns an ID
-
-                // Clean up session storage and redirect
-                sessionStorage.removeItem('pendingBooking');
-                localStorage.setItem('latestBookingId', data.id || 'success'); 
-                
-                window.location.href = 'confirmation.html';
-
-            } catch (error) {
-                console.error("Transaction Error:", error);
-                alert(`Payment failed: ${error.message}`);
-                payBtn.innerHTML = originalHtml;
-                payBtn.disabled = false;
-            }
+            // 🚨 THE FIX: The booking is already in the DB! We just need to clean up and jump to confirmation.
+            
+            localStorage.removeItem('pendingBooking');
+            localStorage.removeItem('paymentTotalAmount');
+            localStorage.setItem('latestBookingId', activeBookingId); // Pass the ID to the confirmation page
+            
+            window.location.href = 'confirmation.html'; // Or 'confirmation.html' if you have one!
         });
     }
 

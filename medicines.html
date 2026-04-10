@@ -27,6 +27,15 @@
         </div>
     </header>
 
+    <div style="background: var(--bg-card); padding: 12px 20px; border-bottom: 1px solid var(--border-color); display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; max-width: 1200px; margin: 0 auto;">
+        <div id="current-location-text" style="font-size: 0.9rem; color: var(--text-secondary);">
+            <i class="fa-solid fa-spinner fa-spin"></i> Loading location...
+        </div>
+        <button id="btn-update-location" class="btn-outline" style="padding: 6px 12px; font-size: 0.85rem; border-color: #10B981; color: #10B981;">
+            <i class="fa-solid fa-location-crosshairs"></i> Locate Me
+        </button>
+    </div>
+
     <main class="content-wrapper page-container">
         <div class="title-header">
             <h1>Order Medicines</h1>

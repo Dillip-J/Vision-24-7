@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Vision - Video Consultation</title>
+    <link rel="stylesheet" href="css/home.css">
+    <style>
+        .video-container { height: 80vh; display: flex; flex-direction: column; align-items: center; justify-content: center; background: #1a1a1a; color: white; border-radius: 12px; margin: 20px; }
+        .controls { margin-top: 20px; display: flex; gap: 15px; }
+        .circle-btn { width: 50px; height: 50px; border-radius: 50%; border: none; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 1.2rem; }
+        .end-call { background: #ef4444; color: white; }
+    </style>
+</head>
+<body class="bg-main">
+    <div class="video-container">
+        <i class="fa-solid fa-user-doctor" style="font-size: 5rem; margin-bottom: 20px; color: #3b82f6;"></i>
+        <h2>Waiting for Dr. ...</h2>
+        <p>Your encrypted video session will begin shortly.</p>
+        
+        <div class="controls">
+            <button class="circle-btn"><i class="fa-solid fa-microphone"></i></button>
+            <button class="circle-btn"><i class="fa-solid fa-video"></i></button>
+            <button class="circle-btn end-call" onclick="window.close()"><i class="fa-solid fa-phone-slash"></i></button>
+        </div>
+    </div>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/js/all.min.js"></script>
+</body>
+</html>

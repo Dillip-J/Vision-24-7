@@ -1,4 +1,4 @@
-// js/labs.js
+// js/labs-tests.js
 document.addEventListener('DOMContentLoaded', () => {
     const labList = document.getElementById('lab-list');
     const searchInput = document.getElementById('lab-search');
@@ -108,7 +108,8 @@ window.initiateLabBooking = function(labId, labName, labCat, labImg, testFee, vi
     const defaultImg = "https://images.unsplash.com/photo-1579154204601-01588f351e67?q=80&w=200&auto=format&fit=crop";
     
     const bookingData = {
-        provider_id: labId, 
+        provider_id: labId,
+        provider_type:"Lab", 
         doctorName: labName, 
         doctorSpecialty: labCat, 
         visitType: "Home Visit",

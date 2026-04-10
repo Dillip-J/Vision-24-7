@@ -7,11 +7,11 @@ document.addEventListener('DOMContentLoaded', () => {
     const token = localStorage.getItem('access_token');
     
     if (!token) {
-        window.location.href = 'index.html'; // Redirect to login if no secure token
+        window.location.href = 'index.html'; 
         return; 
     }
 
-    let userProfile = {}; // We will fetch this from the real database!
+    let userProfile = {}; 
 
     // DOM Elements
     const avatarInitials = document.getElementById('avatar-initials');
@@ -22,7 +22,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const inputEmail = document.getElementById('input-email');
     const inputPhone = document.getElementById('input-phone');
     
-    // Note: These don't exist in our PostgreSQL table yet, but we'll leave the inputs functional for the UI
+    // Non-DB UI Elements
     const inputDob = document.getElementById('input-dob');
     const inputAddress = document.getElementById('input-address');
     const inputEmergency = document.getElementById('input-emergency');
@@ -58,7 +58,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
 
     // ==========================================
-    // --- 3. MOBILE-FIRST IMAGE UPLOAD (SECURE) ---
+    // --- 3. MOBILE-FIRST IMAGE UPLOAD ---
     // ==========================================
     const fileInput = document.getElementById('mobile-image-upload');
     const btnChangePic = document.getElementById('btn-change-pic');
@@ -78,7 +78,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 return;
             }
 
-            // 1. Instant UI Feedback
             const reader = new FileReader();
             reader.onload = (event) => {
                 avatarInitials.textContent = ""; 
@@ -88,7 +87,6 @@ document.addEventListener('DOMContentLoaded', () => {
             };
             reader.readAsDataURL(file);
 
-            // 2. Upload to FastAPI
             const formData = new FormData();
             formData.append("file", file);
 
@@ -104,7 +102,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (response.ok) {
                     const data = await response.json();
                     userProfile.profile_photo_url = data.url; 
-                    populateUI(); // Redraw immediately
+                    populateUI(); 
                     alert("Profile photo updated successfully!");
                 } else {
                     alert("Failed to upload photo to server.");
@@ -113,7 +111,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 console.error("Upload error:", err);
                 alert("Network error during upload.");
             } finally {
-                if(btnChangePic) btnChangePic.innerHTML = '<i class="fa-solid fa-camera"></i> Change Photo';
+                if(btnChangePic) btnChangePic.innerHTML = 'Change Profile Picture';
             }
         }
     });
@@ -141,14 +139,15 @@ document.addEventListener('DOMContentLoaded', () => {
         }
         if(inputPhone) inputPhone.value = userProfile.phone || "";
         
+        // 🚨 LOAD LOCAL UI DATA (NOW INCLUDES ADDRESS)
         if(inputDob) inputDob.value = localStorage.getItem('temp_dob') || "";
         if(inputEmergency) inputEmergency.value = localStorage.getItem('temp_emergency') || "";
         if(inputMedical) inputMedical.value = localStorage.getItem('temp_medical') || "";
+        if(inputAddress) inputAddress.value = localStorage.getItem('user_address') || "";
 
         if(displayName) displayName.textContent = userProfile.name || "Guest User";
         if(displayEmail) displayEmail.textContent = userProfile.email || "No email provided";
 
-        // Avatar Rendering Logic
         if (avatarInitials) {
             if (userProfile.profile_photo_url) {
                 avatarInitials.textContent = ""; 
@@ -171,7 +170,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
 
     // ==========================================
-    // --- 6. 🚨 REAL BACKEND SAVE LOGIC 🚨 ---
+    // --- 6. REAL BACKEND SAVE LOGIC ---
     // ==========================================
     const btnSave = document.getElementById('btn-save-profile');
 
@@ -205,7 +204,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 const data = await response.json();
 
                 if (response.ok) {
-                    // 2. UPDATE LOCAL MEMORY WITH DB TRUTH
+                    // 2. UPDATE LOCAL MEMORY
                     userProfile.name = data.name;
                     userProfile.phone = data.phone;
                     
@@ -213,15 +212,14 @@ document.addEventListener('DOMContentLoaded', () => {
                     cachedUser.name = data.name;
                     localStorage.setItem('currentUser', JSON.stringify(cachedUser));
 
-                    // Save non-DB items locally
+                    // 🚨 SAVE LOCAL DATA (NOW INCLUDES ADDRESS)
                     if(inputDob) localStorage.setItem('temp_dob', inputDob.value);
                     if(inputEmergency) localStorage.setItem('temp_emergency', inputEmergency.value);
                     if(inputMedical) localStorage.setItem('temp_medical', inputMedical.value);
+                    if(inputAddress) localStorage.setItem('user_address', inputAddress.value);
 
-                    // 3. IMMEDIATELY REDRAW THE SCREEN!
                     populateUI();
 
-                    // 4. SHOW SUCCESS
                     btnSave.innerHTML = '<i class="fa-solid fa-check"></i> Saved Successfully';
                     btnSave.style.backgroundColor = 'var(--success-green, #10b981)';
                     btnSave.style.borderColor = 'var(--success-green, #10b981)';
@@ -253,10 +251,9 @@ document.addEventListener('DOMContentLoaded', () => {
     if (btnCancel) {
         btnCancel.addEventListener('click', (e) => {
             e.preventDefault();
-            populateUI(); // Reverts any unsaved typing by re-reading the object from memory!
+            populateUI(); 
         });
     }
 
-    // FIRE IT UP!
     fetchMyProfile();
 });

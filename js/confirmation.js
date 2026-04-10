@@ -1,4 +1,4 @@
-//confirmation.js
+// confirmation.js
 document.addEventListener('DOMContentLoaded', async () => {
     // 1. Get the ID of the appointment we JUST booked and the secure Token
     const latestId = localStorage.getItem('latestBookingId');
@@ -27,8 +27,9 @@ document.addEventListener('DOMContentLoaded', async () => {
 
         const activeBookings = await response.json();
 
-        // 3. Find the specific booking object that matches our ID
-        const booking = activeBookings.find(b => b.booking_id === latestId);
+        // 3. 🚨 FIX 2: Use loose equality (==) or convert to String!
+        // latestId is a String ("42"), booking_id is an Int (42)
+        const booking = activeBookings.find(b => b.booking_id.toString() === latestId.toString());
 
         if (!booking) {
             console.warn("Booking not found in active database.");
@@ -48,8 +49,11 @@ document.addEventListener('DOMContentLoaded', async () => {
         if (booking.provider && booking.provider.provider_type === "Pharmacy") vType = "Delivery";
         if (!booking.delivery_address) vType = "Video Consult"; // If no address was saved, it's online
 
+        // 🚨 FIX 3: Format the Integer instead of trying to split a UUID
+        const formattedId = 'BKG-' + booking.booking_id.toString().padStart(4, '0');
+        
         // Inject into your exact HTML IDs
-        document.getElementById('conf-id').textContent = booking.booking_id.split('-')[0].toUpperCase(); // Shortens UUID for display
+        document.getElementById('conf-id').textContent = formattedId;
         document.getElementById('conf-doc-name').textContent = booking.provider ? booking.provider.name : "Healthcare Provider";
         document.getElementById('conf-doc-spec').textContent = booking.provider ? booking.provider.category : "Service";
         
@@ -62,7 +66,6 @@ document.addEventListener('DOMContentLoaded', async () => {
         
         // Dynamic Meta Data based on visit type
         if(vType === "Home Visit" || vType === "Delivery") {
-            // Show the actual address they provided
             document.getElementById('conf-address').textContent = `Address: ${booking.delivery_address}`;
         } else if (vType === "Video Consult") {
             document.getElementById('conf-address').textContent = "Video link will be activated 5 minutes prior.";
@@ -73,12 +76,18 @@ document.addEventListener('DOMContentLoaded', async () => {
         document.getElementById('conf-id').textContent = "NETWORK ERROR";
     }
 
-    // 5. Button Navigation Routing (Left untouched as requested)
-    document.getElementById('btn-dashboard').addEventListener('click', () => {
-        window.location.href = "dashboard.html";
-    });
+    // 5. Button Navigation Routing
+    const btnDashboard = document.getElementById('btn-dashboard');
+    if (btnDashboard) {
+        btnDashboard.addEventListener('click', () => {
+            window.location.href = "dashboard.html";
+        });
+    }
 
-    document.getElementById('btn-home').addEventListener('click', () => {
-        window.location.href = "home.html";
-    });
+    const btnHome = document.getElementById('btn-home');
+    if (btnHome) {
+        btnHome.addEventListener('click', () => {
+            window.location.href = "home.html";
+        });
+    }
 });

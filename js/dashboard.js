@@ -1,4 +1,4 @@
-// dashboard.js
+// js/dashboard.js
 document.addEventListener('DOMContentLoaded', () => {
 
     // ==========================================
@@ -26,12 +26,10 @@ document.addEventListener('DOMContentLoaded', () => {
     // ==========================================
     async function fetchDashboardData() {
         try {
-            // Fetch Active Bookings (Upcoming)
             const activeRes = await fetch(`${API_BASE}/bookings/me/active`, {
                 headers: { 'Authorization': `Bearer ${token}` }
             });
             
-            // Fetch History Bookings (Completed/Canceled)
             const historyRes = await fetch(`${API_BASE}/bookings/me/history`, {
                 headers: { 'Authorization': `Bearer ${token}` }
             });
@@ -45,32 +43,30 @@ document.addEventListener('DOMContentLoaded', () => {
             const activeData = await activeRes.json();
             const historyData = await historyRes.json();
 
-            // Combine and map Backend Schema to Frontend UI expectations
+            // 🚨 THE FIX: Map data without splitting an Integer!
             const allFetched = [...activeData, ...historyData].map(apt => {
                 
-                // Format Date & Time safely
                 let dateStr = "TBD";
                 let timeStr = "TBD";
                 if (apt.scheduled_time) {
                     const d = new Date(apt.scheduled_time);
-                    dateStr = d.toLocaleDateString();
+                    dateStr = d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
                     timeStr = d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
                 } else if (apt.created_at) {
                     dateStr = new Date(apt.created_at).toLocaleDateString();
                     timeStr = "ASAP";
                 }
 
-                // Map status names
                 let mappedStatus = apt.booking_status;
                 if (mappedStatus === 'pending' || mappedStatus === 'confirmed') mappedStatus = 'upcoming';
 
-                // Determine Visit Type
                 let vType = "Home Visit";
                 if (apt.provider && apt.provider.provider_type === "Pharmacy") vType = "Delivery";
                 if (!apt.delivery_address) vType = "Video Consult";
 
                 return {
-                    bookingId: apt.booking_id.split('-')[0].toUpperCase(), // Shorten UUID
+                    // Properly format the Integer ID
+                    bookingId: 'BKG-' + apt.booking_id.toString().padStart(4, '0'), 
                     rawId: apt.booking_id,
                     doctorName: apt.provider ? apt.provider.name : "Unknown Provider",
                     doctorSpecialty: apt.provider ? apt.provider.category : "Healthcare Service",
@@ -78,22 +74,21 @@ document.addEventListener('DOMContentLoaded', () => {
                     date: dateStr,
                     time: timeStr,
                     visitType: vType,
-                    hasReport: apt.booking_status === 'completed', // Mock flag for reports tab
-                    clinicalNotes: apt.order_notes || "No additional notes."
+                    hasReport: apt.booking_status === 'completed', 
+                    clinicalNotes: apt.order_notes || "No additional notes.",
+                    raw: apt // Save the raw database object so the Modal can read it!
                 };
             });
 
             myBookings = allFetched;
             myReports = myBookings.filter(apt => apt.status === 'completed' && apt.hasReport === true);
 
-            // Trigger UI Renders
             renderStats();
             renderAppointments();
             renderReports();
 
         } catch (error) {
             console.error("Failed to fetch dashboard data:", error);
-            // Fallback empty states will trigger automatically
             renderStats();
             renderAppointments();
             renderReports();
@@ -153,7 +148,6 @@ document.addEventListener('DOMContentLoaded', () => {
             const isOnline = apt.visitType.includes('Video');
             const typeIcon = isOnline ? 'fa-video' : (apt.visitType === 'Delivery' ? 'fa-motorcycle' : 'fa-location-dot');
 
-            // Online appointments get the Join Call button!
             let actionButtonsHtml = '';
             if (isUpcoming && isOnline) {
                 actionButtonsHtml = `<button class="btn-action" onclick="window.open('video-room.html?room=${apt.rawId}', '_blank')"><i class="fa-solid fa-video"></i> Join Call</button>`;
@@ -163,9 +157,11 @@ document.addEventListener('DOMContentLoaded', () => {
                 actionButtonsHtml = `<button class="btn-action-outline" onclick="alert('Clinical Notes: ${apt.clinicalNotes}')"><i class="fa-solid fa-stethoscope"></i> View Notes</button>`;
             }
 
-            // Status color mapping
+            // 🚨 THE FIX: Added the "Details" button to open your Ghost Modal!
+            actionButtonsHtml += `<button class="btn-action-outline" onclick="openBookingModal(${apt.rawId})" style="margin-left: 8px;"><i class="fa-solid fa-circle-info"></i> Details</button>`;
+
             let statusClass = `status-${apt.status}`;
-            if (apt.status === 'canceled') statusClass = 'status-canceled'; // Make sure you add .status-canceled to your CSS (red)
+            if (apt.status === 'canceled') statusClass = 'status-canceled'; 
 
             aptList.innerHTML += `
                 <div class="apt-card">
@@ -258,6 +254,56 @@ document.addEventListener('DOMContentLoaded', () => {
                 if(placeholderList) placeholderList.style.display = 'block';
             }
         });
+    });
+
+    // ==========================================
+    // --- 6. 🚨 THE MODAL ENGINE ---
+    // ==========================================
+    const modal = document.getElementById('booking-modal');
+    const closeModalBtn = document.getElementById('modal-close-btn');
+
+    if (closeModalBtn) {
+        closeModalBtn.addEventListener('click', () => {
+            modal.style.display = 'none';
+        });
+    }
+
+    window.openBookingModal = function(rawId) {
+        const apt = myBookings.find(b => b.rawId === rawId);
+        if (!apt) return;
+
+        // Populate Modal Fields
+        document.getElementById('modal-status-title').textContent = apt.status === 'upcoming' ? 'Upcoming Appointment' : 'Completed Appointment';
+        document.getElementById('modal-booking-id').textContent = `Booking ID: ${apt.bookingId}`;
+        document.getElementById('modal-status-badge').textContent = apt.status;
+        
+        document.getElementById('modal-doc-initials').textContent = getInitials(apt.doctorName);
+        document.getElementById('modal-doc-name').textContent = apt.doctorName;
+        document.getElementById('modal-doc-spec').textContent = apt.doctorSpecialty;
+        
+        document.getElementById('modal-service').textContent = apt.doctorSpecialty;
+        document.getElementById('modal-type-text').textContent = apt.visitType;
+        document.getElementById('modal-date').textContent = apt.date;
+        document.getElementById('modal-time').textContent = apt.time;
+
+        // Patient Info (Fallback if DB doesn't return it)
+        document.getElementById('modal-patient-name').textContent = apt.raw.patient_name || "Self";
+        document.getElementById('modal-patient-age').textContent = apt.raw.patient_age || "N/A";
+        document.getElementById('modal-patient-gender').textContent = apt.raw.patient_gender || "N/A";
+        document.getElementById('modal-patient-address').textContent = apt.raw.delivery_address || "Platform Default";
+        document.getElementById('modal-patient-reason').textContent = apt.raw.symptoms || apt.raw.order_notes || "None provided";
+        document.getElementById('modal-payment-amount').textContent = "Paid Online";
+        document.getElementById('modal-payment-method').textContent = "Prepaid / Covered";
+
+        // Show Modal
+        modal.style.display = 'flex';
+    };
+
+    // Close modal if user clicks outside the box
+    window.addEventListener('click', (e) => {
+        if (e.target === modal) {
+            modal.style.display = 'none';
+        }
     });
 
     // START ENGINE

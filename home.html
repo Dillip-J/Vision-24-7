@@ -36,10 +36,12 @@
                 <h1 class="hero-title">Your Health,<br><span class="text-blue">Our Priority</span></h1>
                 <p class="hero-subtitle">Connect with verified doctors, book home visits, and access healthcare services from the comfort of your home.</p>
                 
-                <div class="search-bar">
+                <div class="search-bar" style="position: relative;">
                     <i class="fa-solid fa-magnifying-glass search-icon"></i>
                     <input type="text" id="global-search" placeholder="Search for doctors, services...">
                     <button class="btn-primary search-btn" id="btn-global-search">Search</button>
+                    
+                    <div id="search-results" style="position: absolute; top: 100%; left: 0; right: 0; background: var(--bg-card, #fff); border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); z-index: 100; max-height: 300px; overflow-y: auto;"></div>
                 </div>
 
                 <div class="quick-tags">
@@ -79,9 +81,6 @@
                 <div class="cta-buttons">
                     <button class="btn-primary white-btn" data-nav="doctors.html">Book Appointment</button>
                 </div>
-                <!-- <div class="cta-buttons">
-                    <a href="doctors.html" class="btn-primary white-btn" data-nav="doctors.html">Book Appointment</a>
-                </div> -->
             </div>
             <div class="cta-watermark"><i class="fa-solid fa-heart-pulse"></i></div>
         </section>
@@ -107,7 +106,6 @@
                 </div>
                 <div class="footer-col">
                     <h4>System</h4>
-                    <!-- <a href="#" data-nav="admin-login.html">Admin Control Center</a>  -->
                     <a href="#">Privacy Policy</a>
                 </div>
             </div>
@@ -126,7 +124,6 @@
     <script src="js/home.js"></script>
 </body>
 </html>
-
 <!-- <main class="container">
         <section class="hero-section">
             <div class="hero-content">

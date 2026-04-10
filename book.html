@@ -14,7 +14,9 @@
     <header class="top-header">
         <div class="content-wrapper header-content">
             <div class="header-left">
-                <a href="doctors.html" class="back-arrow"><i class="fa-solid fa-arrow-left"></i></a>
+                <a href="home.html" onclick="localStorage.removeItem('pendingBooking'); localStorage.removeItem('activeBookingId');" class="back-arrow">
+                    <i class="fa-solid fa-arrow-left"></i>
+                </a>
                 <div class="brand">
                     <div class="logo-circle"><i class="fa-solid fa-heart-pulse"></i></div>
                     <div class="brand-text">
@@ -76,18 +78,18 @@
                     <div class="form-row two-col">
                         <div class="input-group">
                             <label>Full Name *</label>
-                            <input type="text" placeholder="Full Name" required>
+                            <input type="text" id="patient-name" placeholder="Full Name" required>
                         </div>
                         <div class="input-group">
                             <label>Age *</label>
-                            <input type="number" placeholder="Age" required>
+                            <input type="number" id="patient-age" placeholder="Age" required>
                         </div>
                     </div>
 
                     <div class="form-row">
                         <label>Gender *</label>
                         <div class="radio-group">
-                            <label class="radio-label"><input type="radio" name="gender" value="Male"> Male</label>
+                            <label class="radio-label"><input type="radio" name="gender" value="Male" required> Male</label>
                             <label class="radio-label"><input type="radio" name="gender" value="Female"> Female</label>
                             <label class="radio-label"><input type="radio" name="gender" value="Other"> Other</label>
                         </div>
@@ -95,12 +97,12 @@
 
                     <div class="form-row">
                         <label>Symptoms / Reason for Visit *</label>
-                        <textarea rows="3" placeholder="Describe your symptoms or reason for consultation..." required></textarea>
+                        <textarea id="patient-symptoms" rows="3" placeholder="Describe your symptoms or reason for consultation..." required></textarea>
                     </div>
 
                     <div class="form-row">
                         <label id="address-label">Complete Address for Home Visit *</label>
-                        <textarea rows="2" placeholder="House/Flat No., Street, Landmark, City, Pincode" required></textarea>
+                        <textarea id="patient-address" rows="2" placeholder="House/Flat No., Street, Landmark, City, Pincode" required></textarea>
                     </div>
                 </form>
             </section>
