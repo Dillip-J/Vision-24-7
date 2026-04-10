@@ -1,19 +1,5 @@
+// js/profile.js
 document.addEventListener('DOMContentLoaded', () => {
-
-// ==========================================
-// 🚨 SMART API ROUTER
-// ==========================================
-// let API_BASE;
-
-// if (window.location.hostname === '127.0.0.1' || window.location.hostname === 'localhost') {
-//     // 💻 LOCAL MODE: You are testing on your laptop
-//     API_BASE = 'http://127.0.0.1:8000';
-//     console.log("🔌 Connected to LOCAL Backend");
-// } else {
-//     // 🌍 LIVE MODE: You are on the real internet
-//     API_BASE = 'https://backend-depolyment-1.onrender.com'; 
-//     console.log("☁️ Connected to LIVE Cloud Backend");
-// }
 
     // ==========================================
     // --- 1. SECURE SESSION GUARD ---
@@ -92,7 +78,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 return;
             }
 
-            // 1. Instant UI Feedback (Your Base64 trick!)
+            // 1. Instant UI Feedback
             const reader = new FileReader();
             reader.onload = (event) => {
                 avatarInitials.textContent = ""; 
@@ -104,7 +90,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
             // 2. Upload to FastAPI
             const formData = new FormData();
-            formData.append("file", file); // Must match backend parameter name
+            formData.append("file", file);
 
             try {
                 if(btnChangePic) btnChangePic.textContent = "Uploading...";
@@ -147,14 +133,14 @@ document.addEventListener('DOMContentLoaded', () => {
     // --- 5. INITIALIZE THE UI ---
     // ==========================================
     function populateUI() {
-        if(inputName) inputName.value = userProfile.name || ""; // Backend uses 'name' not 'fullName'
+        if(inputName) inputName.value = userProfile.name || ""; 
         if(inputEmail) {
             inputEmail.value = userProfile.email || "";
-            inputEmail.readOnly = true; // Email cannot be changed easily
+            inputEmail.readOnly = true; 
         }
         if(inputPhone) inputPhone.value = userProfile.phone || "";
         
-        // These fields are currently just UI placeholders (Not in DB yet)
+        // These fields are currently just UI placeholders
         if(inputDob) inputDob.value = localStorage.getItem('temp_dob') || "";
         if(inputEmergency) inputEmergency.value = localStorage.getItem('temp_emergency') || "";
         if(inputMedical) inputMedical.value = localStorage.getItem('temp_medical') || "";
@@ -199,7 +185,7 @@ document.addEventListener('DOMContentLoaded', () => {
             }
 
             const originalText = btnSave.innerHTML;
-            btnSave.innerHTML = 'Saving...';
+            btnSave.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Saving...';
             btnSave.disabled = true;
 
             // Save non-DB items locally for now so the UI doesn't break
@@ -207,21 +193,57 @@ document.addEventListener('DOMContentLoaded', () => {
             if(inputEmergency) localStorage.setItem('temp_emergency', inputEmergency.value);
             if(inputMedical) localStorage.setItem('temp_medical', inputMedical.value);
 
-            // TODO: In Phase 2, we need to create a PATCH /users/me route in Python to save the Name and Phone!
-            alert("Note: Basic info (Name/Phone) requires a backend update route (Phase 2). Local UI updated.");
+            // 🚨 PHASE 2: REAL BACKEND CALL
+            try {
+                const response = await fetch(`${API_BASE}/users/me`, {
+                    method: 'PATCH',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                    },
+                    body: JSON.stringify({
+                        name: inputName.value.trim(),
+                        phone: inputPhone ? inputPhone.value.trim() : null
+                    })
+                });
 
-            btnSave.innerHTML = '<i class="fa-solid fa-check"></i> Saved Successfully';
-            btnSave.style.backgroundColor = 'var(--success-green)';
-            btnSave.style.borderColor = 'var(--success-green)';
-            btnSave.style.color = 'white';
-            
-            setTimeout(() => {
+                const data = await response.json();
+
+                if (response.ok) {
+                    // Update Local State Memory
+                    userProfile.name = data.name;
+                    userProfile.phone = data.phone;
+                    
+                    // Update UI Display Immediately
+                    if(displayName) displayName.textContent = data.name;
+
+                    // Update cached user object for other pages
+                    let cachedUser = JSON.parse(localStorage.getItem('currentUser')) || {};
+                    cachedUser.name = data.name;
+                    localStorage.setItem('currentUser', JSON.stringify(cachedUser));
+
+                    // Success Feedback
+                    btnSave.innerHTML = '<i class="fa-solid fa-check"></i> Saved Successfully';
+                    btnSave.style.backgroundColor = 'var(--success-green, #2ecc71)';
+                    btnSave.style.borderColor = 'var(--success-green, #2ecc71)';
+                    btnSave.style.color = 'white';
+                    
+                    setTimeout(() => {
+                        btnSave.innerHTML = originalText;
+                        btnSave.style.backgroundColor = '';
+                        btnSave.style.borderColor = '';
+                        btnSave.style.color = '';
+                        btnSave.disabled = false;
+                    }, 2000);
+                } else {
+                    throw new Error(data.detail || "Failed to update profile");
+                }
+            } catch (error) {
+                console.error("Update Error:", error);
+                alert("Error saving profile: " + error.message);
                 btnSave.innerHTML = originalText;
-                btnSave.style.backgroundColor = '';
-                btnSave.style.borderColor = '';
-                btnSave.style.color = '';
                 btnSave.disabled = false;
-            }, 2000);
+            }
         });
     }
 
