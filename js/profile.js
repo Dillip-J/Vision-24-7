@@ -97,13 +97,14 @@ document.addEventListener('DOMContentLoaded', () => {
                 
                 const response = await fetch(`${API_BASE}/users/me/profile-photo`, {
                     method: 'POST',
-                    headers: { 'Authorization': `Bearer ${token}` }, // NO Content-Type for FormData
+                    headers: { 'Authorization': `Bearer ${token}` },
                     body: formData
                 });
 
                 if (response.ok) {
                     const data = await response.json();
-                    userProfile.profile_photo_url = data.url; // Update local state with real URL
+                    userProfile.profile_photo_url = data.url; 
+                    populateUI(); // Redraw immediately
                     alert("Profile photo updated successfully!");
                 } else {
                     alert("Failed to upload photo to server.");
@@ -140,7 +141,6 @@ document.addEventListener('DOMContentLoaded', () => {
         }
         if(inputPhone) inputPhone.value = userProfile.phone || "";
         
-        // These fields are currently just UI placeholders
         if(inputDob) inputDob.value = localStorage.getItem('temp_dob') || "";
         if(inputEmergency) inputEmergency.value = localStorage.getItem('temp_emergency') || "";
         if(inputMedical) inputMedical.value = localStorage.getItem('temp_medical') || "";
@@ -171,7 +171,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
 
     // ==========================================
-    // --- 6. SAVE TEXT FORM LOGIC ---
+    // --- 6. 🚨 REAL BACKEND SAVE LOGIC 🚨 ---
     // ==========================================
     const btnSave = document.getElementById('btn-save-profile');
 
@@ -188,13 +188,8 @@ document.addEventListener('DOMContentLoaded', () => {
             btnSave.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Saving...';
             btnSave.disabled = true;
 
-            // Save non-DB items locally for now so the UI doesn't break
-            if(inputDob) localStorage.setItem('temp_dob', inputDob.value);
-            if(inputEmergency) localStorage.setItem('temp_emergency', inputEmergency.value);
-            if(inputMedical) localStorage.setItem('temp_medical', inputMedical.value);
-
-            // 🚨 PHASE 2: REAL BACKEND CALL
             try {
+                // 1. FIRE THE PATCH REQUEST!
                 const response = await fetch(`${API_BASE}/users/me`, {
                     method: 'PATCH',
                     headers: {
@@ -210,22 +205,26 @@ document.addEventListener('DOMContentLoaded', () => {
                 const data = await response.json();
 
                 if (response.ok) {
-                    // Update Local State Memory
+                    // 2. UPDATE LOCAL MEMORY WITH DB TRUTH
                     userProfile.name = data.name;
                     userProfile.phone = data.phone;
                     
-                    // Update UI Display Immediately
-                    if(displayName) displayName.textContent = data.name;
-
-                    // Update cached user object for other pages
                     let cachedUser = JSON.parse(localStorage.getItem('currentUser')) || {};
                     cachedUser.name = data.name;
                     localStorage.setItem('currentUser', JSON.stringify(cachedUser));
 
-                    // Success Feedback
+                    // Save non-DB items locally
+                    if(inputDob) localStorage.setItem('temp_dob', inputDob.value);
+                    if(inputEmergency) localStorage.setItem('temp_emergency', inputEmergency.value);
+                    if(inputMedical) localStorage.setItem('temp_medical', inputMedical.value);
+
+                    // 3. IMMEDIATELY REDRAW THE SCREEN!
+                    populateUI();
+
+                    // 4. SHOW SUCCESS
                     btnSave.innerHTML = '<i class="fa-solid fa-check"></i> Saved Successfully';
-                    btnSave.style.backgroundColor = 'var(--success-green, #2ecc71)';
-                    btnSave.style.borderColor = 'var(--success-green, #2ecc71)';
+                    btnSave.style.backgroundColor = 'var(--success-green, #10b981)';
+                    btnSave.style.borderColor = 'var(--success-green, #10b981)';
                     btnSave.style.color = 'white';
                     
                     setTimeout(() => {
@@ -235,12 +234,14 @@ document.addEventListener('DOMContentLoaded', () => {
                         btnSave.style.color = '';
                         btnSave.disabled = false;
                     }, 2000);
+
                 } else {
                     throw new Error(data.detail || "Failed to update profile");
                 }
+
             } catch (error) {
-                console.error("Update Error:", error);
-                alert("Error saving profile: " + error.message);
+                console.error("Save error:", error);
+                alert("Error saving to database: " + error.message);
                 btnSave.innerHTML = originalText;
                 btnSave.disabled = false;
             }
@@ -252,7 +253,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if (btnCancel) {
         btnCancel.addEventListener('click', (e) => {
             e.preventDefault();
-            populateUI(); // Reverts any unsaved typing by re-reading the object
+            populateUI(); // Reverts any unsaved typing by re-reading the object from memory!
         });
     }
 
