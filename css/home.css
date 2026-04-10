@@ -79,7 +79,7 @@
     font-size: 0.95rem;
 }
 
-.nav-links a.active {
+.nav-links a.active:hover{
     color: var(--primary-blue);
 }
 

@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Vision - Book Appointment</title>
+    <link rel="stylesheet" href="css/home.css"> 
+    <link rel="stylesheet" href="css/doctors.css"> <link rel="stylesheet" href="css/booking.css"> 
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body class="bg-main">
+
+    <header class="top-header">
+        <div class="content-wrapper header-content">
+            <div class="header-left">
+                <a href="doctors.html" class="back-arrow"><i class="fa-solid fa-arrow-left"></i></a>
+                <div class="brand">
+                    <div class="logo-circle"><i class="fa-solid fa-heart-pulse"></i></div>
+                    <div class="brand-text">
+                        <strong>Vision</strong>
+                        <span>Book Appointment</span>
+                    </div>
+                </div>
+            </div>
+            <button id="theme-toggle" class="icon-button" aria-label="Toggle Dark Mode">
+                <i class="fa-regular fa-moon" id="theme-icon"></i>
+            </button>
+        </div>
+    </header>
+
+    <main class="content-wrapper booking-layout">
+        
+        <div class="booking-flow">
+            
+            <section class="doc-header-card" id="doc-header-card">
+                <div class="doc-header-avatar">
+                    <img id="dyn-doc-img" src="" alt="Doctor">
+                </div>
+                <div class="doc-header-details">
+                    <div class="doc-header-top">
+                        <h2 id="dyn-doc-name">Loading...</h2>
+                        <span class="badge-visit-type" id="dyn-visit-type"><i class="fa-solid fa-location-dot"></i> Home Visit</span>
+                    </div>
+                    <div class="doc-specialty" id="dyn-doc-spec">Loading...</div>
+                    <div class="doc-exp" id="dyn-doc-exp">Loading...</div>
+                </div>
+            </section>
+
+            <section class="booking-section">
+                <div class="section-title">
+                    <i class="fa-regular fa-calendar"></i> Select Date
+                </div>
+                <div class="date-scroll-container" id="date-container"></div>
+                <div class="scroll-indicator">
+                    <i class="fa-solid fa-caret-left"></i>
+                    <div class="scroll-track"><div class="scroll-thumb"></div></div>
+                    <i class="fa-solid fa-caret-right"></i>
+                </div>
+            </section>
+
+            <section class="booking-section">
+                <div class="section-title-row">
+                    <div class="section-title"><i class="fa-regular fa-clock"></i> Select Time Slot</div>
+                    <span class="duration-text">Duration: 30 minutes</span>
+                </div>
+                <div class="time-grid" id="time-container"></div>
+            </section>
+
+            <section class="booking-section">
+                <div class="section-title">
+                    <i class="fa-regular fa-user"></i> Patient Information
+                </div>
+                
+                <form class="patient-form" id="patient-form">
+                    <div class="form-row two-col">
+                        <div class="input-group">
+                            <label>Full Name *</label>
+                            <input type="text" placeholder="Full Name" required>
+                        </div>
+                        <div class="input-group">
+                            <label>Age *</label>
+                            <input type="number" placeholder="Age" required>
+                        </div>
+                    </div>
+
+                    <div class="form-row">
+                        <label>Gender *</label>
+                        <div class="radio-group">
+                            <label class="radio-label"><input type="radio" name="gender" value="Male"> Male</label>
+                            <label class="radio-label"><input type="radio" name="gender" value="Female"> Female</label>
+                            <label class="radio-label"><input type="radio" name="gender" value="Other"> Other</label>
+                        </div>
+                    </div>
+
+                    <div class="form-row">
+                        <label>Symptoms / Reason for Visit *</label>
+                        <textarea rows="3" placeholder="Describe your symptoms or reason for consultation..." required></textarea>
+                    </div>
+
+                    <div class="form-row">
+                        <label id="address-label">Complete Address for Home Visit *</label>
+                        <textarea rows="2" placeholder="House/Flat No., Street, Landmark, City, Pincode" required></textarea>
+                    </div>
+                </form>
+            </section>
+        </div>
+
+        <aside class="booking-sidebar">
+            <div class="summary-card">
+                <h3>Booking Summary</h3>
+                
+                <div class="summary-doc-info">
+                    <span class="summary-label">Doctor</span>
+                    <strong id="sum-doc-name">...</strong>
+                    <span class="summary-label mt-2">Specialization</span>
+                    <strong class="text-blue" id="sum-doc-spec">...</strong>
+                </div>
+
+                <div class="summary-datetime">
+                    <div class="sum-row">
+                        <i class="fa-regular fa-calendar"></i>
+                        <div>
+                            <span class="sum-sub">Date</span>
+                            <strong id="sum-date">Select a date</strong>
+                        </div>
+                    </div>
+                    <div class="sum-row" id="sum-time-row" style="display: none;">
+                        <i class="fa-regular fa-clock"></i>
+                        <div>
+                            <span class="sum-sub">Time</span>
+                            <strong id="sum-time">...</strong>
+                        </div>
+                    </div>
+                    <div class="sum-row mt-3">
+                        <i class="fa-solid fa-location-dot"></i>
+                        <div>
+                            <span class="sum-sub">Type</span>
+                            <strong id="sum-type">...</strong>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="summary-costs">
+                    <div class="cost-row">
+                        <span>Consultation Fee</span>
+                        <span id="sum-fee">...</span>
+                    </div>
+                    <div class="cost-row">
+                        <span>Visit Charges</span>
+                        <span id="sum-visit">...</span>
+                    </div>
+                    <hr class="cost-divider">
+                    <div class="cost-row total-row">
+                        <span>Total Amount</span>
+                        <span class="total-price text-blue" id="sum-total">...</span>
+                    </div>
+                </div>
+
+                <button class="btn-primary full-width" id="proceed-btn" disabled>
+                    <i class="fa-regular fa-circle-check"></i> Proceed to Payment
+                </button>
+
+                <p class="terms-text">
+                    By proceeding, you agree to our <a href="#">Terms & Conditions</a>
+                </p>
+            </div>
+        </aside>
+
+    </main>
+
+    <script src="js/script.js"></script>
+    <script src="js/book.js"></script>
+    <script src="js/auth_guard.js"></script>
+    <script src="js/config.js"></script>   
+</body>
+</html>

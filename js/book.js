@@ -1,18 +1,4 @@
-// ==========================================
-// 🚨 SMART API ROUTER
-// ==========================================
-// let API_BASE;
-
-// if (window.location.hostname === '127.0.0.1' || window.location.hostname === 'localhost') {
-//     // 💻 LOCAL MODE: You are testing on your laptop
-//     API_BASE = 'http://127.0.0.1:8000';
-//     console.log("🔌 Connected to LOCAL Backend");
-// } else {
-//     // 🌍 LIVE MODE: You are on the real internet
-//     API_BASE = 'https://backend-depolyment-1.onrender.com'; 
-//     console.log("☁️ Connected to LIVE Cloud Backend");
-// }
-
+// js/book.js
 document.addEventListener('DOMContentLoaded', () => {
 
     // ==========================================
@@ -40,9 +26,6 @@ document.addEventListener('DOMContentLoaded', () => {
     if(document.getElementById('sum-doc-spec')) document.getElementById('sum-doc-spec').textContent = doctorData.doctorSpecialty;
     if(document.getElementById('sum-type')) document.getElementById('sum-type').textContent = doctorData.visitType;
 
-    // --- Pre-fill Patient Data from User Session (Optional) ---
-    // Note: Since we are using real FastAPI now, we don't rely on usersDB. We rely on the /users/me API.
-    // But to keep the UI smooth, we can pull the cached name.
     let cachedUser = {};
     try { cachedUser = JSON.parse(localStorage.getItem('currentUser')) || {}; } catch(e){}
     
@@ -51,11 +34,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
 
     // ==========================================
-    // --- 2. TIME SLOT & CALENDAR LOGIC (MOCK) ---
+    // --- 2. TIME SLOT & CALENDAR LOGIC ---
     // ==========================================
-    // Assuming your UI has elements for date and time selection
-    const timeSlots = document.querySelectorAll('.time-slot'); // Assuming you have elements with this class
-    let selectedTime = "10:00 AM"; // Default
+    const timeSlots = document.querySelectorAll('.time-slot'); 
+    let selectedTime = "10:00 AM"; 
     let selectedDate = new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
 
     timeSlots.forEach(slot => {
@@ -69,23 +51,12 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     });
 
-    // Assume a simple date picker or fallback
-    const datePicker = document.getElementById('appointment-date'); // If you have an input type="date"
-    if (datePicker) {
-        datePicker.addEventListener('change', (e) => {
-            selectedDate = new Date(e.target.value).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
-            const sumDate = document.getElementById('sum-date');
-            if(sumDate) sumDate.textContent = selectedDate;
-        });
-    }
-
-    // Set Initial Summary Values
     if(document.getElementById('sum-date')) document.getElementById('sum-date').textContent = selectedDate;
     if(document.getElementById('sum-time')) document.getElementById('sum-time').textContent = selectedTime;
 
 
     // ==========================================
-    // --- 3. GEOLOCATION & PROCEED LOGIC ---
+    // --- 3. THE BACKEND CONNECTION ENGINE ---
     // ==========================================
     const proceedBtn = document.getElementById('proceed-btn');
     
@@ -99,62 +70,91 @@ document.addEventListener('DOMContentLoaded', () => {
                 return; 
             }
             
-            // Re-fetch variables from the UI
-            const currentVisitType = document.getElementById('sum-type') ? document.getElementById('sum-type').textContent : doctorData.visitType;
-            const addressInput = document.getElementById('patient-address');
-            const patientAddress = (currentVisitType === 'Home Visit' || currentVisitType === 'Delivery') && addressInput ? addressInput.value : "";
-
-            // UI Feedback
+            // 1. Lock the Button UI
             const originalText = proceedBtn.innerHTML;
-            proceedBtn.innerHTML = '<i class="fa-solid fa-location-crosshairs fa-spin"></i> Securing Booking...';
+            proceedBtn.innerHTML = '<i class="fa-solid fa-circle-notch fa-spin"></i> Securing Booking...';
             proceedBtn.disabled = true;
 
-            // 1. Build the updated Cart
-            const updatedBooking = {
-                ...doctorData, // Spread the existing data (provider_id, fees, etc.)
-                date: selectedDate,
-                time: selectedTime,
-                address: patientAddress,
-                patientName: nameInputs.length > 0 ? nameInputs[0].value : (cachedUser.name || "Self"),
+            // 2. Extract Data from the HTML Form
+            const currentVisitType = document.getElementById('sum-type') ? document.getElementById('sum-type').textContent : doctorData.visitType;
+            
+            const patientName = document.querySelector('.patient-form input[type="text"]').value;
+            const patientAge = parseInt(document.querySelector('.patient-form input[type="number"]').value);
+            const genderNode = document.querySelector('.patient-form input[name="gender"]:checked');
+            const patientGender = genderNode ? genderNode.value : "Other";
+            
+            const textareas = document.querySelectorAll('.patient-form textarea');
+            const symptoms = textareas.length > 0 ? textareas[0].value : "";
+            const patientAddress = textareas.length > 1 ? textareas[1].value : "";
+
+            // 3. Format Date and Time for Python/PostgreSQL
+            const combinedDateTime = new Date(`${selectedDate} ${selectedTime}`);
+
+            // 4. Build the exact payload schemas.py expects!
+            const bookingPayload = {
+                provider_id: doctorData.id || doctorData.provider_id, // Must match your UUID from the search page
+                scheduled_time: combinedDateTime.toISOString(),
+                delivery_address: patientAddress || null,
                 latitude: null, // Default
-                longitude: null // Default
+                longitude: null, // Default
+                patient_name: patientName,
+                patient_age: patientAge,
+                patient_gender: patientGender,
+                symptoms: symptoms
             };
 
-            // 2. The GPS Engine (Only run if it's a physical visit)
+            // 5. GPS Engine (Optional injection)
             if ((currentVisitType === 'Home Visit' || currentVisitType === 'Delivery') && navigator.geolocation) {
-                
                 navigator.geolocation.getCurrentPosition(
                     (position) => {
-                        // Success: GPS Found
-                        updatedBooking.latitude = position.coords.latitude;
-                        updatedBooking.longitude = position.coords.longitude;
-                        finalizeAndRoute(updatedBooking);
+                        bookingPayload.latitude = position.coords.latitude;
+                        bookingPayload.longitude = position.coords.longitude;
+                        fireToBackend(bookingPayload);
                     }, 
                     (error) => {
-                        // Failed/Blocked: Proceed without GPS
-                        console.warn("Location blocked by user. Saving address text only.");
-                        finalizeAndRoute(updatedBooking);
+                        console.warn("Location blocked by user. Proceeding without GPS.");
+                        fireToBackend(bookingPayload);
                     },
-                    { timeout: 5000 } // Don't wait more than 5 seconds for GPS
+                    { timeout: 5000 } 
                 );
-
             } else {
-                // Online Consult or Browser doesn't support GPS
-                finalizeAndRoute(updatedBooking);
+                fireToBackend(bookingPayload);
             }
 
-            // 3. Helper to save and redirect
-            function finalizeAndRoute(finalCart) {
-                // Save the Delivery Address explicitly for payment.js to find
-                if (finalCart.address) {
-                    localStorage.setItem('deliveryAddress', finalCart.address);
+            // ==========================================
+            // 6. THE FASTAPI FETCH
+            // ==========================================
+            async function fireToBackend(payload) {
+                try {
+                    const response = await fetch(`${API_BASE}/bookings/`, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Authorization': `Bearer ${token}` // The Bouncer's VIP pass
+                        },
+                        body: JSON.stringify(payload)
+                    });
+
+                    const data = await response.json();
+
+                    if (!response.ok) {
+                        throw new Error(data.detail || "Failed to create booking");
+                    }
+
+                    // SUCCESS! We have our Integer booking_id.
+                    // Save it to localStorage so the Payment page knows what to pay for!
+                    localStorage.setItem('activeBookingId', data.id);
+                    localStorage.setItem('deliveryAddress', payload.delivery_address); // Save for UI
+
+                    // Jump to Payment!
+                    window.location.href = "payment.html"; 
+
+                } catch (error) {
+                    console.error("Booking Error:", error);
+                    alert(`Could not secure booking: ${error.message}`);
+                    proceedBtn.innerHTML = originalText;
+                    proceedBtn.disabled = false;
                 }
-                
-                // Save the enriched cart back to memory
-                localStorage.setItem('pendingBooking', JSON.stringify(finalCart));
-                
-                // Jump to Payment!
-                window.location.href = "payment.html"; 
             }
         });
     }
