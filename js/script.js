@@ -204,24 +204,22 @@ if (loginFormEl) {
         submitBtn.disabled = true;
         
         try {
-            const formData = new URLSearchParams();
-            formData.append('username', loginEmail); 
-            formData.append('password', loginPassword);
-
+            // 🚨 THE FIX: Switched from FormData to a proper JSON Object!
             const response = await fetch(`${API_BASE}/auth/login`, {
                 method: 'POST',
                 headers: { 
-                    'Content-Type': 'application/x-www-form-urlencoded' 
+                    'Content-Type': 'application/json' // Tell FastAPI to expect JSON
                 },
-                body: formData
+                body: JSON.stringify({
+                    email: loginEmail,     // Must exactly match your schemas.py
+                    password: loginPassword
+                })
             });
 
             if (!response.ok) {
-                // 🚨 THE FIX: Taking off the blindfold
                 const errorData = await response.json().catch(() => ({}));
                 console.error("Backend Error Details:", errorData);
                 
-                // Show the exact error Python is throwing
                 const errorMessage = typeof errorData.detail === 'string' 
                     ? errorData.detail 
                     : JSON.stringify(errorData.detail || errorData);
