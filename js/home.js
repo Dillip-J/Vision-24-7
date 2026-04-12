@@ -72,7 +72,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         } catch (error) {
             console.error("Network Error: Could not load categories.", error);
-            grid.innerHTML = `<p style="grid-column: 1/-1; text-align: center; color: red;">Could not connect to database. Please check Uvicorn or Render status.</p>`;
+            // grid.innerHTML = `<p style="grid-column: 1/-1; text-align: center; color: red;">Could not connect to database. Please check Uvicorn or Render status.</p>`;
         }
     }
 
