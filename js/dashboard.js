@@ -15,7 +15,7 @@ document.addEventListener('DOMContentLoaded', () => {
         return parts.length >= 2 ? `${parts[0][0]}${parts[1][0]}`.toUpperCase() : `${cleanName[0]}X`.toUpperCase();
     };
 
-    // 2. 🚨 THE FIX: Synchronized Theme Toggle (Removed 'vision_theme')
+    // 2. THEME TOGGLE & LOGOUT
     const themeToggleBtn = document.getElementById('theme-toggle');
     const themeIcon = document.getElementById('theme-icon');
     if (themeToggleBtn && themeIcon) {
@@ -26,11 +26,11 @@ document.addEventListener('DOMContentLoaded', () => {
             e.preventDefault();
             if (document.documentElement.getAttribute('data-theme') === 'dark') {
                 document.documentElement.removeAttribute('data-theme');
-                localStorage.setItem('theme', 'light'); // 🔥 Fixed: Now matches script.js
+                localStorage.setItem('theme', 'light'); 
                 themeIcon.className = 'fa-regular fa-moon';
             } else {
                 document.documentElement.setAttribute('data-theme', 'dark');
-                localStorage.setItem('theme', 'dark'); // 🔥 Fixed: Now matches script.js
+                localStorage.setItem('theme', 'dark'); 
                 themeIcon.className = 'fa-solid fa-sun';
             }
         });
@@ -45,7 +45,8 @@ document.addEventListener('DOMContentLoaded', () => {
     // 3. BULLETPROOF FASTAPI FETCH
     window.fetchDashboardData = async function() {
         try {
-            const API_BASE = window.API_BASE || 'http://127.0.0.1:8000'; // Fallback added just in case
+            // 🚨 THE FIX: Point directly to your LIVE Render server!
+            const API_BASE = window.API_BASE || 'https://backend-depolyment-3.onrender.com';
 
             const [activeRes, historyRes] = await Promise.all([
                 fetch(`${API_BASE}/bookings/me/active`, { headers: { 'Authorization': `Bearer ${token}` } }).catch(() => null),
@@ -162,7 +163,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
             let actionButtonsHtml = '';
             
-            // Primary Status Button
             if (apt.status === 'active' && isOnline) {
                 actionButtonsHtml += `<button class="btn-action" onclick="window.open('video-room.html?room=${apt.rawId}&role=patient', '_blank')"><i class="fa-solid fa-video"></i> Join Call</button>`;
             } else if (apt.status === 'active') {
@@ -171,15 +171,12 @@ document.addEventListener('DOMContentLoaded', () => {
                 actionButtonsHtml += `<button class="btn-action-outline" onclick="downloadSimulation('${apt.bookingId}')"><i class="fa-solid fa-download"></i> Report</button>`;
             }
 
-            // Universal Details Button
             actionButtonsHtml += `<button class="btn-action-outline" onclick="openBookingModal('${apt.rawId}')" style="margin-left: 8px;"><i class="fa-solid fa-circle-info"></i> Details</button>`;
 
-            // Cancel Button (Active Only)
             if (apt.status === 'active') {
                 actionButtonsHtml += `<button class="btn-action-outline" onclick="cancelBooking('${apt.rawId}')" style="margin-left: 8px; color: #EF4444; border-color: #EF4444;"><i class="fa-solid fa-ban"></i> Cancel</button>`;
             }
 
-            // Complaint Button (Completed Only)
             if (apt.status === 'completed') {
                 actionButtonsHtml += `<button class="btn-action-outline" onclick="fileComplaint('${apt.rawId}')" style="margin-left: 8px; color: #EF4444; border-color: #EF4444;"><i class="fa-solid fa-triangle-exclamation"></i> Complaint</button>`;
             }
@@ -333,7 +330,8 @@ document.addEventListener('DOMContentLoaded', () => {
 window.cancelBooking = async function(rawId) {
     if (!confirm("Are you sure you want to cancel this appointment? This action cannot be undone.")) return;
     
-    const API_BASE = window.API_BASE || 'http://127.0.0.1:8000';
+    // 🚨 THE FIX: Point directly to your LIVE Render server!
+    const API_BASE = window.API_BASE || 'https://backend-depolyment-3.onrender.com';
     const token = localStorage.getItem('access_token');
     
     try {
