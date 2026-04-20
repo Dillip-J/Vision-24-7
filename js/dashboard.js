@@ -15,39 +15,10 @@ document.addEventListener('DOMContentLoaded', () => {
         return parts.length >= 2 ? `${parts[0][0]}${parts[1][0]}`.toUpperCase() : `${cleanName[0]}X`.toUpperCase();
     };
 
-    // 2. THEME TOGGLE & LOGOUT
-    const themeToggleBtn = document.getElementById('theme-toggle');
-    const themeIcon = document.getElementById('theme-icon');
-    if (themeToggleBtn && themeIcon) {
-        if (document.documentElement.getAttribute('data-theme') === 'dark') themeIcon.className = 'fa-solid fa-sun';
-        else themeIcon.className = 'fa-regular fa-moon';
-
-        themeToggleBtn.addEventListener('click', (e) => {
-            e.preventDefault();
-            if (document.documentElement.getAttribute('data-theme') === 'dark') {
-                document.documentElement.removeAttribute('data-theme');
-                localStorage.setItem('theme', 'light'); 
-                themeIcon.className = 'fa-regular fa-moon';
-            } else {
-                document.documentElement.setAttribute('data-theme', 'dark');
-                localStorage.setItem('theme', 'dark'); 
-                themeIcon.className = 'fa-solid fa-sun';
-            }
-        });
-    }
-
-    const logoutBtn = document.getElementById('btn-logout');
-    if (logoutBtn) logoutBtn.addEventListener('click', () => { 
-        localStorage.removeItem('access_token'); 
-        window.location.replace('index.html'); 
-    });
-
     // 3. BULLETPROOF FASTAPI FETCH
     window.fetchDashboardData = async function() {
         try {
-            // 🚨 THE FIX: Point directly to your LIVE Render server!
-            const API_BASE = window.API_BASE || 'https://backend-depolyment-3.onrender.com';
-
+            // 🚨 FIX 2: Removed local fallback inside function
             const [activeRes, historyRes] = await Promise.all([
                 fetch(`${API_BASE}/bookings/me/active`, { headers: { 'Authorization': `Bearer ${token}` } }).catch(() => null),
                 fetch(`${API_BASE}/bookings/me/history`, { headers: { 'Authorization': `Bearer ${token}` } }).catch(() => null)
@@ -330,7 +301,7 @@ document.addEventListener('DOMContentLoaded', () => {
 window.cancelBooking = async function(rawId) {
     if (!confirm("Are you sure you want to cancel this appointment? This action cannot be undone.")) return;
     
-    // 🚨 THE FIX: Point directly to your LIVE Render server!
+    // 🚨 FIX 3: Point to Cloud API here too
     const API_BASE = window.API_BASE || 'https://backend-depolyment-3.onrender.com';
     const token = localStorage.getItem('access_token');
     

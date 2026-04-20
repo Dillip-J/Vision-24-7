@@ -7,7 +7,6 @@ document.addEventListener('DOMContentLoaded', () => {
     const filterSpecialty = document.getElementById('filter-specialty');
 
     // --- 1. GLOBAL MEMORY (Get Lat/Lon) ---
-    // 🚨 THIS FIXES THE 9,000KM DISTANCE BUG
     let userLat = parseFloat(localStorage.getItem('user_lat')) || 0.0;
     let userLon = parseFloat(localStorage.getItem('user_lon')) || 0.0;
 
@@ -37,7 +36,6 @@ document.addEventListener('DOMContentLoaded', () => {
     // ==========================================
     async function fetchApprovedDoctors() {
         try {
-            // 🚨 USE REAL GPS COORDINATES NOW!
             const response = await fetch(`${API_BASE}/home/nearest?lat=${userLat}&lon=${userLon}&category=Doctor`);
             if (!response.ok) throw new Error("API Offline");
             
@@ -89,7 +87,16 @@ document.addEventListener('DOMContentLoaded', () => {
         if(doctorList) doctorList.innerHTML = '';
         
         filtered.forEach(doc => {
-            const imgUrl = doc.profile_photo_url ? `${API_BASE}${doc.profile_photo_url}` : (doc.profilePic || "images/default-avatar.png");
+            
+            // 🚨 FIX 2: THE BULLETPROOF IMAGE LOGIC
+            let imgUrl = "images/default-avatar.png"; // Fallback
+            if (doc.profile_photo_url) {
+                // If it already has http, use it directly. If not, add the Render API link!
+                imgUrl = doc.profile_photo_url.startsWith('http') 
+                    ? doc.profile_photo_url 
+                    : `${API_BASE}${doc.profile_photo_url}`;
+            }
+
             const providerId = doc.provider_id || doc.id; 
             const displayCategory = doc.category || 'Specialist';
             
