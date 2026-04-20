@@ -15,7 +15,7 @@ document.addEventListener('DOMContentLoaded', () => {
         return parts.length >= 2 ? `${parts[0][0]}${parts[1][0]}`.toUpperCase() : `${cleanName[0]}X`.toUpperCase();
     };
 
-    // 2. THEME TOGGLE & LOGOUT
+    // 2. 🚨 THE FIX: Synchronized Theme Toggle (Removed 'vision_theme')
     const themeToggleBtn = document.getElementById('theme-toggle');
     const themeIcon = document.getElementById('theme-icon');
     if (themeToggleBtn && themeIcon) {
@@ -26,11 +26,11 @@ document.addEventListener('DOMContentLoaded', () => {
             e.preventDefault();
             if (document.documentElement.getAttribute('data-theme') === 'dark') {
                 document.documentElement.removeAttribute('data-theme');
-                localStorage.setItem('vision_theme', 'light');
+                localStorage.setItem('theme', 'light'); // 🔥 Fixed: Now matches script.js
                 themeIcon.className = 'fa-regular fa-moon';
             } else {
                 document.documentElement.setAttribute('data-theme', 'dark');
-                localStorage.setItem('vision_theme', 'dark');
+                localStorage.setItem('theme', 'dark'); // 🔥 Fixed: Now matches script.js
                 themeIcon.className = 'fa-solid fa-sun';
             }
         });
@@ -45,11 +45,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // 3. BULLETPROOF FASTAPI FETCH
     window.fetchDashboardData = async function() {
         try {
-            // const API_BASE = window.API_BASE || (
-            //     (window.location.hostname === '127.0.0.1' || window.location.hostname === 'localhost' || window.location.protocol === 'file:') 
-            //     ? 'http://127.0.0.1:8000' 
-            //     : 'https://backend-depolyment-1.onrender.com'
-            // );
+            const API_BASE = window.API_BASE || 'http://127.0.0.1:8000'; // Fallback added just in case
 
             const [activeRes, historyRes] = await Promise.all([
                 fetch(`${API_BASE}/bookings/me/active`, { headers: { 'Authorization': `Bearer ${token}` } }).catch(() => null),
@@ -249,7 +245,6 @@ document.addEventListener('DOMContentLoaded', () => {
     function renderComplaints() {
         const compList = document.getElementById('list-complaints');
         if(!compList) return;
-        // Placeholder for Phase 2 complaints fetch
         compList.innerHTML = `<div class="empty-state"><i class="fa-solid fa-triangle-exclamation" style="font-size: 3rem; margin-bottom: 16px; opacity: 0.5;"></i><p>You have no active complaints.</p></div>`;
     }
 
@@ -260,11 +255,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
     tabs.forEach(tab => {
         tab.addEventListener('click', (e) => {
-            // Remove active classes & hide all tab contents
             tabs.forEach(t => t.classList.remove('active'));
             tabContents.forEach(c => c.classList.add('hidden')); 
             
-            // Add active class & show targeted content
             e.target.classList.add('active');
             const targetId = e.target.getAttribute('data-target');
             if (targetId) {
@@ -272,7 +265,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 if(targetContent) targetContent.classList.remove('hidden');
             }
             
-            // Update title safely
             if(sectionTitle) sectionTitle.textContent = e.target.textContent;
         });
     });
@@ -324,11 +316,9 @@ document.addEventListener('DOMContentLoaded', () => {
             notesSection.classList.add('hidden');
         }
         
-        // Use classList to safely show
         modal.classList.remove('hidden');
     };
 
-    // Click outside modal to close
     window.addEventListener('click', (e) => { 
         if (e.target === modal) modal.classList.add('hidden'); 
     });
@@ -343,7 +333,7 @@ document.addEventListener('DOMContentLoaded', () => {
 window.cancelBooking = async function(rawId) {
     if (!confirm("Are you sure you want to cancel this appointment? This action cannot be undone.")) return;
     
-    const API_BASE = window.API_BASE || (window.location.hostname === '127.0.0.1' ? 'http://127.0.0.1:8000' : 'https://backend-depolyment-1.onrender.com');
+    const API_BASE = window.API_BASE || 'http://127.0.0.1:8000';
     const token = localStorage.getItem('access_token');
     
     try {
