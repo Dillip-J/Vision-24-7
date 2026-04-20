@@ -1,19 +1,13 @@
 // js/dashboard.js
 document.addEventListener('DOMContentLoaded', () => {
 
-    // ==========================================
-    // --- 1. STRICT JWT SESSION GUARD ---
-    // ==========================================
+    // 1. SECURITY & SESSION GUARD
     const token = localStorage.getItem('access_token');
-    if (!token) { 
-        window.location.href = 'index.html'; 
-        return; 
-    }
+    if (!token) { window.location.replace('index.html'); return; }
 
     let myBookings = [];
     let myReports = [];
 
-    // Helper: Extract Initials
     const getInitials = (name) => {
         if(!name) return 'DR';
         const cleanName = name.replace(/^Dr\.\s*/i, '');
@@ -21,52 +15,81 @@ document.addEventListener('DOMContentLoaded', () => {
         return parts.length >= 2 ? `${parts[0][0]}${parts[1][0]}`.toUpperCase() : `${cleanName[0]}X`.toUpperCase();
     };
 
-    // ==========================================
-    // --- 2. FASTAPI DATA FETCH ---
-    // ==========================================
-    async function fetchDashboardData() {
-        try {
-            const activeRes = await fetch(`${API_BASE}/bookings/me/active`, {
-                headers: { 'Authorization': `Bearer ${token}` }
-            });
-            
-            const historyRes = await fetch(`${API_BASE}/bookings/me/history`, {
-                headers: { 'Authorization': `Bearer ${token}` }
-            });
+    // 2. THEME TOGGLE & LOGOUT
+    const themeToggleBtn = document.getElementById('theme-toggle');
+    const themeIcon = document.getElementById('theme-icon');
+    if (themeToggleBtn && themeIcon) {
+        if (document.documentElement.getAttribute('data-theme') === 'dark') themeIcon.className = 'fa-solid fa-sun';
+        else themeIcon.className = 'fa-regular fa-moon';
 
-            if (activeRes.status === 401 || historyRes.status === 401) {
-                localStorage.removeItem('access_token');
-                window.location.href = 'index.html';
-                return;
+        themeToggleBtn.addEventListener('click', (e) => {
+            e.preventDefault();
+            if (document.documentElement.getAttribute('data-theme') === 'dark') {
+                document.documentElement.removeAttribute('data-theme');
+                localStorage.setItem('vision_theme', 'light');
+                themeIcon.className = 'fa-regular fa-moon';
+            } else {
+                document.documentElement.setAttribute('data-theme', 'dark');
+                localStorage.setItem('vision_theme', 'dark');
+                themeIcon.className = 'fa-solid fa-sun';
+            }
+        });
+    }
+
+    const logoutBtn = document.getElementById('btn-logout');
+    if (logoutBtn) logoutBtn.addEventListener('click', () => { 
+        localStorage.removeItem('access_token'); 
+        window.location.replace('index.html'); 
+    });
+
+    // 3. BULLETPROOF FASTAPI FETCH
+    window.fetchDashboardData = async function() {
+        try {
+            // const API_BASE = window.API_BASE || (
+            //     (window.location.hostname === '127.0.0.1' || window.location.hostname === 'localhost' || window.location.protocol === 'file:') 
+            //     ? 'http://127.0.0.1:8000' 
+            //     : 'https://backend-depolyment-1.onrender.com'
+            // );
+
+            const [activeRes, historyRes] = await Promise.all([
+                fetch(`${API_BASE}/bookings/me/active`, { headers: { 'Authorization': `Bearer ${token}` } }).catch(() => null),
+                fetch(`${API_BASE}/bookings/me/history`, { headers: { 'Authorization': `Bearer ${token}` } }).catch(() => null)
+            ]);
+
+            if ((activeRes && activeRes.status === 401) || (historyRes && historyRes.status === 401)) {
+                localStorage.removeItem('access_token'); window.location.replace('index.html'); return;
             }
 
-            const activeData = await activeRes.json();
-            const historyData = await historyRes.json();
+            let activeData = []; let historyData = [];
+            if (activeRes && activeRes.ok) activeData = await activeRes.json();
+            if (historyRes && historyRes.ok) historyData = await historyRes.json();
 
-            // 🚨 THE FIX: Map data without splitting an Integer!
-            const allFetched = [...activeData, ...historyData].map(apt => {
-                
-                let dateStr = "TBD";
-                let timeStr = "TBD";
+            const activeArray = Array.isArray(activeData) ? activeData : (activeData.items || []);
+            const historyArray = Array.isArray(historyData) ? historyData : (historyData.items || []);
+
+            myBookings = [...activeArray, ...historyArray].map(apt => {
+                let dateStr = "TBD"; let timeStr = "TBD";
                 if (apt.scheduled_time) {
                     const d = new Date(apt.scheduled_time);
                     dateStr = d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
                     timeStr = d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
                 } else if (apt.created_at) {
-                    dateStr = new Date(apt.created_at).toLocaleDateString();
-                    timeStr = "ASAP";
+                    dateStr = new Date(apt.created_at).toLocaleDateString(); timeStr = "ASAP";
                 }
 
-                let mappedStatus = apt.booking_status;
-                if (mappedStatus === 'pending' || mappedStatus === 'confirmed') mappedStatus = 'upcoming';
+                let mappedStatus = (apt.booking_status || 'pending').toLowerCase();
+                if (['pending', 'confirmed', 'in_transit'].includes(mappedStatus)) mappedStatus = 'active';
+                if (mappedStatus === 'rejected') mappedStatus = 'canceled';
 
                 let vType = "Home Visit";
+                const addr = (apt.delivery_address || "").trim().toLowerCase();
                 if (apt.provider && apt.provider.provider_type === "Pharmacy") vType = "Delivery";
-                if (!apt.delivery_address) vType = "Video Consult";
+                if (addr === "" || addr === "none" || addr === "null" || addr === "online" || addr === "platform default" || addr === "undefined") {
+                    vType = "Video Consult";
+                }
 
                 return {
-                    // Properly format the Integer ID
-                    bookingId: 'BKG-' + apt.booking_id.toString().padStart(4, '0'), 
+                    bookingId: apt.booking_id, 
                     rawId: apt.booking_id,
                     doctorName: apt.provider ? apt.provider.name : "Unknown Provider",
                     doctorSpecialty: apt.provider ? apt.provider.category : "Healthcare Service",
@@ -74,44 +97,33 @@ document.addEventListener('DOMContentLoaded', () => {
                     date: dateStr,
                     time: timeStr,
                     visitType: vType,
-                    hasReport: apt.booking_status === 'completed', 
+                    hasReport: mappedStatus === 'completed', 
                     clinicalNotes: apt.order_notes || "No additional notes.",
-                    raw: apt // Save the raw database object so the Modal can read it!
+                    raw: apt 
                 };
             });
 
-            myBookings = allFetched;
             myReports = myBookings.filter(apt => apt.status === 'completed' && apt.hasReport === true);
-
             renderStats();
-            renderAppointments();
-            renderReports();
+            renderAllLists();
 
         } catch (error) {
-            console.error("Failed to fetch dashboard data:", error);
-            renderStats();
-            renderAppointments();
-            renderReports();
+            console.error("Dashboard Error:", error);
+            renderStats(); renderAllLists();
         }
     }
 
-    // ==========================================
-    // --- 3. RENDER STATS DYNAMICALLY ---
-    // ==========================================
+    // 4. STATS RENDERER
     function renderStats() {
         const statsContainer = document.getElementById('stats-container');
         if(!statsContainer) return;
-
-        const upcomingCount = myBookings.filter(a => a.status === 'upcoming').length;
+        const activeCount = myBookings.filter(a => a.status === 'active').length;
         const completedCount = myBookings.filter(a => a.status === 'completed').length;
+        const canceledCount = myBookings.filter(a => a.status === 'canceled').length;
 
         statsContainer.innerHTML = `
             <div class="stat-card">
-                <div class="stat-info"><span class="stat-title">Total Bookings</span><span class="stat-value">${myBookings.length}</span></div>
-                <div class="stat-icon icon-blue"><i class="fa-regular fa-calendar"></i></div>
-            </div>
-            <div class="stat-card">
-                <div class="stat-info"><span class="stat-title">Upcoming</span><span class="stat-value text-blue">${upcomingCount}</span></div>
+                <div class="stat-info"><span class="stat-title">Appointments</span><span class="stat-value text-blue">${activeCount}</span></div>
                 <div class="stat-icon icon-blue"><i class="fa-regular fa-clock"></i></div>
             </div>
             <div class="stat-card">
@@ -119,58 +131,74 @@ document.addEventListener('DOMContentLoaded', () => {
                 <div class="stat-icon icon-green"><i class="fa-regular fa-circle-check"></i></div>
             </div>
             <div class="stat-card">
+                <div class="stat-info"><span class="stat-title">Canceled</span><span class="stat-value" style="color: #EF4444;">${canceledCount}</span></div>
+                <div class="stat-icon" style="background: rgba(239, 68, 68, 0.15); color: #F87171;"><i class="fa-solid fa-ban"></i></div>
+            </div>
+            <div class="stat-card">
                 <div class="stat-info"><span class="stat-title">Reports</span><span class="stat-value" style="color: #9333EA;">${myReports.length}</span></div>
-                <div class="stat-icon icon-purple"><i class="fa-regular fa-file-lines"></i></div>
+                <div class="stat-icon" style="background: rgba(147, 51, 234, 0.15); color: #C084FC;"><i class="fa-regular fa-file-lines"></i></div>
             </div>
         `;
     }
 
-    // ==========================================
-    // --- 4. VIEW RENDERERS ---
-    // ==========================================
-    const aptList = document.getElementById('appointments-list');
-    const repList = document.getElementById('reports-list');
-    const placeholderList = document.getElementById('placeholder-list');
-    const sectionTitle = document.getElementById('dynamic-section-title');
+    // 5. TAB LIST RENDERING ENGINE
+    function renderAllLists() {
+        renderList('list-active', myBookings.filter(b => b.status === 'active'), "No active appointments right now.");
+        renderList('list-completed', myBookings.filter(b => b.status === 'completed'), "You have no completed appointments yet.");
+        renderList('list-canceled', myBookings.filter(b => b.status === 'canceled'), "No canceled appointments.");
+        renderReports();
+        renderComplaints();
+    }
 
-    function renderAppointments() {
-        if(!aptList) return;
-        aptList.innerHTML = '';
+    function renderList(containerId, dataArray, emptyMessage) {
+        const container = document.getElementById(containerId);
+        if(!container) return;
+        container.innerHTML = '';
         
-        if (myBookings.length === 0) {
-            aptList.innerHTML = `<div class="empty-state"><i class="fa-regular fa-calendar-xmark"></i><p>You have no bookings yet.</p></div>`;
-            return;
+        if (dataArray.length === 0) {
+            container.innerHTML = `<div class="empty-state"><i class="fa-regular fa-folder-open"></i><p>${emptyMessage}</p></div>`; return;
         }
 
-        myBookings.forEach(apt => {
+        dataArray.forEach(apt => {
             const initials = getInitials(apt.doctorName);
-            const isUpcoming = apt.status === 'upcoming';
-            const isOnline = apt.visitType.includes('Video');
+            const isOnline = apt.visitType === 'Video Consult';
             const typeIcon = isOnline ? 'fa-video' : (apt.visitType === 'Delivery' ? 'fa-motorcycle' : 'fa-location-dot');
 
             let actionButtonsHtml = '';
-            if (isUpcoming && isOnline) {
-                actionButtonsHtml = `<button class="btn-action" onclick="window.open('video-room.html?room=${apt.rawId}', '_blank')"><i class="fa-solid fa-video"></i> Join Call</button>`;
-            } else if (isUpcoming) {
-                actionButtonsHtml = `<button class="btn-action-outline" style="color: #F59E0B; border-color: #F59E0B;"><i class="fa-regular fa-clock"></i> Awaiting Provider</button>`;
-            } else {
-                actionButtonsHtml = `<button class="btn-action-outline" onclick="alert('Clinical Notes: ${apt.clinicalNotes}')"><i class="fa-solid fa-stethoscope"></i> View Notes</button>`;
+            
+            // Primary Status Button
+            if (apt.status === 'active' && isOnline) {
+                actionButtonsHtml += `<button class="btn-action" onclick="window.open('video-room.html?room=${apt.rawId}&role=patient', '_blank')"><i class="fa-solid fa-video"></i> Join Call</button>`;
+            } else if (apt.status === 'active') {
+                actionButtonsHtml += `<button class="btn-action-outline" style="color: #F59E0B; border-color: #F59E0B;"><i class="fa-regular fa-clock"></i> Awaiting</button>`;
+            } else if (apt.status === 'completed') {
+                actionButtonsHtml += `<button class="btn-action-outline" onclick="downloadSimulation('${apt.bookingId}')"><i class="fa-solid fa-download"></i> Report</button>`;
             }
 
-            // 🚨 THE FIX: Added the "Details" button to open your Ghost Modal!
-            actionButtonsHtml += `<button class="btn-action-outline" onclick="openBookingModal(${apt.rawId})" style="margin-left: 8px;"><i class="fa-solid fa-circle-info"></i> Details</button>`;
+            // Universal Details Button
+            actionButtonsHtml += `<button class="btn-action-outline" onclick="openBookingModal('${apt.rawId}')" style="margin-left: 8px;"><i class="fa-solid fa-circle-info"></i> Details</button>`;
+
+            // Cancel Button (Active Only)
+            if (apt.status === 'active') {
+                actionButtonsHtml += `<button class="btn-action-outline" onclick="cancelBooking('${apt.rawId}')" style="margin-left: 8px; color: #EF4444; border-color: #EF4444;"><i class="fa-solid fa-ban"></i> Cancel</button>`;
+            }
+
+            // Complaint Button (Completed Only)
+            if (apt.status === 'completed') {
+                actionButtonsHtml += `<button class="btn-action-outline" onclick="fileComplaint('${apt.rawId}')" style="margin-left: 8px; color: #EF4444; border-color: #EF4444;"><i class="fa-solid fa-triangle-exclamation"></i> Complaint</button>`;
+            }
 
             let statusClass = `status-${apt.status}`;
             if (apt.status === 'canceled') statusClass = 'status-canceled'; 
 
-            aptList.innerHTML += `
+            container.innerHTML += `
                 <div class="apt-card">
                     <div class="apt-avatar">${initials}</div>
                     <div class="apt-content">
                         <div class="apt-top-row">
                             <div class="apt-title-group">
                                 <h3>${apt.doctorSpecialty}</h3>
-                                <span class="status-badge ${statusClass}">${apt.status}</span>
+                                <span class="status-badge ${statusClass}">${apt.status.toUpperCase()}</span>
                             </div>
                             <span class="apt-id">${apt.bookingId}</span>
                         </div>
@@ -180,7 +208,7 @@ document.addEventListener('DOMContentLoaded', () => {
                             <div class="meta-item"><i class="fa-regular fa-clock"></i> ${apt.time}</div>
                             <div class="meta-item"><i class="fa-solid ${typeIcon}"></i> ${apt.visitType}</div>
                         </div>
-                        <div class="apt-actions">${actionButtonsHtml}</div>
+                        <div class="apt-actions" style="margin-top: 12px;">${actionButtonsHtml}</div>
                     </div>
                 </div>
             `;
@@ -188,23 +216,20 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function renderReports() {
+        const repList = document.getElementById('list-reports');
         if(!repList) return;
         repList.innerHTML = '';
-        
-        if (myReports.length === 0) {
-            repList.innerHTML = `<div class="empty-state"><i class="fa-regular fa-folder-open"></i><p>No medical reports uploaded by providers yet.</p></div>`;
-            return;
-        }
+        if (myReports.length === 0) { repList.innerHTML = `<div class="empty-state"><i class="fa-regular fa-file-pdf"></i><p>No medical reports uploaded by providers yet.</p></div>`; return; }
 
         myReports.forEach(rep => {
             repList.innerHTML += `
                 <div class="apt-card">
-                    <div class="report-icon"><i class="fa-regular fa-file-pdf"></i></div>
+                    <div class="apt-avatar" style="background: rgba(147, 51, 234, 0.15); color: #C084FC;"><i class="fa-regular fa-file-pdf"></i></div>
                     <div class="apt-content">
                         <div class="apt-top-row">
                             <div class="apt-title-group">
                                 <h3>Medical Record / Summary</h3>
-                                <span class="status-badge status-completed">Lab / Clinical</span>
+                                <span class="status-badge status-completed">Available</span>
                             </div>
                             <span class="apt-id">${rep.bookingId}</span>
                         </div>
@@ -212,10 +237,8 @@ document.addEventListener('DOMContentLoaded', () => {
                         <div class="apt-meta-grid" style="grid-template-columns: 1fr;">
                             <div class="meta-item"><i class="fa-regular fa-calendar"></i> Date: ${rep.date}</div>
                         </div>
-                        <div class="apt-actions">
-                            <button class="btn-action btn-download" onclick="downloadSimulation('${rep.bookingId}')">
-                                <i class="fa-solid fa-download"></i> Secure Download
-                            </button>
+                        <div class="apt-actions" style="margin-top: 12px;">
+                            <button class="btn-action" style="background: #9333EA; border: none; color: white;" onclick="downloadSimulation('${rep.bookingId}')"><i class="fa-solid fa-download"></i> Secure Download</button>
                         </div>
                     </div>
                 </div>
@@ -223,94 +246,127 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    // ==========================================
-    // --- 5. TABS LOGIC ---
-    // ==========================================
+    function renderComplaints() {
+        const compList = document.getElementById('list-complaints');
+        if(!compList) return;
+        // Placeholder for Phase 2 complaints fetch
+        compList.innerHTML = `<div class="empty-state"><i class="fa-solid fa-triangle-exclamation" style="font-size: 3rem; margin-bottom: 16px; opacity: 0.5;"></i><p>You have no active complaints.</p></div>`;
+    }
+
+    // 6. SAFE TABS SWITCHING LOGIC
     const tabs = document.querySelectorAll('.dash-tab');
+    const tabContents = document.querySelectorAll('.tab-content');
+    const sectionTitle = document.getElementById('dynamic-section-title');
+
     tabs.forEach(tab => {
         tab.addEventListener('click', (e) => {
+            // Remove active classes & hide all tab contents
             tabs.forEach(t => t.classList.remove('active'));
-            e.target.classList.add('active');
-            const tabName = e.target.textContent;
-
-            if(aptList) aptList.style.display = 'none';
-            if(repList) repList.style.display = 'none';
-            if(placeholderList) placeholderList.style.display = 'none';
+            tabContents.forEach(c => c.classList.add('hidden')); 
             
-            const bookNewBtn = document.getElementById('book-new-btn');
-            if(bookNewBtn) bookNewBtn.style.display = 'none';
-
-            if (tabName === 'Bookings') {
-                if(sectionTitle) sectionTitle.textContent = 'My Appointments';
-                if(aptList) aptList.style.display = 'flex';
-                if(bookNewBtn) bookNewBtn.style.display = 'flex';
-            } 
-            else if (tabName === 'Reports') {
-                if(sectionTitle) sectionTitle.textContent = 'My Medical Reports';
-                if(repList) repList.style.display = 'flex';
-            } 
-            else {
-                if(sectionTitle) sectionTitle.textContent = `My ${tabName}`;
-                if(placeholderList) placeholderList.style.display = 'block';
+            // Add active class & show targeted content
+            e.target.classList.add('active');
+            const targetId = e.target.getAttribute('data-target');
+            if (targetId) {
+                const targetContent = document.getElementById(targetId);
+                if(targetContent) targetContent.classList.remove('hidden');
             }
+            
+            // Update title safely
+            if(sectionTitle) sectionTitle.textContent = e.target.textContent;
         });
     });
 
-    // ==========================================
-    // --- 6. 🚨 THE MODAL ENGINE ---
-    // ==========================================
+    // 7. MODAL ENGINE
     const modal = document.getElementById('booking-modal');
     const closeModalBtn = document.getElementById('modal-close-btn');
 
-    if (closeModalBtn) {
-        closeModalBtn.addEventListener('click', () => {
-            modal.style.display = 'none';
-        });
-    }
+    if (closeModalBtn) closeModalBtn.addEventListener('click', () => modal.classList.add('hidden'));
 
     window.openBookingModal = function(rawId) {
         const apt = myBookings.find(b => b.rawId === rawId);
         if (!apt) return;
 
-        // Populate Modal Fields
-        document.getElementById('modal-status-title').textContent = apt.status === 'upcoming' ? 'Upcoming Appointment' : 'Completed Appointment';
         document.getElementById('modal-booking-id').textContent = `Booking ID: ${apt.bookingId}`;
-        document.getElementById('modal-status-badge').textContent = apt.status;
-        
+        document.getElementById('modal-status-badge').textContent = apt.status.toUpperCase();
         document.getElementById('modal-doc-initials').textContent = getInitials(apt.doctorName);
         document.getElementById('modal-doc-name').textContent = apt.doctorName;
         document.getElementById('modal-doc-spec').textContent = apt.doctorSpecialty;
-        
         document.getElementById('modal-service').textContent = apt.doctorSpecialty;
+        
         document.getElementById('modal-type-text').textContent = apt.visitType;
+        const typeIcon = document.getElementById('modal-type-icon');
+        if(typeIcon) typeIcon.className = apt.visitType === 'Video Consult' ? 'fa-solid fa-video text-purple' : 'fa-solid fa-location-dot text-purple';
+
         document.getElementById('modal-date').textContent = apt.date;
         document.getElementById('modal-time').textContent = apt.time;
 
-        // Patient Info (Fallback if DB doesn't return it)
         document.getElementById('modal-patient-name').textContent = apt.raw.patient_name || "Self";
-        document.getElementById('modal-patient-age').textContent = apt.raw.patient_age || "N/A";
-        document.getElementById('modal-patient-gender').textContent = apt.raw.patient_gender || "N/A";
-        document.getElementById('modal-patient-address').textContent = apt.raw.delivery_address || "Platform Default";
-        document.getElementById('modal-patient-reason').textContent = apt.raw.symptoms || apt.raw.order_notes || "None provided";
-        document.getElementById('modal-payment-amount').textContent = "Paid Online";
-        document.getElementById('modal-payment-method').textContent = "Prepaid / Covered";
+        
+        const ageEl = document.getElementById('modal-patient-age');
+        if(ageEl) ageEl.textContent = apt.raw.patient_age || "N/A";
+        
+        const genderEl = document.getElementById('modal-patient-gender');
+        if(genderEl) genderEl.textContent = apt.raw.patient_gender || "N/A";
+        
+        const addressEl = document.getElementById('modal-patient-address');
+        if(addressEl) addressEl.textContent = apt.raw.delivery_address || "Platform Default";
+        
+        const reasonEl = document.getElementById('modal-patient-reason');
+        if(reasonEl) reasonEl.textContent = apt.raw.symptoms || apt.raw.order_notes || "None provided";
 
-        // Show Modal
-        modal.style.display = 'flex';
+        const notesSection = document.getElementById('modal-notes-section');
+        const notesText = document.getElementById('modal-notes-text');
+        if (apt.status === 'completed' && notesSection) {
+            notesSection.classList.remove('hidden');
+            notesText.textContent = apt.clinicalNotes;
+        } else if (notesSection) {
+            notesSection.classList.add('hidden');
+        }
+        
+        // Use classList to safely show
+        modal.classList.remove('hidden');
     };
 
-    // Close modal if user clicks outside the box
-    window.addEventListener('click', (e) => {
-        if (e.target === modal) {
-            modal.style.display = 'none';
-        }
+    // Click outside modal to close
+    window.addEventListener('click', (e) => { 
+        if (e.target === modal) modal.classList.add('hidden'); 
     });
 
-    // START ENGINE
+    // 8. START ENGINE
     fetchDashboardData();
 });
 
-// Download Simulation (Public Function)
+// ==========================================
+// GLOBAL ACTIONS (Cancel & Complaint)
+// ==========================================
+window.cancelBooking = async function(rawId) {
+    if (!confirm("Are you sure you want to cancel this appointment? This action cannot be undone.")) return;
+    
+    const API_BASE = window.API_BASE || (window.location.hostname === '127.0.0.1' ? 'http://127.0.0.1:8000' : 'https://backend-depolyment-1.onrender.com');
+    const token = localStorage.getItem('access_token');
+    
+    try {
+        const response = await fetch(`${API_BASE}/bookings/${rawId}/cancel`, {
+            method: 'PATCH',
+            headers: { 'Authorization': `Bearer ${token}` }
+        });
+        if (response.ok) {
+            alert("Booking successfully canceled.");
+            if(window.fetchDashboardData) window.fetchDashboardData(); 
+        } else {
+            alert("Failed to cancel booking.");
+        }
+    } catch(e) {
+        console.error(e);
+        alert("Network Error while canceling.");
+    }
+};
+
+window.fileComplaint = function(rawId) {
+    alert(`Initiating Complaint Protocol for Booking ID: ${rawId}\n\n(In Phase 2, this will open the Complaint Submission Modal.)`);
+};
+
 window.downloadSimulation = function(reportId) {
     alert(`Initiating secure download for Record ID:\n"${reportId}"\n\n(In Phase 2, this will download the encrypted PDF from FastAPI storage.)`);
 };

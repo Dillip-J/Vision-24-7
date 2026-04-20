@@ -464,3 +464,9 @@
 [data-theme="dark"] .modal-status-banner.upcoming { background-color: rgba(59, 130, 246, 0.1); border-color: rgba(59, 130, 246, 0.2); }
 [data-theme="dark"] .banner-icon { background-color: var(--card-bg); }
 [data-theme="dark"] .provider-avatar { background: rgba(59, 130, 246, 0.15); color: #60A5FA; }
+/* ==========================================
+   UTILITY CLASSES
+   ========================================== */
+.hidden {
+    display: none !important;
+}

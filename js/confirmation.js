@@ -1,82 +1,78 @@
-// confirmation.js
+// js/confirmation.js
 document.addEventListener('DOMContentLoaded', async () => {
-    // 1. Get the ID of the appointment we JUST booked and the secure Token
     const latestId = localStorage.getItem('latestBookingId');
     const token = localStorage.getItem('access_token');
 
-    // Security Guard
+    // 1. Security Guard
     if (!token) {
-        window.location.href = 'index.html';
+        window.location.replace('index.html');
         return;
     }
 
     if (!latestId) {
         console.warn("No recent booking ID found.");
-        document.getElementById('conf-id').textContent = "ERROR";
+        const confIdEl = document.getElementById('conf-id');
+        if (confIdEl) confIdEl.textContent = "ERROR: Missing ID";
         return;
     }
 
+    // 2. 🚨 Bulletproof API URL (Bypasses config.js issues completely)
+    const API_BASE = window.API_BASE || (
+        (window.location.hostname === '127.0.0.1' || window.location.hostname === 'localhost' || window.location.protocol === 'file:') 
+        ? 'http://127.0.0.1:8000' 
+        : 'https://backend-depolyment-1.onrender.com'
+    );
+
     try {
-        // 2. Fetch all of this user's active bookings from the Backend
-        const response = await fetch(`${API_BASE}/bookings/me/active`, {
+        // 3. Fetch the exact booking directly! No more array searching!
+        const response = await fetch(`${API_BASE}/bookings/${latestId}`, {
             method: 'GET',
             headers: { 'Authorization': `Bearer ${token}` }
         });
 
-        if (!response.ok) throw new Error("Failed to fetch bookings");
-
-        const activeBookings = await response.json();
-
-        // 3. 🚨 FIX 2: Use loose equality (==) or convert to String!
-        // latestId is a String ("42"), booking_id is an Int (42)
-        const booking = activeBookings.find(b => b.booking_id.toString() === latestId.toString());
-
-        if (!booking) {
-            console.warn("Booking not found in active database.");
-            document.getElementById('conf-id').textContent = "NOT FOUND";
-            return;
+        if (!response.ok) {
+            if (response.status === 404) throw new Error("Booking not found in database.");
+            throw new Error("Failed to fetch booking details.");
         }
 
-        // 4. Populate Real Dynamic Data
-        
-        // Format the ISO Date string from PostgreSQL into readable text
-        const scheduledDate = new Date(booking.scheduled_time);
-        const dateStr = scheduledDate.toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
-        const timeStr = scheduledDate.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
+        // This perfectly matches the dictionary your booking.py route returns
+        const booking = await response.json();
 
-        // Determine Visit Type based on backend data
-        let vType = "Home Visit";
-        if (booking.provider && booking.provider.provider_type === "Pharmacy") vType = "Delivery";
-        if (!booking.delivery_address) vType = "Video Consult"; // If no address was saved, it's online
+        // 4. Inject the perfectly formatted backend data straight into the HTML!
+        document.getElementById('conf-id').textContent = booking.display_id;
+        document.getElementById('conf-doc-name').textContent = booking.doctor_name;
+        document.getElementById('conf-doc-spec').textContent = booking.specialty;
+        document.getElementById('conf-date').textContent = booking.date;
+        document.getElementById('conf-time').textContent = booking.time;
+        document.getElementById('conf-type').textContent = booking.visit_type;
+        document.getElementById('conf-patient').textContent = booking.patient_name; 
+        
+        // 5. 🚨 Address & "What's Next" specific display
+        const nextStepEl = document.getElementById('conf-next-step');
 
-        // 🚨 FIX 3: Format the Integer instead of trying to split a UUID
-        const formattedId = 'BKG-' + booking.booking_id.toString().padStart(4, '0');
-        
-        // Inject into your exact HTML IDs
-        document.getElementById('conf-id').textContent = formattedId;
-        document.getElementById('conf-doc-name').textContent = booking.provider ? booking.provider.name : "Healthcare Provider";
-        document.getElementById('conf-doc-spec').textContent = booking.provider ? booking.provider.category : "Service";
-        
-        document.getElementById('conf-date').textContent = dateStr;
-        document.getElementById('conf-time').textContent = timeStr;
-        document.getElementById('conf-type').textContent = vType;
-        
-        // Uses the 'patient_name' column we added to your SQL schema earlier!
-        document.getElementById('conf-patient').textContent = booking.patient_name || "Self"; 
-        
-        // Dynamic Meta Data based on visit type
-        if(vType === "Home Visit" || vType === "Delivery") {
-            document.getElementById('conf-address').textContent = `Address: ${booking.delivery_address}`;
-        } else if (vType === "Video Consult") {
+        if (booking.visit_type === "Video Consult") {
             document.getElementById('conf-address').textContent = "Video link will be activated 5 minutes prior.";
+            
+            // Update the bullet point for Online Consults
+            if (nextStepEl) {
+                nextStepEl.textContent = "The doctor will meet you online at the specified time. Please be ready 5 minutes early.";
+            }
+        } else {
+            document.getElementById('conf-address').textContent = `Address: ${booking.address}`;
+            
+            // Keep the original bullet point for Home Visits / Deliveries
+            if (nextStepEl) {
+                nextStepEl.textContent = "The doctor will arrive at your location at the scheduled time.";
+            }
         }
 
     } catch (error) {
-        console.error("Error loading confirmation data:", error);
-        document.getElementById('conf-id').textContent = "NETWORK ERROR";
+        console.error("Confirmation Error:", error);
+        const confIdEl = document.getElementById('conf-id');
+        if(confIdEl) confIdEl.textContent = "NOT FOUND / NETWORK ERROR";
     }
 
-    // 5. Button Navigation Routing
+    // 6. Button Navigation
     const btnDashboard = document.getElementById('btn-dashboard');
     if (btnDashboard) {
         btnDashboard.addEventListener('click', () => {
