@@ -175,9 +175,6 @@ document.addEventListener('DOMContentLoaded', () => {
                             ${displayCategory} 
                             ${distance ? `<span style="font-size:0.85rem; color: var(--text-secondary); margin-left:10px;"><i class="fa-solid fa-location-dot"></i> ${distance}</span>` : ''}
                         </div>
-                        // <div class="doc-stats">
-                        //     <span class="rating">⭐ 4.9 <span class="reviews">(Dynamic DB)</span></span>
-                        // </div>
                         <div class="doc-actions">
                             ${actionButtons}
                         </div>
