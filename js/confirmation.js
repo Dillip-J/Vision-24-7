@@ -1,6 +1,10 @@
 // js/confirmation.js
 document.addEventListener('DOMContentLoaded', async () => {
-    const latestId = localStorage.getItem('latestBookingId');
+    
+    // Safety check: ensure API_BASE is available
+    const API_BASE = window.API_BASE || 'https://backend-depolyment-3.onrender.com';
+    
+    const latestId = localStorage.getItem('activeBookingId') || localStorage.getItem('latestBookingId');
     const token = localStorage.getItem('access_token');
 
     // 1. Security Guard
@@ -16,15 +20,8 @@ document.addEventListener('DOMContentLoaded', async () => {
         return;
     }
 
-    // 2. 🚨 Bulletproof API URL (Bypasses config.js issues completely)
-    const API_BASE = window.API_BASE || (
-        (window.location.hostname === '127.0.0.1' || window.location.hostname === 'localhost' || window.location.protocol === 'file:') 
-        ? 'http://127.0.0.1:8000' 
-        : 'https://backend-depolyment-1.onrender.com'
-    );
-
     try {
-        // 3. Fetch the exact booking directly! No more array searching!
+        // 3. Fetch the exact booking directly
         const response = await fetch(`${API_BASE}/bookings/${latestId}`, {
             method: 'GET',
             headers: { 'Authorization': `Bearer ${token}` }
@@ -35,10 +32,9 @@ document.addEventListener('DOMContentLoaded', async () => {
             throw new Error("Failed to fetch booking details.");
         }
 
-        // This perfectly matches the dictionary your booking.py route returns
         const booking = await response.json();
 
-        // 4. Inject the perfectly formatted backend data straight into the HTML!
+        // 4. Inject the data
         document.getElementById('conf-id').textContent = booking.display_id;
         document.getElementById('conf-doc-name').textContent = booking.doctor_name;
         document.getElementById('conf-doc-spec').textContent = booking.specialty;
@@ -47,20 +43,31 @@ document.addEventListener('DOMContentLoaded', async () => {
         document.getElementById('conf-type').textContent = booking.visit_type;
         document.getElementById('conf-patient').textContent = booking.patient_name; 
         
-        // 5. 🚨 Address & "What's Next" specific display
+        // 5. 🚨 THE ADDRESS HIDING LOGIC
         const nextStepEl = document.getElementById('conf-next-step');
+        const typeIconEl = document.getElementById('conf-type-icon');
+        const addressRowEl = document.getElementById('conf-address-row'); // The whole span holding the icon and text
 
-        if (booking.visit_type === "Video Consult") {
-            document.getElementById('conf-address').textContent = "Video link will be activated 5 minutes prior.";
+        if (booking.visit_type === "Video Consult" || booking.visit_type.includes("Video")) {
             
-            // Update the bullet point for Online Consults
+            // Swap icon to Video Camera
+            if (typeIconEl) typeIconEl.className = "fa-solid fa-video";
+            
+            // Completely hide the physical address line
+            if (addressRowEl) addressRowEl.style.display = 'none';
+            
+            // Update the instructional bullet point
             if (nextStepEl) {
-                nextStepEl.textContent = "The doctor will meet you online at the specified time. Please be ready 5 minutes early.";
+                nextStepEl.textContent = "The doctor will meet you online at the specified time. A video link will appear in your dashboard.";
             }
         } else {
-            document.getElementById('conf-address').textContent = `Address: ${booking.address}`;
             
-            // Keep the original bullet point for Home Visits / Deliveries
+            // It's a physical visit, show the address line
+            if (addressRowEl) {
+                addressRowEl.style.display = 'block';
+                document.getElementById('conf-address').textContent = booking.address || "Location set in booking";
+            }
+            
             if (nextStepEl) {
                 nextStepEl.textContent = "The doctor will arrive at your location at the scheduled time.";
             }

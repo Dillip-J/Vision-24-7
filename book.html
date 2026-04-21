@@ -5,7 +5,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Vision - Book Appointment</title>
     <link rel="stylesheet" href="css/home.css"> 
-    <link rel="stylesheet" href="css/doctors.css"> <link rel="stylesheet" href="css/booking.css"> 
+    <link rel="stylesheet" href="css/doctors.css"> 
+    <link rel="stylesheet" href="css/booking.css"> 
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 </head>
@@ -39,13 +40,22 @@
                 <div class="doc-header-avatar">
                     <img id="dyn-doc-img" src="" alt="Doctor">
                 </div>
-                <div class="doc-header-details">
+                
+                <div class="doc-header-details" style="flex: 1;">
                     <div class="doc-header-top">
                         <h2 id="dyn-doc-name">Loading...</h2>
                         <span class="badge-visit-type" id="dyn-visit-type"><i class="fa-solid fa-location-dot"></i> Home Visit</span>
                     </div>
                     <div class="doc-specialty" id="dyn-doc-spec">Loading...</div>
-                    <div class="doc-exp" id="dyn-doc-exp">Loading...</div>
+                    
+                    <div style="margin-top: 10px; font-size: 0.9rem; color: var(--text-secondary);">
+                        <i class="fa-solid fa-phone"></i> <span id="dyn-doc-phone">Fetching contact...</span>
+                    </div>
+                    
+                    <div style="margin-top: 8px; font-size: 0.9rem; color: var(--text-primary); line-height: 1.4; background: rgba(0,0,0,0.02); padding: 10px; border-radius: 6px;">
+                        <strong style="display: block; margin-bottom: 4px; font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.5px;">About Provider</strong>
+                        <span id="dyn-doc-bio">Fetching details...</span>
+                    </div>
                 </div>
             </section>
 
@@ -64,7 +74,7 @@
             <section class="booking-section">
                 <div class="section-title-row">
                     <div class="section-title"><i class="fa-regular fa-clock"></i> Select Time Slot</div>
-                    <span class="duration-text">Duration: 30 minutes</span>
+                    <span class="duration-text">Duration: 30/60 minutes</span>
                 </div>
                 <div class="time-grid" id="time-container"></div>
             </section>
@@ -100,7 +110,7 @@
                         <textarea id="patient-symptoms" rows="3" placeholder="Describe your symptoms or reason for consultation..." required></textarea>
                     </div>
 
-                    <div class="form-row">
+                    <div class="form-row form-group">
                         <label id="address-label">Complete Address for Home Visit *</label>
                         <textarea id="patient-address" rows="2" placeholder="House/Flat No., Street, Landmark, City, Pincode" required></textarea>
                     </div>

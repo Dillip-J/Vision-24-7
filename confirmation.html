@@ -49,7 +49,7 @@
             </div>
 
             <div class="detail-item">
-                <div class="detail-icon"><i class="fa-regular fa-user"></i></div>
+                <div class="detail-icon"><i class="fa-regular fa-user-doctor"></i></div>
                 <div class="detail-text">
                     <span class="detail-sub">Doctor</span>
                     <strong id="conf-doc-name">...</strong>
@@ -58,7 +58,7 @@
             </div>
 
             <div class="detail-item">
-                <div class="detail-icon"><i class="fa-regular fa-calendar"></i></div>
+                <div class="detail-icon"><i class="fa-regular fa-calendar-check"></i></div>
                 <div class="detail-text">
                     <span class="detail-sub">Date & Time</span>
                     <strong id="conf-date">...</strong>
@@ -67,11 +67,15 @@
             </div>
 
             <div class="detail-item">
-                <div class="detail-icon"><i class="fa-solid fa-location-dot"></i></div>
+                <div class="detail-icon"><i id="conf-type-icon" class="fa-solid fa-house-medical"></i></div>
                 <div class="detail-text">
                     <span class="detail-sub">Consultation Type</span>
                     <strong id="conf-type">...</strong>
-                    <span class="detail-muted" id="conf-address">Instructions will be sent via email</span>
+                    
+                    <span class="detail-muted" id="conf-address-row">
+                        <i class="fa-solid fa-map-pin"></i> <span id="conf-address">Instructions will be sent via email</span>
+                    </span>
+                    
                 </div>
             </div>
 
@@ -91,7 +95,6 @@
                 <i class="fa-regular fa-clock"></i> What's Next?
             </div>
             <ul class="whats-next-list">
-                <!-- <li>You will receive a confirmation email shortly</li> -->
                 <li id="conf-next-step">The doctor will arrive at your location at the scheduled time</li>
                 <li>You can track your appointment in the Dashboard</li>
             </ul>

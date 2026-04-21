@@ -1,6 +1,9 @@
 // js/doctors.js
 document.addEventListener('DOMContentLoaded', () => {
     
+    // Ensure API_BASE is defined
+    const API_BASE = window.API_BASE || 'https://backend-depolyment-3.onrender.com';
+
     const doctorList = document.getElementById('doctor-list');
     const doctorCountDisplay = document.getElementById('doctor-count');
     const searchInput = document.getElementById('doctor-search');
@@ -88,10 +91,9 @@ document.addEventListener('DOMContentLoaded', () => {
         
         filtered.forEach(doc => {
             
-            // 🚨 FIX 2: THE BULLETPROOF IMAGE LOGIC
-            let imgUrl = "images/default-avatar.png"; // Fallback
+            // 🚨 BULLETPROOF IMAGE LOGIC
+            let imgUrl = "images/default-avatar.png"; 
             if (doc.profile_photo_url) {
-                // If it already has http, use it directly. If not, add the Render API link!
                 imgUrl = doc.profile_photo_url.startsWith('http') 
                     ? doc.profile_photo_url 
                     : `${API_BASE}${doc.profile_photo_url}`;
@@ -99,13 +101,64 @@ document.addEventListener('DOMContentLoaded', () => {
 
             const providerId = doc.provider_id || doc.id; 
             const displayCategory = doc.category || 'Specialist';
-            
-            // Extracting distances!
             const distance = doc.distance_km !== "Unknown" ? `${doc.distance_km} km away` : "";
 
-            const consultFee = parseFloat(doc.price) || parseFloat(doc.base_price) || 500; 
-            const visitCharge = parseFloat(doc.home_visit_charge) || 200; 
+            // 🚨 THE CATALOG PRICE & BUTTON HIDING FIX
+            let consultFee = 500;
+            let visitCharge = 200;
             const platformFee = 15; 
+            
+            let showVideo = false;
+            let showHome = false;
+
+            // Check if the backend sent the doctor's custom catalog
+            if (doc.doctor_services && doc.doctor_services.length > 0) {
+                // Look for Video Consult
+                const videoService = doc.doctor_services.find(s => s.service_name.toLowerCase().includes("video"));
+                if (videoService) {
+                    showVideo = true;
+                    consultFee = parseFloat(videoService.price);
+                }
+
+                // Look for Home Visit
+                const homeService = doc.doctor_services.find(s => s.service_name.toLowerCase().includes("home"));
+                if (homeService) {
+                    showHome = true;
+                    // Home charge = Total Home Price - Base Consult Fee
+                    visitCharge = parseFloat(homeService.price) - consultFee;
+                    if (visitCharge < 0) visitCharge = 0; // Failsafe
+                }
+            } else {
+                // Legacy Fallback if they have no catalog data at all
+                showVideo = true;
+                showHome = true;
+                consultFee = parseFloat(doc.price) || parseFloat(doc.base_price) || 500;
+                visitCharge = parseFloat(doc.home_visit_charge) || 200; 
+            }
+
+            // Build Action Buttons Dynamically based on what they sell
+            let actionButtons = '';
+            
+            if (showVideo) {
+                actionButtons += `
+                    <button class="btn-primary" onclick="initiateDocBooking('${providerId}', 'Video Consult', '${doc.name}', '${displayCategory}', '${imgUrl}', ${consultFee}, 0, ${platformFee})">
+                        <i class="fa-solid fa-video"></i> Video - ₹${consultFee}
+                    </button>
+                `;
+            }
+            
+            if (showHome) {
+                actionButtons += `
+                    <button class="btn-outline" onclick="initiateDocBooking('${providerId}', 'Home Visit', '${doc.name}', '${displayCategory}', '${imgUrl}', ${consultFee}, ${visitCharge}, ${platformFee})">
+                        <i class="fa-solid fa-location-dot"></i> Home - ₹${consultFee + visitCharge}
+                    </button>
+                `;
+            }
+
+            // If the doctor deleted everything, disable booking
+            if (!showVideo && !showHome) {
+                actionButtons = `<button class="btn-outline" disabled style="opacity: 0.5; cursor: not-allowed;"><i class="fa-solid fa-ban"></i> No Services Available</button>`;
+            }
 
             const card = `
                 <div class="doctor-card">
@@ -122,16 +175,11 @@ document.addEventListener('DOMContentLoaded', () => {
                             ${displayCategory} 
                             ${distance ? `<span style="font-size:0.85rem; color: var(--text-secondary); margin-left:10px;"><i class="fa-solid fa-location-dot"></i> ${distance}</span>` : ''}
                         </div>
-                        <div class="doc-stats">
-                            <span class="rating">⭐ 4.9 <span class="reviews">(Dynamic DB)</span></span>
-                        </div>
+                        // <div class="doc-stats">
+                        //     <span class="rating">⭐ 4.9 <span class="reviews">(Dynamic DB)</span></span>
+                        // </div>
                         <div class="doc-actions">
-                            <button class="btn-primary" onclick="initiateDocBooking('${providerId}', 'Video Consult', '${doc.name}', '${displayCategory}', '${imgUrl}', ${consultFee}, 0, ${platformFee})">
-                                <i class="fa-solid fa-video"></i> Video - ₹${consultFee}
-                            </button>
-                            <button class="btn-outline" onclick="initiateDocBooking('${providerId}', 'Home Visit', '${doc.name}', '${displayCategory}', '${imgUrl}', ${consultFee}, ${visitCharge}, ${platformFee})">
-                                <i class="fa-solid fa-location-dot"></i> Home - ₹${consultFee + visitCharge}
-                            </button>
+                            ${actionButtons}
                         </div>
                     </div>
                 </div>

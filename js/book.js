@@ -1,6 +1,8 @@
 // js/book.js
 document.addEventListener('DOMContentLoaded', () => {
 
+    // 🚨 Safely define API link
+    const API_BASE = window.API_BASE || 'https://backend-depolyment-3.onrender.com';
     const savedService = JSON.parse(localStorage.getItem('pendingBooking'));
     const token = localStorage.getItem('access_token');
     
@@ -10,34 +12,89 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     const doctorData = savedService;
+    const currentProviderId = doctorData.provider_id || doctorData.id;
 
-    // 1. Hide Address Input for Video Consults
-    const addressInput = document.getElementById('patient-address');
-    if (addressInput && (doctorData.visitType === 'Video Consult' || doctorData.visitType.includes('Video'))) {
-        addressInput.parentElement.style.display = 'none';
-        addressInput.value = 'Online'; // Force value so backend knows it's online
+    // ==========================================================
+    // 🚨 FETCH FULL PROFILE (BIO & PHONE)
+    // ==========================================================
+    const cachedDoctors = JSON.parse(localStorage.getItem('eterna_cache_doctors') || '[]');
+    const fullDocData = cachedDoctors.find(d => (d.provider_id || d.id) === currentProviderId);
+    
+    const bioEl = document.getElementById('dyn-doc-bio');
+    const phoneEl = document.getElementById('dyn-doc-phone');
+
+    if (fullDocData) {
+        if (bioEl) bioEl.textContent = fullDocData.bio || "No description provided by this professional.";
+        if (phoneEl) phoneEl.textContent = fullDocData.phone || "Contact not available";
+    } else {
+        if (bioEl) bioEl.textContent = "Provider details unavailable.";
+        if (phoneEl) phoneEl.textContent = "N/A";
     }
 
-    // 2. Populate UI Details
-    if(document.getElementById('dyn-doc-img')) document.getElementById('dyn-doc-img').src = doctorData.doctorImage || "assets/default-doc.png";
+
+    // ==========================================================
+    // 🚨 THE DOCTOR ICON FIX (REPLACES BROKEN/MISSING IMAGES)
+    // ==========================================================
+    const docImgEl = document.getElementById('dyn-doc-img');
+    if(docImgEl) {
+        const rawImg = doctorData.doctorImage || doctorData.doctor_image || "";
+        const parentDiv = docImgEl.parentElement; 
+        
+        // Ensure the parent container is ready to hold an icon perfectly centered
+        parentDiv.style.display = 'flex';
+        parentDiv.style.alignItems = 'center';
+        parentDiv.style.justifyContent = 'center';
+        parentDiv.style.background = 'rgba(37, 99, 235, 0.1)';
+        parentDiv.style.overflow = 'hidden'; // Keep the border radius clean
+
+        const iconHtml = `<i class="fa-solid fa-user-doctor" style="color: var(--brand-blue); font-size: 3.5rem;"></i>`;
+
+        if (!rawImg || rawImg.includes('default-avatar') || rawImg.includes('default-doc')) {
+            // No image exists? Nuke the <img> tag and inject the icon
+            parentDiv.innerHTML = iconHtml;
+        } else {
+            docImgEl.onerror = function() {
+                // Image failed to load? Nuke the <img> tag and inject the icon
+                parentDiv.innerHTML = iconHtml;
+            };
+            docImgEl.src = rawImg.startsWith('http') ? rawImg : `${API_BASE}${rawImg}`;
+            // If it succeeds, force it to fill the container properly
+            docImgEl.style.width = '100%';
+            docImgEl.style.height = '100%';
+            docImgEl.style.objectFit = 'cover';
+        }
+    }
+
+    // 1. COMPLETELY Hide Address Row for Video Consults
+    const addressInput = document.getElementById('patient-address');
+    if (addressInput) {
+        const formGroup = addressInput.closest('.form-group') || addressInput.parentElement;
+        
+        if (doctorData.visitType === 'Video Consult' || doctorData.visitType.includes('Video')) {
+            formGroup.style.display = 'none'; 
+            addressInput.value = 'Online';    
+        } else {
+            formGroup.style.display = 'block'; 
+        }
+    }
+
+    // Populate standard details
     if(document.getElementById('dyn-doc-name')) document.getElementById('dyn-doc-name').textContent = doctorData.doctorName;
     if(document.getElementById('dyn-doc-spec')) document.getElementById('dyn-doc-spec').textContent = doctorData.doctorSpecialty;
     
     const visitBadge = document.getElementById('dyn-visit-type');
     if (visitBadge) {
-        if (doctorData.visitType === 'Home Visit' || doctorData.visitType === 'Delivery') {
-            visitBadge.innerHTML = `<i class="fa-solid fa-location-dot"></i> ${doctorData.visitType}`;
-        } else {
-            visitBadge.innerHTML = `<i class="fa-solid fa-video"></i> ${doctorData.visitType}`;
-        }
+        visitBadge.innerHTML = doctorData.visitType.includes('Video') 
+            ? `<i class="fa-solid fa-video"></i> ${doctorData.visitType}`
+            : `<i class="fa-solid fa-location-dot"></i> ${doctorData.visitType}`;
     }
     
     if(document.getElementById('sum-doc-name')) document.getElementById('sum-doc-name').textContent = doctorData.doctorName;
     if(document.getElementById('sum-type')) document.getElementById('sum-type').textContent = doctorData.visitType;
 
-    const fee = doctorData.consultationFee || 500;
-    const visit = doctorData.visitType === 'Home Visit' ? (doctorData.visitCharge || 200) : 0;
-    const total = fee + visit;
+    const fee = parseFloat(doctorData.consultationFee) || 500;
+    const visit = doctorData.visitType === 'Home Visit' ? (parseFloat(doctorData.visitCharge) || 200) : 0;
+    const total = fee + visit + (parseFloat(doctorData.platformFee) || 0);
     
     if(document.getElementById('sum-fee')) document.getElementById('sum-fee').textContent = `₹${fee}`;
     if(document.getElementById('sum-visit')) document.getElementById('sum-visit').textContent = `₹${visit}`;
@@ -57,7 +114,6 @@ document.addEventListener('DOMContentLoaded', () => {
     let selectedDateAPI = null; 
     let selectedDateDisplay = null; 
     
-    const currentProviderId = doctorData.provider_id || doctorData.id;
     const dateContainer = document.getElementById('date-container');
     const timeSlotContainer = document.getElementById('time-container'); 
 
@@ -68,17 +124,15 @@ document.addEventListener('DOMContentLoaded', () => {
         if(document.getElementById('sum-time')) document.getElementById('sum-time').textContent = selectedTime || "Select a time";
     };
 
-    // 🚨 THE FIX: Connect to Python backend AND enforce the 6-Hour Rule!
+    // Enforce 6-Hour Rule and fetch from backend
     async function fetchAndRenderTimeSlots(apiDateString) {
         if (!timeSlotContainer) return;
         selectedTime = null; 
         updateSummaryUI();
         
-        // Show loading state
         timeSlotContainer.innerHTML = '<div style="width: 100%; padding: 12px; text-align: center; color: var(--text-secondary);">Loading available slots...</div>'; 
 
         try {
-            // Fetch REAL availability from your Python backend
             const response = await fetch(`${API_BASE}/providers/${currentProviderId}/available-slots?date=${apiDateString}`, {
                 headers: { 'Authorization': `Bearer ${token}` }
             });
@@ -93,22 +147,17 @@ document.addEventListener('DOMContentLoaded', () => {
                 return;
             }
 
-            // 🚨 6-HOUR RULE CALCULATOR (24/7 Real-Time)
             const now = new Date();
-            // Add exactly 5 hours (in milliseconds) to the current time right now
             const cutoffTime = new Date(now.getTime() + (5 * 60 * 60 * 1000));
             
             let validSlotsCount = 0;
 
             availableSlots.forEach(time => {
-                // Combine the date ("2026-04-14") and time ("02:00 PM") into a mathematical Date object
                 const slotDateTime = new Date(`${apiDateString} ${time}`);
-                
                 const slotBtn = document.createElement('button');
                 slotBtn.type = 'button'; 
                 slotBtn.textContent = time;
 
-                // Check if the slot is too soon
                 if (slotDateTime < cutoffTime) {
                     slotBtn.className = `time-slot disabled-slot`;
                     slotBtn.disabled = true;
@@ -128,7 +177,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 timeSlotContainer.appendChild(slotBtn);
             });
 
-            // If everything got disabled by the 5-hour rule, show a warning
             if (validSlotsCount === 0) {
                 timeSlotContainer.innerHTML += `<div style="width: 100%; text-align: center; color: #ef4444; font-size: 0.85rem; margin-top: 10px;">
                     <i class="fa-solid fa-circle-exclamation"></i> Remaining slots are less than 5 hours away. Please select tomorrow.
@@ -141,7 +189,6 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    // 4. Generate 7 Days in the Scroll Container
     if (dateContainer) {
         dateContainer.innerHTML = ''; 
         for (let i = 0; i < 7; i++) {
@@ -173,30 +220,19 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    // 5. Submit Booking
     const proceedBtn = document.getElementById('proceed-btn');
     if (proceedBtn) {
-        proceedBtn.disabled = false; 
-        
-        proceedBtn.addEventListener('click', (e) => {
+        proceedBtn.addEventListener('click', async (e) => {
             e.preventDefault(); 
-            
-            if (!selectedTime) {
-                alert("Please select a time slot before proceeding.");
-                return;
-            }
+            if (!selectedTime) { alert("Please select a time slot."); return; }
 
             const form = document.getElementById('patient-form');
-            if (form && !form.checkValidity()) { 
-                form.reportValidity(); 
-                return; 
-            }
+            if (form && !form.checkValidity()) { form.reportValidity(); return; }
             
-            const originalText = proceedBtn.innerHTML;
-            proceedBtn.innerHTML = '<i class="fa-solid fa-circle-notch fa-spin"></i> Securing...';
+            proceedBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Securing...';
             proceedBtn.disabled = true;
 
-            const combinedDateTime = new Date(`${selectedDateDisplay} ${selectedTime}`);
+            const localDateTime = `${selectedDateAPI}T${convertTo24Hour(selectedTime)}:00`;
             const genderNode = document.querySelector('input[name="gender"]:checked');
             
             let finalAddress = document.getElementById('patient-address') ? document.getElementById('patient-address').value : "Online";
@@ -204,7 +240,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
             const bookingPayload = {
                 provider_id: currentProviderId, 
-                scheduled_time: combinedDateTime.toISOString(),
+                scheduled_time: localDateTime,
                 delivery_address: finalAddress,
                 patient_name: document.getElementById('patient-name').value,
                 patient_age: parseInt(document.getElementById('patient-age').value) || 0,
@@ -212,35 +248,36 @@ document.addEventListener('DOMContentLoaded', () => {
                 symptoms: document.getElementById('patient-symptoms').value || "None"
             };
 
-            fireToBackend(bookingPayload);
+            try {
+                const response = await fetch(`${API_BASE}/bookings/`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+                    body: JSON.stringify(bookingPayload)
+                });
 
-            async function fireToBackend(payload) {
-                try {
-                    const response = await fetch(`${API_BASE}/bookings/`, {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json',
-                            'Authorization': `Bearer ${token}` 
-                        },
-                        body: JSON.stringify(payload)
-                    });
+                const data = await response.json();
+                if (!response.ok) throw new Error(data.detail || "Booking failed");
 
-                    const data = await response.json();
-                    if (!response.ok) throw new Error(data.detail || "Failed to create booking");
+                localStorage.setItem('activeBookingId', data.booking_id || data.id);
+                localStorage.setItem('paymentTotalAmount', total);
+                localStorage.setItem('bookedDate', selectedDateDisplay);
+                localStorage.setItem('bookedTime', selectedTime);
+                
+                window.location.href = "payment.html"; 
 
-                    localStorage.setItem('activeBookingId', data.id);
-                    localStorage.setItem('paymentTotalAmount', total);
-                    localStorage.setItem('bookedDate', selectedDateDisplay);
-                    localStorage.setItem('bookedTime', selectedTime);
-
-                    window.location.href = "payment.html"; 
-
-                } catch (error) {
-                    alert(`Could not secure booking: ${error.message}`);
-                    proceedBtn.innerHTML = originalText;
-                    proceedBtn.disabled = false;
-                }
+            } catch (error) {
+                alert(error.message);
+                proceedBtn.innerHTML = 'Proceed to Payment';
+                proceedBtn.disabled = false;
             }
         });
+    }
+
+    function convertTo24Hour(timeStr) {
+        const [time, modifier] = timeStr.split(' ');
+        let [hours, minutes] = time.split(':');
+        if (hours === '12') hours = '00';
+        if (modifier === 'PM') hours = parseInt(hours, 10) + 12;
+        return `${String(hours).padStart(2, '0')}:${minutes}`;
     }
 });

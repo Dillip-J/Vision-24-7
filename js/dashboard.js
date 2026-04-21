@@ -18,7 +18,6 @@ document.addEventListener('DOMContentLoaded', () => {
     // 3. BULLETPROOF FASTAPI FETCH
     window.fetchDashboardData = async function() {
         try {
-            // 🚨 FIX 2: Removed local fallback inside function
             const [activeRes, historyRes] = await Promise.all([
                 fetch(`${API_BASE}/bookings/me/active`, { headers: { 'Authorization': `Bearer ${token}` } }).catch(() => null),
                 fetch(`${API_BASE}/bookings/me/history`, { headers: { 'Authorization': `Bearer ${token}` } }).catch(() => null)
@@ -65,8 +64,10 @@ document.addEventListener('DOMContentLoaded', () => {
                     date: dateStr,
                     time: timeStr,
                     visitType: vType,
-                    hasReport: mappedStatus === 'completed', 
-                    clinicalNotes: apt.order_notes || "No additional notes.",
+                    // 🚨 ADDED REPORT URL TRACKING HERE:
+                    hasReport: mappedStatus === 'completed' && !!apt.report_url, 
+                    reportUrl: apt.report_url, 
+                    clinicalNotes: apt.symptoms || apt.order_notes || "No additional notes.",
                     raw: apt 
                 };
             });
@@ -132,6 +133,15 @@ document.addEventListener('DOMContentLoaded', () => {
             const isOnline = apt.visitType === 'Video Consult';
             const typeIcon = isOnline ? 'fa-video' : (apt.visitType === 'Delivery' ? 'fa-motorcycle' : 'fa-location-dot');
 
+            // 🚨 THE IMAGE FIX (Replaces Initials with actual provider photo)
+            let avatarHtml = `<div class="apt-avatar">${initials}</div>`;
+            if (apt.raw && apt.raw.provider && apt.raw.provider.profile_photo_url) {
+                const photoUrl = apt.raw.provider.profile_photo_url;
+                const API_BASE = window.API_BASE || 'https://backend-depolyment-3.onrender.com';
+                const finalImgUrl = photoUrl.startsWith('http') ? photoUrl : `${API_BASE}${photoUrl}`;
+                avatarHtml = `<div class="apt-avatar-img"><img src="${finalImgUrl}" alt="${apt.doctorName}" onerror="this.parentElement.innerHTML='${initials}'"></div>`;
+            }
+
             let actionButtonsHtml = '';
             
             if (apt.status === 'active' && isOnline) {
@@ -139,7 +149,12 @@ document.addEventListener('DOMContentLoaded', () => {
             } else if (apt.status === 'active') {
                 actionButtonsHtml += `<button class="btn-action-outline" style="color: #F59E0B; border-color: #F59E0B;"><i class="fa-regular fa-clock"></i> Awaiting</button>`;
             } else if (apt.status === 'completed') {
-                actionButtonsHtml += `<button class="btn-action-outline" onclick="downloadSimulation('${apt.bookingId}')"><i class="fa-solid fa-download"></i> Report</button>`;
+                // Change button style slightly if there is an actual report to download
+                if (apt.hasReport) {
+                    actionButtonsHtml += `<button class="btn-action" style="background: #9333EA; color: white;" onclick="downloadSimulation('${apt.rawId}')"><i class="fa-solid fa-download"></i> Download Report</button>`;
+                } else {
+                    actionButtonsHtml += `<button class="btn-action-outline" onclick="openBookingModal('${apt.rawId}')"><i class="fa-solid fa-notes-medical"></i> View Notes</button>`;
+                }
             }
 
             actionButtonsHtml += `<button class="btn-action-outline" onclick="openBookingModal('${apt.rawId}')" style="margin-left: 8px;"><i class="fa-solid fa-circle-info"></i> Details</button>`;
@@ -147,17 +162,17 @@ document.addEventListener('DOMContentLoaded', () => {
             if (apt.status === 'active') {
                 actionButtonsHtml += `<button class="btn-action-outline" onclick="cancelBooking('${apt.rawId}')" style="margin-left: 8px; color: #EF4444; border-color: #EF4444;"><i class="fa-solid fa-ban"></i> Cancel</button>`;
             }
-
-            if (apt.status === 'completed') {
-                actionButtonsHtml += `<button class="btn-action-outline" onclick="fileComplaint('${apt.rawId}')" style="margin-left: 8px; color: #EF4444; border-color: #EF4444;"><i class="fa-solid fa-triangle-exclamation"></i> Complaint</button>`;
-            }
+///commented out for now, will re-enable in Phase 2 when Complaint Modal is ready///
+            // if (apt.status === 'completed') {
+            //     actionButtonsHtml += `<button class="btn-action-outline" onclick="fileComplaint('${apt.rawId}')" style="margin-left: 8px; color: #EF4444; border-color: #EF4444;"><i class="fa-solid fa-triangle-exclamation"></i> Complaint</button>`;
+            // }
 
             let statusClass = `status-${apt.status}`;
             if (apt.status === 'canceled') statusClass = 'status-canceled'; 
 
             container.innerHTML += `
                 <div class="apt-card">
-                    <div class="apt-avatar">${initials}</div>
+                    ${avatarHtml}
                     <div class="apt-content">
                         <div class="apt-top-row">
                             <div class="apt-title-group">
@@ -202,7 +217,7 @@ document.addEventListener('DOMContentLoaded', () => {
                             <div class="meta-item"><i class="fa-regular fa-calendar"></i> Date: ${rep.date}</div>
                         </div>
                         <div class="apt-actions" style="margin-top: 12px;">
-                            <button class="btn-action" style="background: #9333EA; border: none; color: white;" onclick="downloadSimulation('${rep.bookingId}')"><i class="fa-solid fa-download"></i> Secure Download</button>
+                            <button class="btn-action" style="background: #9333EA; border: none; color: white;" onclick="downloadSimulation('${rep.rawId}')"><i class="fa-solid fa-download"></i> Secure Download</button>
                         </div>
                     </div>
                 </div>
@@ -269,8 +284,18 @@ document.addEventListener('DOMContentLoaded', () => {
         const genderEl = document.getElementById('modal-patient-gender');
         if(genderEl) genderEl.textContent = apt.raw.patient_gender || "N/A";
         
+        // 🚨 HIDE ADDRESS ROW IN MODAL FOR VIDEO CALLS
         const addressEl = document.getElementById('modal-patient-address');
-        if(addressEl) addressEl.textContent = apt.raw.delivery_address || "Platform Default";
+        if (addressEl) {
+            const addressRow = addressEl.parentElement;
+            
+            if (apt.visitType === 'Video Consult' || apt.visitType.includes('Video')) {
+                addressRow.style.display = 'none'; 
+            } else {
+                addressRow.style.display = 'flex'; 
+                addressEl.textContent = apt.raw.delivery_address || "Platform Default";
+            }
+        }
         
         const reasonEl = document.getElementById('modal-patient-reason');
         if(reasonEl) reasonEl.textContent = apt.raw.symptoms || apt.raw.order_notes || "None provided";
@@ -293,39 +318,51 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // 8. START ENGINE
     fetchDashboardData();
-});
 
-// ==========================================
-// GLOBAL ACTIONS (Cancel & Complaint)
-// ==========================================
-window.cancelBooking = async function(rawId) {
-    if (!confirm("Are you sure you want to cancel this appointment? This action cannot be undone.")) return;
-    
-    // 🚨 FIX 3: Point to Cloud API here too
-    const API_BASE = window.API_BASE || 'https://backend-depolyment-3.onrender.com';
-    const token = localStorage.getItem('access_token');
-    
-    try {
-        const response = await fetch(`${API_BASE}/bookings/${rawId}/cancel`, {
-            method: 'PATCH',
-            headers: { 'Authorization': `Bearer ${token}` }
-        });
-        if (response.ok) {
-            alert("Booking successfully canceled.");
-            if(window.fetchDashboardData) window.fetchDashboardData(); 
-        } else {
-            alert("Failed to cancel booking.");
+    // ==========================================
+    // GLOBAL ACTIONS (Cancel & Complaint & Download)
+    // ==========================================
+    window.cancelBooking = async function(rawId) {
+        if (!confirm("Are you sure you want to cancel this appointment? This action cannot be undone.")) return;
+        
+        const API_BASE = window.API_BASE || 'https://backend-depolyment-3.onrender.com';
+        const token = localStorage.getItem('access_token');
+        
+        try {
+            const response = await fetch(`${API_BASE}/bookings/${rawId}/cancel`, {
+                method: 'PATCH',
+                headers: { 'Authorization': `Bearer ${token}` }
+            });
+            if (response.ok) {
+                alert("Booking successfully canceled.");
+                if(window.fetchDashboardData) window.fetchDashboardData(); 
+            } else {
+                alert("Failed to cancel booking.");
+            }
+        } catch(e) {
+            console.error(e);
+            alert("Network Error while canceling.");
         }
-    } catch(e) {
-        console.error(e);
-        alert("Network Error while canceling.");
-    }
-};
+    };
 
-window.fileComplaint = function(rawId) {
-    alert(`Initiating Complaint Protocol for Booking ID: ${rawId}\n\n(In Phase 2, this will open the Complaint Submission Modal.)`);
-};
+    window.fileComplaint = function(rawId) {
+        alert(`Initiating Complaint Protocol for Booking ID: ${rawId}\n\n(In Phase 2, this will open the Complaint Submission Modal.)`);
+    };
 
-window.downloadSimulation = function(reportId) {
-    alert(`Initiating secure download for Record ID:\n"${reportId}"\n\n(In Phase 2, this will download the encrypted PDF from FastAPI storage.)`);
-};
+    // 🚨 SECURE FILE DOWNLOAD ACTION
+    window.downloadSimulation = function(rawId) {
+        // Find the specific booking in the globally stored array
+        const apt = myBookings.find(b => b.rawId === rawId || b.bookingId === rawId);
+        
+        if (apt && apt.reportUrl) {
+            // Build the absolute URL if it was saved locally
+            const API_BASE = window.API_BASE || 'https://backend-depolyment-3.onrender.com';
+            const finalUrl = apt.reportUrl.startsWith('http') ? apt.reportUrl : `${API_BASE}${apt.reportUrl}`;
+            
+            // Open the file in a new tab (forces browser to download or view PDF)
+            window.open(finalUrl, '_blank');
+        } else {
+            alert("The provider did not attach a downloadable file for this record.");
+        }
+    };
+});
