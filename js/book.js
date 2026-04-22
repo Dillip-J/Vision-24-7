@@ -1,8 +1,14 @@
 // js/book.js
 document.addEventListener('DOMContentLoaded', () => {
 
-    // 🚨 Safely define API link
-    const API_BASE = window.API_BASE || 'https://backend-depolyment-3.onrender.com';
+    // 🚨 Rely STRICTLY on config.js. No fallback link.
+    const API_BASE = window.API_BASE;
+    if (!API_BASE) {
+        console.error("FATAL: window.API_BASE is missing. Ensure config.js is loaded before book.js.");
+        alert("Configuration Error: Cannot connect to server.");
+        return;
+    }
+
     const savedService = JSON.parse(localStorage.getItem('pendingBooking'));
     const token = localStorage.getItem('access_token');
     
@@ -31,7 +37,6 @@ document.addEventListener('DOMContentLoaded', () => {
         if (phoneEl) phoneEl.textContent = "N/A";
     }
 
-
     // ==========================================================
     // 🚨 THE DOCTOR ICON FIX (REPLACES BROKEN/MISSING IMAGES)
     // ==========================================================
@@ -40,25 +45,21 @@ document.addEventListener('DOMContentLoaded', () => {
         const rawImg = doctorData.doctorImage || doctorData.doctor_image || "";
         const parentDiv = docImgEl.parentElement; 
         
-        // Ensure the parent container is ready to hold an icon perfectly centered
         parentDiv.style.display = 'flex';
         parentDiv.style.alignItems = 'center';
         parentDiv.style.justifyContent = 'center';
         parentDiv.style.background = 'rgba(37, 99, 235, 0.1)';
-        parentDiv.style.overflow = 'hidden'; // Keep the border radius clean
+        parentDiv.style.overflow = 'hidden';
 
         const iconHtml = `<i class="fa-solid fa-user-doctor" style="color: var(--brand-blue); font-size: 3.5rem;"></i>`;
 
         if (!rawImg || rawImg.includes('default-avatar') || rawImg.includes('default-doc')) {
-            // No image exists? Nuke the <img> tag and inject the icon
             parentDiv.innerHTML = iconHtml;
         } else {
             docImgEl.onerror = function() {
-                // Image failed to load? Nuke the <img> tag and inject the icon
                 parentDiv.innerHTML = iconHtml;
             };
             docImgEl.src = rawImg.startsWith('http') ? rawImg : `${API_BASE}${rawImg}`;
-            // If it succeeds, force it to fill the container properly
             docImgEl.style.width = '100%';
             docImgEl.style.height = '100%';
             docImgEl.style.objectFit = 'cover';
@@ -119,9 +120,32 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const formatDateForAPI = (d) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 
+    // ==========================================================
+    // 🚨 THE UNLOCK BUTTON FIX (Force explicit unlock)
+    // ==========================================================
+    const proceedBtn = document.getElementById('proceed-btn');
+
     const updateSummaryUI = () => {
         if(document.getElementById('sum-date')) document.getElementById('sum-date').textContent = selectedDateDisplay || "Select a date";
-        if(document.getElementById('sum-time')) document.getElementById('sum-time').textContent = selectedTime || "Select a time";
+        
+        const sumTimeEl = document.getElementById('sum-time');
+        const sumTimeRow = document.getElementById('sum-time-row');
+
+        if (selectedTime) {
+            if(sumTimeEl) sumTimeEl.textContent = selectedTime;
+            if(sumTimeRow) sumTimeRow.style.display = 'flex'; // Show the time row in summary
+            if(proceedBtn) {
+                proceedBtn.disabled = false; // 🚨 EXPLICITLY UNLOCK
+                proceedBtn.classList.remove('disabled');
+            }
+        } else {
+            if(sumTimeEl) sumTimeEl.textContent = "Select a time";
+            if(sumTimeRow) sumTimeRow.style.display = 'none'; // Hide the time row if no time
+            if(proceedBtn) {
+                proceedBtn.disabled = true; // 🚨 EXPLICITLY LOCK
+                proceedBtn.classList.add('disabled');
+            }
+        }
     };
 
     // Enforce 6-Hour Rule and fetch from backend
@@ -140,6 +164,19 @@ document.addEventListener('DOMContentLoaded', () => {
             if (!response.ok) throw new Error("Failed to fetch slots");
             
             const availableSlots = await response.json();
+            
+            // Forces the database strings into perfect chronological order
+            availableSlots.sort((a, b) => {
+                const parseTime = (timeStr) => {
+                    const [time, modifier] = timeStr.split(' ');
+                    let [hours, minutes] = time.split(':');
+                    if (hours === '12') hours = '00';
+                    if (modifier === 'PM') hours = parseInt(hours, 10) + 12;
+                    return parseInt(hours) * 60 + parseInt(minutes);
+                };
+                return parseTime(a) - parseTime(b);
+            });
+
             timeSlotContainer.innerHTML = ''; 
 
             if (availableSlots.length === 0) {
@@ -167,10 +204,22 @@ document.addEventListener('DOMContentLoaded', () => {
                     validSlotsCount++;
                     
                     slotBtn.addEventListener('click', (e) => {
-                        document.querySelectorAll('.time-slot').forEach(s => s.classList.remove('active'));
+                        // Remove active class from all buttons
+                        document.querySelectorAll('.time-slot').forEach(s => {
+                            s.classList.remove('active');
+                            s.style.backgroundColor = ''; // Reset background
+                            s.style.color = ''; // Reset text color
+                            s.style.borderColor = ''; // Reset border
+                        });
+                        
+                        // Add active styling to the clicked button
                         e.target.classList.add('active');
+                        e.target.style.backgroundColor = 'var(--brand-blue)'; // Visual confirmation
+                        e.target.style.color = '#fff';
+                        e.target.style.borderColor = 'var(--brand-blue)';
+                        
                         selectedTime = time;
-                        updateSummaryUI();
+                        updateSummaryUI(); // 🚨 This triggers the button unlock!
                     });
                 }
                 
@@ -220,7 +269,6 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    const proceedBtn = document.getElementById('proceed-btn');
     if (proceedBtn) {
         proceedBtn.addEventListener('click', async (e) => {
             e.preventDefault(); 
