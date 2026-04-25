@@ -1,6 +1,16 @@
 // js/home.js
 document.addEventListener('DOMContentLoaded', () => {
 
+    const API_BASE = window.API_BASE;
+    if (!API_BASE) {
+        console.error("FATAL: window.API_BASE is missing. Check config.js");
+        return;
+    }
+
+    // 🚨 THE NUCLEAR WIPE: Destroy old ghosts so they don't drag us to book.html
+    localStorage.removeItem('pendingBooking');
+    localStorage.removeItem('redirectAfterAuth');
+
     // ==========================================
     // --- 1. JS-Based Global Navigation Router ---
     // ==========================================
@@ -72,7 +82,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
         } catch (error) {
             console.error("Network Error: Could not load categories.", error);
-            // grid.innerHTML = `<p style="grid-column: 1/-1; text-align: center; color: red;">Could not connect to database. Please check Uvicorn or Render status.</p>`;
         }
     }
 
@@ -109,7 +118,6 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 });
-
 // // js/home.js
 // const API_BASE = 'http://127.0.0.1:8000';
 
