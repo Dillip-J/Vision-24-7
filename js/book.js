@@ -5,6 +5,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const API_BASE = window.API_BASE;
     if (!API_BASE) {
         console.error("FATAL: window.API_BASE is missing. Ensure config.js is loaded.");
+        alert("Configuration Error: Cannot connect to server.");
         return;
     }
 
@@ -20,7 +21,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const currentProviderId = doctorData.provider_id || doctorData.id;
 
     // ==========================================================
-    // 🚨 FETCH FULL PROFILE (BIO & PHONE)
+    // 🚨 FETCH FULL PROFILE (BIO, PHONE, & GPS)
     // ==========================================================
     const cachedDoctors = JSON.parse(localStorage.getItem('eterna_cache_doctors') || '[]');
     const fullDocData = cachedDoctors.find(d => (d.provider_id || d.id) === currentProviderId);

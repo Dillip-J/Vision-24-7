@@ -3,23 +3,29 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Vision - Find Doctors</title>
+    <title>Vision - Book Appointment</title>
     <link rel="stylesheet" href="css/home.css"> 
     <link rel="stylesheet" href="css/doctors.css"> 
+    <link rel="stylesheet" href="css/booking.css"> 
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <script src="https://apis.mappls.com/advancedmaps/api/YOUR_MAPPLS_KEY/map_sdk?layer=vector&v=3.0" defer></script>
+    <script src="https://apis.mappls.com/advancedmaps/api/YOUR_MAPPLS_KEY/map_sdk_plugins?v=3.0&libraries=search" defer></script>
 </head>
 <body class="bg-main">
 
     <header class="top-header">
         <div class="content-wrapper header-content">
             <div class="header-left">
-                <a href="home.html" class="back-arrow"><i class="fa-solid fa-arrow-left"></i></a>
+                <a href="home.html" onclick="localStorage.removeItem('pendingBooking'); localStorage.removeItem('activeBookingId');" class="back-arrow">
+                    <i class="fa-solid fa-arrow-left"></i>
+                </a>
                 <div class="brand">
                     <div class="logo-circle"><i class="fa-solid fa-heart-pulse"></i></div>
                     <div class="brand-text">
                         <strong>Vision</strong>
-                        <span>Find Doctors</span>
+                        <span>Book Appointment</span>
                     </div>
                 </div>
             </div>
@@ -29,64 +35,162 @@
         </div>
     </header>
 
-    <main class="content-wrapper page-container">
+    <main class="content-wrapper booking-layout">
         
-        <div class="title-header">
-            <h1>Find Your Doctor</h1>
-            <p>Browse our network of verified healthcare professionals</p>
-        </div>
-
-        <div class="search-filter-container">
-            <div class="search-row">
-                <i class="fa-solid fa-magnifying-glass search-icon"></i>
-                <input type="text" id="doctor-search" placeholder="Search by doctor name or specialty...">
-            </div>
+        <div class="booking-flow">
             
-            <div class="filter-row">
-                <div class="select-wrapper">
-                    <select id="filter-specialty">
-                        <option value="all">All Specialties</option>
-                        <option value="Cardiologist">Cardiologist</option>
-                        <option value="Orthopedic">Orthopedic</option>
-                        <option value="General Physician">General Physician</option>
-                        <option value="Pediatrician">Pediatrician</option>
-                        <option value="Dermatologist">Dermatologist</option>
-                    </select>
+            <section class="doc-header-card" id="doc-header-card">
+                <div class="doc-header-avatar">
+                    <img id="dyn-doc-img" src="" alt="Doctor">
                 </div>
                 
-                <div class="select-wrapper">
-                    <select id="filter-type">
-                        <option value="all">All Types</option>
-                        <option value="video">Video Consult</option>
-                        <option value="home">Home Visit</option>
-                    </select>
+                <div class="doc-header-details" style="flex: 1;">
+                    <div class="doc-header-top">
+                        <h2 id="dyn-doc-name">Loading...</h2>
+                        <span class="badge-visit-type" id="dyn-visit-type"><i class="fa-solid fa-location-dot"></i> Home Visit</span>
+                    </div>
+                    <div class="doc-specialty" id="dyn-doc-spec">Loading...</div>
+                    
+                    <div style="margin-top: 10px; font-size: 0.9rem; color: var(--text-secondary);">
+                        <i class="fa-solid fa-phone"></i> <span id="dyn-doc-phone">Fetching contact...</span>
+                    </div>
+                    
+                    <div style="margin-top: 8px; font-size: 0.9rem; color: var(--text-primary); line-height: 1.4; background: rgba(0,0,0,0.02); padding: 10px; border-radius: 6px;">
+                        <strong style="display: block; margin-bottom: 4px; font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.5px;">About Provider</strong>
+                        <span id="dyn-doc-bio">Fetching details...</span>
+                    </div>
                 </div>
+            </section>
 
-                <div class="select-wrapper">
-                    <select id="sort-rating">
-                        <option value="highest">Highest Rated</option>
-                        <option value="lowest">Lowest Rated</option>
-                    </select>
+            <section class="booking-section">
+                <div class="section-title">
+                    <i class="fa-regular fa-calendar"></i> Select Date
                 </div>
+                <div class="date-scroll-container" id="date-container"></div>
+                <div class="scroll-indicator">
+                    <i class="fa-solid fa-caret-left"></i>
+                    <div class="scroll-track"><div class="scroll-thumb"></div></div>
+                    <i class="fa-solid fa-caret-right"></i>
+                </div>
+            </section>
 
-                <button class="more-filters-btn">
-                    <i class="fa-solid fa-filter"></i> More Filters
-                </button>
-            </div>
+            <section class="booking-section">
+                <div class="section-title-row">
+                    <div class="section-title"><i class="fa-regular fa-clock"></i> Select Time Slot</div>
+                    <span class="duration-text">Duration: 30/60 minutes</span>
+                </div>
+                <div class="time-grid" id="time-container"></div>
+            </section>
+
+            <section class="booking-section">
+                <div class="section-title">
+                    <i class="fa-regular fa-user"></i> Patient Information
+                </div>
+                
+                <form class="patient-form" id="patient-form">
+                    <div class="form-row two-col">
+                        <div class="input-group">
+                            <label>Full Name *</label>
+                            <input type="text" id="patient-name" placeholder="Full Name" required>
+                        </div>
+                        <div class="input-group">
+                            <label>Age *</label>
+                            <input type="number" id="patient-age" placeholder="Age" required>
+                        </div>
+                    </div>
+
+                    <div class="form-row">
+                        <label>Gender *</label>
+                        <div class="radio-group">
+                            <label class="radio-label"><input type="radio" name="gender" value="Male" required> Male</label>
+                            <label class="radio-label"><input type="radio" name="gender" value="Female"> Female</label>
+                            <label class="radio-label"><input type="radio" name="gender" value="Other"> Other</label>
+                        </div>
+                    </div>
+
+                    <div class="form-row">
+                        <label>Symptoms / Reason for Visit *</label>
+                        <textarea id="patient-symptoms" rows="3" placeholder="Describe your symptoms or reason for consultation..." required></textarea>
+                    </div>
+
+                    <div class="form-row form-group" id="address-form-group">
+                        <label id="address-label">Complete Address for Home Visit *</label>
+                        
+                        <div id="mappls-map" style="width: 100%; height: 250px; border-radius: 8px; margin-bottom: 10px; display: none; border: 1px solid #ccc;"></div>
+                        <button type="button" id="btn-show-map" class="btn-outline" style="margin-bottom: 10px; width: 100%;"><i class="fa-solid fa-map-location-dot"></i> Pin Exact Location on Map</button>
+                        
+                        <textarea id="patient-address" rows="2" placeholder="House/Flat No., Street, Landmark, City, Pincode" required></textarea>
+                    </div>
+                </form>
+            </section>
         </div>
 
-        <div class="results-count">Showing <strong id="doctor-count">0</strong> doctors</div>
+        <aside class="booking-sidebar">
+            <div class="summary-card">
+                <h3>Booking Summary</h3>
+                
+                <div class="summary-doc-info">
+                    <span class="summary-label">Doctor</span>
+                    <strong id="sum-doc-name">...</strong>
+                    <span class="summary-label mt-2">Specialization</span>
+                    <strong class="text-blue" id="sum-doc-spec">...</strong>
+                </div>
 
-        <div class="doctor-list" id="doctor-list">
+                <div class="summary-datetime">
+                    <div class="sum-row">
+                        <i class="fa-regular fa-calendar"></i>
+                        <div>
+                            <span class="sum-sub">Date</span>
+                            <strong id="sum-date">Select a date</strong>
+                        </div>
+                    </div>
+                    <div class="sum-row" id="sum-time-row" style="display: none;">
+                        <i class="fa-regular fa-clock"></i>
+                        <div>
+                            <span class="sum-sub">Time</span>
+                            <strong id="sum-time">...</strong>
+                        </div>
+                    </div>
+                    <div class="sum-row mt-3">
+                        <i class="fa-solid fa-location-dot"></i>
+                        <div>
+                            <span class="sum-sub">Type</span>
+                            <strong id="sum-type">...</strong>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="summary-costs">
+                    <div class="cost-row">
+                        <span>Consultation Fee</span>
+                        <span id="sum-fee">...</span>
+                    </div>
+                    <div class="cost-row">
+                        <span>Visit Charges</span>
+                        <span id="sum-visit">...</span>
+                    </div>
+                    <hr class="cost-divider">
+                    <div class="cost-row total-row">
+                        <span>Total Amount</span>
+                        <span class="total-price text-blue" id="sum-total">...</span>
+                    </div>
+                </div>
+
+                <button class="btn-primary full-width" id="proceed-btn" disabled>
+                    <i class="fa-regular fa-circle-check"></i> Proceed to Payment
+                </button>
+
+                <p class="terms-text">
+                    By proceeding, you agree to our <a href="#">Terms & Conditions</a>
+                </p>
             </div>
+        </aside>
 
     </main>
-    <script src="https://apis.mappls.com/advancedmaps/api/YOUR_MAPPLS_KEY/map_sdk?layer=vector&v=3.0" defer></script>
-    <script src="https://apis.mappls.com/advancedmaps/api/YOUR_MAPPLS_KEY/map_sdk_plugins?v=3.0&libraries=search" defer></script>
-    <script src="js/config.js"></script>
-    <script src="js/script.js"></script>
-    <script src="js/auth_guard.js"></script>
-    <script src="js/doctor.js"></script> </body>
-</html>
 
-        
+    <script src="js/config.js"></script> 
+    <script src="js/auth_guard.js"></script>
+    <script src="js/script.js"></script>
+    <script src="js/book.js"></script>  
+</body>
+</html>
