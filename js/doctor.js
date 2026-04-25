@@ -4,7 +4,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // 🚨 Rely STRICTLY on config.js.
     const API_BASE = window.API_BASE;
     if (!API_BASE) {
-        console.error("FATAL: window.API_BASE is missing.");
+        console.error("FATAL: window.API_BASE is missing. Ensure config.js is loaded first.");
         return;
     }
 
@@ -33,7 +33,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // ==========================================
-    // --- 2. THE MESSENGER ---
+    // --- 2. THE MESSENGER (Reads clicks from Home Page) ---
     // ==========================================
     const autoSpecialty = localStorage.getItem('autoSearchSpecialty');
     if (autoSpecialty && filterSpecialty) {
@@ -75,8 +75,9 @@ document.addEventListener('DOMContentLoaded', () => {
     // --- 4. DYNAMIC RENDER & FILTER ---
     // ==========================================
     async function renderDoctors() {
-        const providers = await fetchApprovedDoctors();
+        if (doctorList) doctorList.innerHTML = `<div style="text-align:center; padding: 40px; width: 100%;"><i class="fa-solid fa-spinner fa-spin fa-2x"></i><p>Loading Providers...</p></div>`;
         
+        const providers = await fetchApprovedDoctors();
         const doctorsOnly = providers.filter(p => p.provider_type === 'Doctor' || p.type === 'Doctor' || (!p.provider_type && !p.type));
         
         const searchTerm = searchInput ? searchInput.value.trim().toLowerCase() : '';
@@ -115,7 +116,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (filtered.length === 0) {
             if(doctorList) {
                 doctorList.innerHTML = `
-                    <div style="text-align: center; padding: 60px 20px; background: var(--card-bg); border-radius: 12px; border: 1px dashed var(--border-color);">
+                    <div style="text-align: center; padding: 60px 20px; background: var(--card-bg); border-radius: 12px; border: 1px dashed var(--border-color); width: 100%;">
                         <i class="fa-solid fa-user-doctor" style="font-size: 3rem; color: var(--text-secondary); margin-bottom: 16px;"></i>
                         <h3 style="color: var(--text-primary); margin-bottom: 8px;">No providers found</h3>
                         <p style="color: var(--text-secondary);">There are currently no approved doctors matching your search criteria or within range for a Home Visit.</p>
@@ -127,7 +128,6 @@ document.addEventListener('DOMContentLoaded', () => {
         if(doctorList) doctorList.innerHTML = '';
         
         filtered.forEach(doc => {
-            
             let imgUrl = "images/default-avatar.png"; 
             if (doc.profile_photo_url) {
                 imgUrl = doc.profile_photo_url.startsWith('http') 
@@ -147,28 +147,12 @@ document.addEventListener('DOMContentLoaded', () => {
                 displayDistance = `${doc.distance_km} km away`;
             }
 
-            let consultFee = 500;
-            let visitCharge = 200;
+            let consultFee = parseFloat(doc.price) || 500;
+            let visitCharge = parseFloat(doc.home_visit_charge) || 200;
             const platformFee = 15; 
             
-            let showVideo = false;
-            let showHome = false;
-
-            if (doc.doctor_services && doc.doctor_services.length > 0) {
-                const videoService = doc.doctor_services.find(s => s.service_name.toLowerCase().includes("video"));
-                if (videoService) { showVideo = true; consultFee = parseFloat(videoService.price); }
-
-                const homeService = doc.doctor_services.find(s => s.service_name.toLowerCase().includes("home"));
-                if (homeService) { 
-                    showHome = true; 
-                    visitCharge = parseFloat(homeService.price) - consultFee;
-                    if (visitCharge < 0) visitCharge = 0; 
-                }
-            } else {
-                showVideo = true; showHome = true;
-                consultFee = parseFloat(doc.price) || parseFloat(doc.base_price) || 500;
-                visitCharge = parseFloat(doc.home_visit_charge) || 200; 
-            }
+            let showVideo = true;
+            let showHome = true;
 
             let actionButtons = '';
             
@@ -206,14 +190,10 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
             }
 
-            if (!showVideo && !showHome) {
-                actionButtons = `<button class="btn-outline" disabled style="opacity: 0.5; cursor: not-allowed;"><i class="fa-solid fa-ban"></i> No Services Available</button>`;
-            }
-
             const card = `
                 <div class="doctor-card">
                     <div class="doc-avatar">
-                        <img src="${imgUrl}" alt="${doc.name}" style="width:100%; height:100%; object-fit:cover; border-radius:12px;">
+                        <img src="${imgUrl}" onerror="this.src='images/default-avatar.png'" alt="${doc.name}" style="width:100%; height:100%; object-fit:cover; border-radius:12px;">
                         <div class="verified-badge"><i class="fa-solid fa-check"></i></div>
                     </div>
                     <div class="doc-info">
@@ -237,11 +217,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
     if (searchInput) searchInput.addEventListener('input', renderDoctors);
     if (filterSpecialty) filterSpecialty.addEventListener('change', renderDoctors);
-    
-    // 🚨 Listen for changes to the Visit Type dropdown
     if (filterTypeDropdown) filterTypeDropdown.addEventListener('change', renderDoctors);
 
     renderDoctors().then(() => {
+        // Destroy the messenger keys so they don't get stuck!
         localStorage.removeItem('autoSearchSpecialty'); 
         localStorage.removeItem('autoSearchQuery'); 
     });
@@ -250,7 +229,10 @@ document.addEventListener('DOMContentLoaded', () => {
 // ==========================================
 // --- 5. DYNAMIC GLOBAL ROUTING ---
 // ==========================================
+// Attached to window so the HTML onclick handlers can trigger it
 window.initiateDocBooking = function(docId, type, docName, docCat, docImg, fee, visitFee, platFee) {
+    
+    // 1. Save the doctor's info to local storage
     const bookingData = {
         provider_id: docId, 
         doctorName: docName.includes('Dr.') ? docName : 'Dr. ' + docName, 
@@ -262,16 +244,18 @@ window.initiateDocBooking = function(docId, type, docName, docCat, docImg, fee, 
         platformFee: platFee,
         address: type === 'Home Visit' ? (localStorage.getItem('user_address') || "Location not set") : "Platform Default"
     };
-    
     localStorage.setItem('pendingBooking', JSON.stringify(bookingData));
 
+    // 2. Check if the user is logged in BEFORE sending them to book.html
     const token = localStorage.getItem('access_token');
+    
     if (!token) {
-        alert("Please log in or create an account to complete your booking.");
+        // Not logged in? Store the destination, and send to login screen.
         localStorage.setItem('redirectAfterAuth', 'book.html');
-        window.location.href = 'index.html'; 
+        window.location.assign('index.html'); 
         return; 
     }
 
-    window.location.href = 'book.html';
+    // 3. Already logged in? Send straight to the booking page!
+    window.location.assign('book.html');
 };
