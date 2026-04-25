@@ -258,4 +258,4 @@ window.initiateDocBooking = function(docId, type, docName, docCat, docImg, fee, 
 
     // 3. Already logged in? Send straight to the booking page!
     window.location.assign('book.html');
-};
+}; 
