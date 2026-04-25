@@ -16,6 +16,7 @@
 const activeUserSession = localStorage.getItem('currentUser');
 
 document.addEventListener('DOMContentLoaded', () => {
+    // Standard Navigation
     document.querySelectorAll('[data-nav]').forEach(element => {
         element.addEventListener('click', (e) => {
             e.preventDefault(); 
@@ -27,7 +28,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
 window.goToLogin = function() {
     localStorage.setItem('redirectAfterAuth', window.location.href);
-    window.location.href = './index.html';
+    window.location.assign('index.html');
 };
 
 // ==========================================
@@ -211,9 +212,7 @@ if (loginFormEl) {
             localStorage.setItem('access_token', data.access_token);
             localStorage.setItem('currentUser', JSON.stringify(data.user));
 
-            // 🚨 We let the page reload. When it reloads, `auth_guard.js` will 
-            // instantly wake up, see the token, check `redirectAfterAuth`, and 
-            // route the user perfectly. 
+            // 🚨 We let auth_guard handle the redirect on reload!
             window.location.reload();
 
         } catch (err) {
