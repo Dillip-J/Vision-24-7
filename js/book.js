@@ -1,11 +1,10 @@
 // js/book.js
 document.addEventListener('DOMContentLoaded', () => {
 
-    // 🚨 Rely STRICTLY on config.js. No fallback link.
+    // 🚨 Rely STRICTLY on config.js.
     const API_BASE = window.API_BASE;
     if (!API_BASE) {
-        console.error("FATAL: window.API_BASE is missing. Ensure config.js is loaded before book.js.");
-        alert("Configuration Error: Cannot connect to server.");
+        console.error("FATAL: window.API_BASE is missing. Ensure config.js is loaded.");
         return;
     }
 
@@ -38,7 +37,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // ==========================================================
-    // 🚨 THE DOCTOR ICON FIX (REPLACES BROKEN/MISSING IMAGES)
+    // 🚨 THE DOCTOR ICON FIX
     // ==========================================================
     const docImgEl = document.getElementById('dyn-doc-img');
     if(docImgEl) {
@@ -56,26 +55,11 @@ document.addEventListener('DOMContentLoaded', () => {
         if (!rawImg || rawImg.includes('default-avatar') || rawImg.includes('default-doc')) {
             parentDiv.innerHTML = iconHtml;
         } else {
-            docImgEl.onerror = function() {
-                parentDiv.innerHTML = iconHtml;
-            };
+            docImgEl.onerror = function() { parentDiv.innerHTML = iconHtml; };
             docImgEl.src = rawImg.startsWith('http') ? rawImg : `${API_BASE}${rawImg}`;
             docImgEl.style.width = '100%';
             docImgEl.style.height = '100%';
             docImgEl.style.objectFit = 'cover';
-        }
-    }
-
-    // 1. COMPLETELY Hide Address Row for Video Consults
-    const addressInput = document.getElementById('patient-address');
-    if (addressInput) {
-        const formGroup = addressInput.closest('.form-group') || addressInput.parentElement;
-        
-        if (doctorData.visitType === 'Video Consult' || doctorData.visitType.includes('Video')) {
-            formGroup.style.display = 'none'; 
-            addressInput.value = 'Online';    
-        } else {
-            formGroup.style.display = 'block'; 
         }
     }
 
@@ -107,9 +91,6 @@ document.addEventListener('DOMContentLoaded', () => {
         document.getElementById('patient-name').value = cachedUser.name;
     }
 
-    const backBtn = document.getElementById("backbtn");
-    if (backBtn) backBtn.addEventListener("click", (e) => { e.preventDefault(); window.history.back(); });
-
     // 3. Date & Time Engine Variables
     let selectedTime = null; 
     let selectedDateAPI = null; 
@@ -117,13 +98,9 @@ document.addEventListener('DOMContentLoaded', () => {
     
     const dateContainer = document.getElementById('date-container');
     const timeSlotContainer = document.getElementById('time-container'); 
+    const proceedBtn = document.getElementById('proceed-btn');
 
     const formatDateForAPI = (d) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
-
-    // ==========================================================
-    // 🚨 THE UNLOCK BUTTON FIX (Force explicit unlock)
-    // ==========================================================
-    const proceedBtn = document.getElementById('proceed-btn');
 
     const updateSummaryUI = () => {
         if(document.getElementById('sum-date')) document.getElementById('sum-date').textContent = selectedDateDisplay || "Select a date";
@@ -133,39 +110,35 @@ document.addEventListener('DOMContentLoaded', () => {
 
         if (selectedTime) {
             if(sumTimeEl) sumTimeEl.textContent = selectedTime;
-            if(sumTimeRow) sumTimeRow.style.display = 'flex'; // Show the time row in summary
+            if(sumTimeRow) sumTimeRow.style.display = 'flex'; 
             if(proceedBtn) {
-                proceedBtn.disabled = false; // 🚨 EXPLICITLY UNLOCK
+                proceedBtn.disabled = false; 
                 proceedBtn.classList.remove('disabled');
             }
         } else {
             if(sumTimeEl) sumTimeEl.textContent = "Select a time";
-            if(sumTimeRow) sumTimeRow.style.display = 'none'; // Hide the time row if no time
+            if(sumTimeRow) sumTimeRow.style.display = 'none'; 
             if(proceedBtn) {
-                proceedBtn.disabled = true; // 🚨 EXPLICITLY LOCK
+                proceedBtn.disabled = true; 
                 proceedBtn.classList.add('disabled');
             }
         }
     };
 
-    // Enforce 6-Hour Rule and fetch from backend
+    // Time slots fetch logic
     async function fetchAndRenderTimeSlots(apiDateString) {
         if (!timeSlotContainer) return;
         selectedTime = null; 
         updateSummaryUI();
-        
         timeSlotContainer.innerHTML = '<div style="width: 100%; padding: 12px; text-align: center; color: var(--text-secondary);">Loading available slots...</div>'; 
 
         try {
             const response = await fetch(`${API_BASE}/providers/${currentProviderId}/available-slots?date=${apiDateString}`, {
                 headers: { 'Authorization': `Bearer ${token}` }
             });
-
             if (!response.ok) throw new Error("Failed to fetch slots");
             
             const availableSlots = await response.json();
-            
-            // Forces the database strings into perfect chronological order
             availableSlots.sort((a, b) => {
                 const parseTime = (timeStr) => {
                     const [time, modifier] = timeStr.split(' ');
@@ -178,7 +151,6 @@ document.addEventListener('DOMContentLoaded', () => {
             });
 
             timeSlotContainer.innerHTML = ''; 
-
             if (availableSlots.length === 0) {
                 timeSlotContainer.innerHTML = '<div style="width: 100%; text-align: center; color: var(--text-secondary);">No slots available on this date.</div>';
                 return;
@@ -186,7 +158,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
             const now = new Date();
             const cutoffTime = new Date(now.getTime() + (5 * 60 * 60 * 1000));
-            
             let validSlotsCount = 0;
 
             availableSlots.forEach(time => {
@@ -202,38 +173,28 @@ document.addEventListener('DOMContentLoaded', () => {
                 } else {
                     slotBtn.className = `time-slot`;
                     validSlotsCount++;
-                    
                     slotBtn.addEventListener('click', (e) => {
-                        // Remove active class from all buttons
                         document.querySelectorAll('.time-slot').forEach(s => {
                             s.classList.remove('active');
-                            s.style.backgroundColor = ''; // Reset background
-                            s.style.color = ''; // Reset text color
-                            s.style.borderColor = ''; // Reset border
+                            s.style.backgroundColor = ''; 
+                            s.style.color = ''; 
+                            s.style.borderColor = ''; 
                         });
-                        
-                        // Add active styling to the clicked button
                         e.target.classList.add('active');
-                        e.target.style.backgroundColor = 'var(--brand-blue)'; // Visual confirmation
+                        e.target.style.backgroundColor = 'var(--brand-blue)'; 
                         e.target.style.color = '#fff';
                         e.target.style.borderColor = 'var(--brand-blue)';
-                        
                         selectedTime = time;
-                        updateSummaryUI(); // 🚨 This triggers the button unlock!
+                        updateSummaryUI(); 
                     });
                 }
-                
                 timeSlotContainer.appendChild(slotBtn);
             });
 
             if (validSlotsCount === 0) {
-                timeSlotContainer.innerHTML += `<div style="width: 100%; text-align: center; color: #ef4444; font-size: 0.85rem; margin-top: 10px;">
-                    <i class="fa-solid fa-circle-exclamation"></i> Remaining slots are less than 5 hours away. Please select tomorrow.
-                </div>`;
+                timeSlotContainer.innerHTML += `<div style="width: 100%; text-align: center; color: #ef4444; font-size: 0.85rem; margin-top: 10px;"><i class="fa-solid fa-circle-exclamation"></i> Remaining slots are less than 5 hours away. Please select tomorrow.</div>`;
             }
-
         } catch (error) {
-            console.error(error);
             timeSlotContainer.innerHTML = '<div style="width: 100%; text-align: center; color: #ef4444;">Error loading time slots. Please try again.</div>';
         }
     }
@@ -243,7 +204,6 @@ document.addEventListener('DOMContentLoaded', () => {
         for (let i = 0; i < 7; i++) {
             const d = new Date();
             d.setDate(d.getDate() + i);
-            
             const apiDateString = formatDateForAPI(d);
             const displayDateString = d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
             const dayName = d.toLocaleDateString('en-US', { weekday: 'short' });
@@ -269,6 +229,69 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
+    // ==========================================================
+    // 🚨 MAPPLS INTEGRATION LOGIC 
+    // ==========================================================
+    const btnShowMap = document.getElementById('btn-show-map');
+    const mapContainer = document.getElementById('mappls-map');
+    const addressInputField = document.getElementById('patient-address');
+    let mapObject = null;
+    let mapMarker = null;
+
+    if (btnShowMap) {
+        if (doctorData.visitType === 'Video Consult' || doctorData.visitType.includes('Video')) {
+            document.getElementById('address-form-group').style.display = 'none';
+        }
+
+        btnShowMap.addEventListener('click', () => {
+            if (typeof mappls === 'undefined') {
+                alert("Map engine is still loading or API key is invalid.");
+                return;
+            }
+
+            mapContainer.style.display = 'block';
+            btnShowMap.style.display = 'none';
+
+            let startLat = parseFloat(localStorage.getItem('user_lat')) || 28.6139;
+            let startLng = parseFloat(localStorage.getItem('user_lon')) || 77.2090;
+
+            mapObject = new mappls.Map('mappls-map', {
+                center: [startLat, startLng],
+                zoom: 12,
+                zoomControl: true,
+                location: true 
+            });
+
+            mapObject.addListener('click', function(e) {
+                const lat = e.lngLat.lat;
+                const lng = e.lngLat.lng;
+
+                if (mapMarker) mapMarker.remove();
+
+                mapMarker = new mappls.Marker({
+                    map: mapObject,
+                    position: { "lat": lat, "lng": lng }
+                });
+
+                addressInputField.value = `Pinned Coordinates: ${lat.toFixed(4)}, ${lng.toFixed(4)}`;
+                addressInputField.style.borderColor = "var(--success-green)";
+            });
+        });
+    }
+
+    // 🚨 HAVERSINE DISTANCE MATH
+    function calculateDistanceKM(lat1, lon1, lat2, lon2) {
+        if (!lat1 || !lon1 || !lat2 || !lon2) return Infinity; 
+        const R = 6371; 
+        const dLat = (lat2 - lat1) * Math.PI / 180;
+        const dLon = (lon2 - lon1) * Math.PI / 180;
+        const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
+                  Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+                  Math.sin(dLon/2) * Math.sin(dLon/2);
+        const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+        return R * c; 
+    }
+
     if (proceedBtn) {
         proceedBtn.addEventListener('click', async (e) => {
             e.preventDefault(); 
@@ -280,12 +303,40 @@ document.addEventListener('DOMContentLoaded', () => {
             proceedBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Securing...';
             proceedBtn.disabled = true;
 
+            let finalAddress = document.getElementById('patient-address') ? document.getElementById('patient-address').value : "Online";
+            
+            if (doctorData.visitType === 'Video Consult' || doctorData.visitType.includes('Video')) {
+                finalAddress = "Online";
+            } else {
+                // 🚨 GPS GEOFENCE CHECK
+                if (!mapMarker) {
+                    alert("Please pin your exact location on the map for a Home Visit.");
+                    proceedBtn.innerHTML = '<i class="fa-regular fa-circle-check"></i> Proceed to Payment';
+                    proceedBtn.disabled = false;
+                    return;
+                }
+                
+                const userLat = mapMarker.getPosition().lat;
+                const userLng = mapMarker.getPosition().lng;
+                const docLat = parseFloat(fullDocData.latitude);
+                const docLng = parseFloat(fullDocData.longitude);
+
+                if (docLat && docLng) {
+                    const distanceKM = calculateDistanceKM(userLat, userLng, docLat, docLng);
+                    const MAX_RADIUS = 15; // 15 Kilometers boundary
+
+                    if (distanceKM > MAX_RADIUS) {
+                        alert(`🚨 Service Unavailable\n\nReason: This provider is ${distanceKM.toFixed(1)} km away. They only provide Home Visits within a ${MAX_RADIUS} km radius.\n\nPlease go back and choose a Video Consult or find a closer provider.`);
+                        proceedBtn.innerHTML = '<i class="fa-regular fa-circle-check"></i> Proceed to Payment';
+                        proceedBtn.disabled = false;
+                        return; // 🛑 Kills the booking
+                    }
+                }
+            }
+
             const localDateTime = `${selectedDateAPI}T${convertTo24Hour(selectedTime)}:00`;
             const genderNode = document.querySelector('input[name="gender"]:checked');
             
-            let finalAddress = document.getElementById('patient-address') ? document.getElementById('patient-address').value : "Online";
-            if (doctorData.visitType === 'Video Consult' || doctorData.visitType.includes('Video')) finalAddress = "Online";
-
             const bookingPayload = {
                 provider_id: currentProviderId, 
                 scheduled_time: localDateTime,
@@ -315,7 +366,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
             } catch (error) {
                 alert(error.message);
-                proceedBtn.innerHTML = 'Proceed to Payment';
+                proceedBtn.innerHTML = '<i class="fa-regular fa-circle-check"></i> Proceed to Payment';
                 proceedBtn.disabled = false;
             }
         });

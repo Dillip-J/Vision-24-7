@@ -9,6 +9,9 @@
     <link rel="stylesheet" href="css/booking.css"> 
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <script src="https://apis.mappls.com/advancedmaps/api/YOUR_MAPPLS_KEY/map_sdk?layer=vector&v=3.0" defer></script>
+    <script src="https://apis.mappls.com/advancedmaps/api/YOUR_MAPPLS_KEY/map_sdk_plugins?v=3.0&libraries=search" defer></script>
 </head>
 <body class="bg-main">
 
@@ -110,8 +113,12 @@
                         <textarea id="patient-symptoms" rows="3" placeholder="Describe your symptoms or reason for consultation..." required></textarea>
                     </div>
 
-                    <div class="form-row form-group">
+                    <div class="form-row form-group" id="address-form-group">
                         <label id="address-label">Complete Address for Home Visit *</label>
+                        
+                        <div id="mappls-map" style="width: 100%; height: 250px; border-radius: 8px; margin-bottom: 10px; display: none; border: 1px solid #ccc;"></div>
+                        <button type="button" id="btn-show-map" class="btn-outline" style="margin-bottom: 10px; width: 100%;"><i class="fa-solid fa-map-location-dot"></i> Pin Exact Location on Map</button>
+                        
                         <textarea id="patient-address" rows="2" placeholder="House/Flat No., Street, Landmark, City, Pincode" required></textarea>
                     </div>
                 </form>
