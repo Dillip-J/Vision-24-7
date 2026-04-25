@@ -4,20 +4,29 @@ document.addEventListener('DOMContentLoaded', () => {
     // 🚨 Rely STRICTLY on config.js.
     const API_BASE = window.API_BASE;
     if (!API_BASE) {
-        console.error("FATAL: window.API_BASE is missing. Ensure config.js is loaded.");
+        console.error("FATAL: window.API_BASE is missing.");
         alert("Configuration Error: Cannot connect to server.");
         return;
     }
 
-    const savedService = JSON.parse(localStorage.getItem('pendingBooking'));
     const token = localStorage.getItem('access_token');
+    const savedServiceStr = localStorage.getItem('pendingBooking');
     
-    if (!token || !savedService) {
+    // 🚨 SMART ROUTE 1: Not logged in? Go to login screen.
+    if (!token) {
+        localStorage.setItem('redirectAfterAuth', 'book.html');
         window.location.replace('index.html');
         return; 
     }
 
-    const doctorData = savedService;
+    // 🚨 SMART ROUTE 2: Logged in, but didn't pick a doctor? Go to Find Doctors!
+    if (!savedServiceStr) {
+        console.warn("No doctor selected. Routing back to directory.");
+        window.location.replace('doctors.html');
+        return;
+    }
+
+    const doctorData = JSON.parse(savedServiceStr);
     const currentProviderId = doctorData.provider_id || doctorData.id;
 
     // ==========================================================
@@ -241,7 +250,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
     if (btnShowMap) {
         if (doctorData.visitType === 'Video Consult' || doctorData.visitType.includes('Video')) {
-            document.getElementById('address-form-group').style.display = 'none';
+            const addressGroup = document.getElementById('address-form-group');
+            if(addressGroup) addressGroup.style.display = 'none';
         }
 
         btnShowMap.addEventListener('click', () => {
@@ -274,8 +284,10 @@ document.addEventListener('DOMContentLoaded', () => {
                     position: { "lat": lat, "lng": lng }
                 });
 
-                addressInputField.value = `Pinned Coordinates: ${lat.toFixed(4)}, ${lng.toFixed(4)}`;
-                addressInputField.style.borderColor = "var(--success-green)";
+                if(addressInputField) {
+                    addressInputField.value = `Pinned Coordinates: ${lat.toFixed(4)}, ${lng.toFixed(4)}`;
+                    addressInputField.style.borderColor = "var(--success-green)";
+                }
             });
         });
     }
@@ -319,18 +331,21 @@ document.addEventListener('DOMContentLoaded', () => {
                 
                 const userLat = mapMarker.getPosition().lat;
                 const userLng = mapMarker.getPosition().lng;
-                const docLat = parseFloat(fullDocData.latitude);
-                const docLng = parseFloat(fullDocData.longitude);
+                
+                if(fullDocData) {
+                    const docLat = parseFloat(fullDocData.latitude);
+                    const docLng = parseFloat(fullDocData.longitude);
 
-                if (docLat && docLng) {
-                    const distanceKM = calculateDistanceKM(userLat, userLng, docLat, docLng);
-                    const MAX_RADIUS = 15; // 15 Kilometers boundary
+                    if (docLat && docLng) {
+                        const distanceKM = calculateDistanceKM(userLat, userLng, docLat, docLng);
+                        const MAX_RADIUS = 15; // 15 Kilometers boundary
 
-                    if (distanceKM > MAX_RADIUS) {
-                        alert(`🚨 Service Unavailable\n\nReason: This provider is ${distanceKM.toFixed(1)} km away. They only provide Home Visits within a ${MAX_RADIUS} km radius.\n\nPlease go back and choose a Video Consult or find a closer provider.`);
-                        proceedBtn.innerHTML = '<i class="fa-regular fa-circle-check"></i> Proceed to Payment';
-                        proceedBtn.disabled = false;
-                        return; // 🛑 Kills the booking
+                        if (distanceKM > MAX_RADIUS) {
+                            alert(`🚨 Service Unavailable\n\nReason: This provider is ${distanceKM.toFixed(1)} km away. They only provide Home Visits within a ${MAX_RADIUS} km radius.\n\nPlease go back and choose a Video Consult or find a closer provider.`);
+                            proceedBtn.innerHTML = '<i class="fa-regular fa-circle-check"></i> Proceed to Payment';
+                            proceedBtn.disabled = false;
+                            return; // 🛑 Kills the booking
+                        }
                     }
                 }
             }
