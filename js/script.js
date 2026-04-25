@@ -26,17 +26,19 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 });
 
+// 🚨 THE SMART REDIRECT ENGINE
 function proceedToNextPage() {
     const targetUrl = localStorage.getItem('redirectAfterAuth');
-    localStorage.removeItem('redirectAfterAuth'); 
     
     if (targetUrl) {
+        localStorage.removeItem('redirectAfterAuth'); // Clear it so it doesn't loop
         window.location.assign(targetUrl);
     } else {
         window.location.assign('home.html');
     }
 }
 
+// Auto-redirect logged-in users away from the login page
 if (isIndexPage && activeUserSession) {
     proceedToNextPage();
 }
@@ -159,7 +161,7 @@ if (signupFormEl) {
         }
 
         try {
-            const response = await fetch(`${API_BASE}/auth/register`, {
+            const response = await fetch(`${window.API_BASE}/auth/register`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
@@ -204,14 +206,13 @@ if (loginFormEl) {
         submitBtn.disabled = true;
         
         try {
-            // 🚨 THE FIX: Switched from FormData to a proper JSON Object!
-            const response = await fetch(`${API_BASE}/auth/login`, {
+            const response = await fetch(`${window.API_BASE}/auth/login`, {
                 method: 'POST',
                 headers: { 
-                    'Content-Type': 'application/json' // Tell FastAPI to expect JSON
+                    'Content-Type': 'application/json'
                 },
                 body: JSON.stringify({
-                    email: loginEmail,     // Must exactly match your schemas.py
+                    email: loginEmail,     
                     password: loginPassword
                 })
             });
@@ -233,6 +234,7 @@ if (loginFormEl) {
             localStorage.setItem('access_token', data.access_token);
             localStorage.setItem('currentUser', JSON.stringify(data.user));
 
+            // Automatically route back to where they were, or home
             proceedToNextPage(); 
 
         } catch (err) {
@@ -290,7 +292,7 @@ if (searchInput) {
         }
 
         try {
-            const response = await fetch(`${API_BASE}/home/search?q=${encodeURIComponent(query)}`);
+            const response = await fetch(`${window.API_BASE}/home/search?q=${encodeURIComponent(query)}`);
             const data = await response.json();
 
             if (resultsDropdown) {
