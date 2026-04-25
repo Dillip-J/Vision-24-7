@@ -11,9 +11,8 @@
 })();
 
 // ==========================================
-// --- 1. Global Navigation & Routing Logic ---
+// --- 1. Global Navigation Logic ---
 // ==========================================
-const isIndexPage = window.location.pathname.endsWith('index.html') || window.location.pathname === '/' || window.location.pathname.endsWith('/patient/');
 const activeUserSession = localStorage.getItem('currentUser');
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -25,23 +24,6 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     });
 });
-
-// 🚨 THE SMART REDIRECT ENGINE
-function proceedToNextPage() {
-    const targetUrl = localStorage.getItem('redirectAfterAuth');
-    
-    if (targetUrl) {
-        localStorage.removeItem('redirectAfterAuth'); // Clear it so it doesn't loop
-        window.location.assign(targetUrl);
-    } else {
-        window.location.assign('home.html');
-    }
-}
-
-// Auto-redirect logged-in users away from the login page
-if (isIndexPage && activeUserSession) {
-    proceedToNextPage();
-}
 
 window.goToLogin = function() {
     localStorage.setItem('redirectAfterAuth', window.location.href);
@@ -92,7 +74,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 e.preventDefault();
                 localStorage.removeItem('currentUser'); 
                 localStorage.removeItem('access_token'); 
-                window.location.reload(); 
+                window.location.replace('index.html'); 
             });
 
         } else {
@@ -219,12 +201,7 @@ if (loginFormEl) {
 
             if (!response.ok) {
                 const errorData = await response.json().catch(() => ({}));
-                console.error("Backend Error Details:", errorData);
-                
-                const errorMessage = typeof errorData.detail === 'string' 
-                    ? errorData.detail 
-                    : JSON.stringify(errorData.detail || errorData);
-                
+                const errorMessage = typeof errorData.detail === 'string' ? errorData.detail : JSON.stringify(errorData.detail || errorData);
                 alert(`Login Failed: ${errorMessage}`);
                 return;
             }
@@ -234,8 +211,10 @@ if (loginFormEl) {
             localStorage.setItem('access_token', data.access_token);
             localStorage.setItem('currentUser', JSON.stringify(data.user));
 
-            // Automatically route back to where they were, or home
-            proceedToNextPage(); 
+            // 🚨 We let the page reload. When it reloads, `auth_guard.js` will 
+            // instantly wake up, see the token, check `redirectAfterAuth`, and 
+            // route the user perfectly. 
+            window.location.reload();
 
         } catch (err) {
             console.error("Login Fetch Error:", err);
@@ -360,16 +339,12 @@ if (!navigator.onLine) showNetworkToast(false);
 // ==========================================
 document.querySelectorAll('.toggle-password').forEach(icon => {
     icon.addEventListener('click', function() {
-        // Find the specific input this icon belongs to
         const targetId = this.getAttribute('data-target');
         const inputField = document.getElementById(targetId);
 
         if (inputField) {
-            // Toggle type
             const newType = inputField.getAttribute('type') === 'password' ? 'text' : 'password';
             inputField.setAttribute('type', newType);
-
-            // Toggle icon look
             this.classList.toggle('fa-eye');
             this.classList.toggle('fa-eye-slash');
         }
