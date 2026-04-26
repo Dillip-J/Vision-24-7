@@ -1,7 +1,7 @@
 // js/book.js
 document.addEventListener('DOMContentLoaded', () => {
 
-    // 🚨 Rely STRICTLY on config.js.
+    // 🚨 Rely STRICTLY on config.js. No fallback link.
     const API_BASE = window.API_BASE;
     if (!API_BASE) {
         console.error("FATAL: window.API_BASE is missing.");
@@ -30,7 +30,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const currentProviderId = doctorData.provider_id || doctorData.id;
 
     // ==========================================================
-    // 🚨 FETCH FULL PROFILE (BIO, PHONE, & GPS)
+    // 🚨 FETCH FULL PROFILE (BIO & PHONE)
     // ==========================================================
     const cachedDoctors = JSON.parse(localStorage.getItem('eterna_cache_doctors') || '[]');
     const fullDocData = cachedDoctors.find(d => (d.provider_id || d.id) === currentProviderId);
@@ -47,7 +47,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // ==========================================================
-    // 🚨 THE DOCTOR ICON FIX
+    // 🚨 THE DOCTOR ICON FIX (REPLACES BROKEN/MISSING IMAGES)
     // ==========================================================
     const docImgEl = document.getElementById('dyn-doc-img');
     if(docImgEl) {
@@ -65,7 +65,9 @@ document.addEventListener('DOMContentLoaded', () => {
         if (!rawImg || rawImg.includes('default-avatar') || rawImg.includes('default-doc')) {
             parentDiv.innerHTML = iconHtml;
         } else {
-            docImgEl.onerror = function() { parentDiv.innerHTML = iconHtml; };
+            docImgEl.onerror = function() {
+                parentDiv.innerHTML = iconHtml;
+            };
             docImgEl.src = rawImg.startsWith('http') ? rawImg : `${API_BASE}${rawImg}`;
             docImgEl.style.width = '100%';
             docImgEl.style.height = '100%';
@@ -140,15 +142,18 @@ document.addEventListener('DOMContentLoaded', () => {
         if (!timeSlotContainer) return;
         selectedTime = null; 
         updateSummaryUI();
+        
         timeSlotContainer.innerHTML = '<div style="width: 100%; padding: 12px; text-align: center; color: var(--text-secondary);">Loading available slots...</div>'; 
 
         try {
             const response = await fetch(`${API_BASE}/providers/${currentProviderId}/available-slots?date=${apiDateString}`, {
                 headers: { 'Authorization': `Bearer ${token}` }
             });
+
             if (!response.ok) throw new Error("Failed to fetch slots");
             
             const availableSlots = await response.json();
+            
             availableSlots.sort((a, b) => {
                 const parseTime = (timeStr) => {
                     const [time, modifier] = timeStr.split(' ');
@@ -161,6 +166,7 @@ document.addEventListener('DOMContentLoaded', () => {
             });
 
             timeSlotContainer.innerHTML = ''; 
+
             if (availableSlots.length === 0) {
                 timeSlotContainer.innerHTML = '<div style="width: 100%; text-align: center; color: var(--text-secondary);">No slots available on this date.</div>';
                 return;
@@ -168,6 +174,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
             const now = new Date();
             const cutoffTime = new Date(now.getTime() + (5 * 60 * 60 * 1000));
+            
             let validSlotsCount = 0;
 
             availableSlots.forEach(time => {
@@ -183,6 +190,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 } else {
                     slotBtn.className = `time-slot`;
                     validSlotsCount++;
+                    
                     slotBtn.addEventListener('click', (e) => {
                         document.querySelectorAll('.time-slot').forEach(s => {
                             s.classList.remove('active');
@@ -190,21 +198,28 @@ document.addEventListener('DOMContentLoaded', () => {
                             s.style.color = ''; 
                             s.style.borderColor = ''; 
                         });
+                        
                         e.target.classList.add('active');
                         e.target.style.backgroundColor = 'var(--brand-blue)'; 
                         e.target.style.color = '#fff';
                         e.target.style.borderColor = 'var(--brand-blue)';
+                        
                         selectedTime = time;
                         updateSummaryUI(); 
                     });
                 }
+                
                 timeSlotContainer.appendChild(slotBtn);
             });
 
             if (validSlotsCount === 0) {
-                timeSlotContainer.innerHTML += `<div style="width: 100%; text-align: center; color: #ef4444; font-size: 0.85rem; margin-top: 10px;"><i class="fa-solid fa-circle-exclamation"></i> Remaining slots are less than 5 hours away. Please select tomorrow.</div>`;
+                timeSlotContainer.innerHTML += `<div style="width: 100%; text-align: center; color: #ef4444; font-size: 0.85rem; margin-top: 10px;">
+                    <i class="fa-solid fa-circle-exclamation"></i> Remaining slots are less than 5 hours away. Please select tomorrow.
+                </div>`;
             }
+
         } catch (error) {
+            console.error(error);
             timeSlotContainer.innerHTML = '<div style="width: 100%; text-align: center; color: #ef4444;">Error loading time slots. Please try again.</div>';
         }
     }
@@ -214,6 +229,7 @@ document.addEventListener('DOMContentLoaded', () => {
         for (let i = 0; i < 7; i++) {
             const d = new Date();
             d.setDate(d.getDate() + i);
+            
             const apiDateString = formatDateForAPI(d);
             const displayDateString = d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
             const dayName = d.toLocaleDateString('en-US', { weekday: 'short' });

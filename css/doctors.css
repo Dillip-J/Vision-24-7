@@ -1,3 +1,5 @@
+/* css/doctors.css */
+
 /* --- Global Variables for Exact Theme Matching --- */
 :root {
     --page-bg: #F8FAFC;
@@ -350,4 +352,59 @@ body.bg-main {
     background-color: transparent;
     color: var(--brand-blue);
     border: 1px solid var(--brand-blue);
+}
+
+/* --- Dynamic States & Injected Elements --- */
+
+/* Loading Spinners */
+.loading-state {
+    text-align: center;
+    padding: 40px;
+    width: 100%;
+}
+.loading-icon {
+    color: var(--brand-blue);
+}
+.loading-text {
+    margin-top: 10px;
+    color: var(--text-secondary);
+}
+
+/* Empty State (No Doctors Found) */
+.empty-state-box {
+    text-align: center;
+    padding: 60px 20px;
+    background: var(--card-bg);
+    border-radius: 12px;
+    border: 1px dashed var(--border-color);
+    width: 100%;
+}
+.empty-icon {
+    font-size: 3rem;
+    color: var(--text-secondary);
+    margin-bottom: 16px;
+}
+.empty-title {
+    color: var(--text-primary);
+    margin-bottom: 8px;
+}
+.empty-desc {
+    color: var(--text-secondary);
+}
+
+/* Doctor Card Injectables */
+.doc-profile-img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    border-radius: 12px;
+}
+.doc-distance-text {
+    font-size: 0.85rem;
+    color: var(--text-secondary);
+    margin-left: 10px;
+}
+.btn-disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
 }

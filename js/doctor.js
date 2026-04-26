@@ -60,7 +60,7 @@ document.addEventListener('DOMContentLoaded', () => {
     let rawDoctorData = [];
 
     async function fetchDoctorsWithLocation(lat, lon) {
-        if (doctorList) doctorList.innerHTML = `<div style="text-align:center; padding: 40px; width: 100%;"><i class="fa-solid fa-spinner fa-spin fa-2x" style="color: var(--brand-blue);"></i><p style="margin-top:10px; color: var(--text-secondary);">Loading Providers...</p></div>`;
+        if (doctorList) doctorList.innerHTML = `<div class="loading-state"><i class="fa-solid fa-spinner fa-spin fa-2x loading-icon"></i><p class="loading-text">Loading Providers...</p></div>`;
         
         try {
             // If we have GPS, ask for nearest. If not, just get everyone.
@@ -89,11 +89,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // 🚨 THE LOCATION TRIGGER 🚨
     function initializeData() {
-        if (doctorList) doctorList.innerHTML = `<div style="text-align:center; padding: 40px; width: 100%;"><i class="fa-solid fa-location-crosshairs fa-fade fa-2x" style="color: var(--brand-blue);"></i><p style="margin-top:10px; color: var(--text-secondary);">Locating you...</p></div>`;
+        if (doctorList) doctorList.innerHTML = `<div class="loading-state"><i class="fa-solid fa-location-crosshairs fa-fade fa-2x loading-icon"></i><p class="loading-text">Locating you...</p></div>`;
 
         if (navigator.geolocation) {
             navigator.geolocation.getCurrentPosition(
-                // Success: User clicked "Allow"
                 (position) => {
                     userLat = position.coords.latitude;
                     userLon = position.coords.longitude;
@@ -101,14 +100,13 @@ document.addEventListener('DOMContentLoaded', () => {
                     localStorage.setItem('user_lon', userLon);
                     fetchDoctorsWithLocation(userLat, userLon);
                 },
-                // Error: User clicked "Deny" or timeout
                 (error) => {
                     console.warn("Location denied or unavailable. Fetching all doctors without GPS filtering.");
                     userLat = 0.0;
                     userLon = 0.0;
-                    fetchDoctorsWithLocation(0.0, 0.0); // Fallback!
+                    fetchDoctorsWithLocation(0.0, 0.0); 
                 },
-                { timeout: 5000 } // Don't hang forever waiting for GPS
+                { timeout: 5000 } 
             );
         } else {
             console.warn("Browser does not support geolocation.");
@@ -132,8 +130,6 @@ document.addEventListener('DOMContentLoaded', () => {
             const nameMatch = searchTerm === '' || docName.includes(searchTerm) || docCat.includes(searchTerm);
             const specMatch = selectedSpecialty === 'all' || docCat === selectedSpecialty;
             
-            // 🚨 RELAXED RULE: If we don't have user GPS (0.0), let the doctor show up anyway!
-            // We will catch them later on the Payment page if they are too far.
             let distMatch = true;
             if (filterType === 'home') {
                 const docLat = parseFloat(doc.latitude);
@@ -155,10 +151,10 @@ document.addEventListener('DOMContentLoaded', () => {
         if (filtered.length === 0) {
             if(doctorList) {
                 doctorList.innerHTML = `
-                    <div style="text-align: center; padding: 60px 20px; background: var(--card-bg); border-radius: 12px; border: 1px dashed var(--border-color); width: 100%;">
-                        <i class="fa-solid fa-user-doctor" style="font-size: 3rem; color: var(--text-secondary); margin-bottom: 16px;"></i>
-                        <h3 style="color: var(--text-primary); margin-bottom: 8px;">No providers found</h3>
-                        <p style="color: var(--text-secondary);">Try adjusting your search filters or check your internet connection.</p>
+                    <div class="empty-state-box">
+                        <i class="fa-solid fa-user-doctor empty-icon"></i>
+                        <h3 class="empty-title">No providers found</h3>
+                        <p class="empty-desc">Try adjusting your search filters or check your internet connection.</p>
                     </div>`;
             }
             return;
@@ -204,10 +200,15 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (showHome) actionButtons += `<button class="btn-outline" onclick="initiateDocBooking('${providerId}', 'Home Visit', '${doc.name}', '${displayCategory}', '${imgUrl}', ${consultFee}, ${visitCharge}, ${platformFee})"><i class="fa-solid fa-location-dot"></i> Home - ₹${consultFee + visitCharge}</button>`;
             }
 
+            // Fallback if provider has no services
+            if (!showVideo && !showHome) {
+                actionButtons = `<button class="btn-outline btn-disabled" disabled><i class="fa-solid fa-ban"></i> No Services</button>`;
+            }
+
             const card = `
                 <div class="doctor-card">
                     <div class="doc-avatar">
-                        <img src="${imgUrl}" onerror="this.src='images/default-avatar.png'" alt="${doc.name}" style="width:100%; height:100%; object-fit:cover; border-radius:12px;">
+                        <img src="${imgUrl}" onerror="this.src='images/default-avatar.png'" alt="${doc.name}" class="doc-profile-img">
                         <div class="verified-badge"><i class="fa-solid fa-check"></i></div>
                     </div>
                     <div class="doc-info">
@@ -217,7 +218,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         </div>
                         <div class="doc-specialty">
                             ${displayCategory} 
-                            ${displayDistance ? `<span style="font-size:0.85rem; color: var(--text-secondary); margin-left:10px;"><i class="fa-solid fa-location-dot"></i> ${displayDistance}</span>` : ''}
+                            ${displayDistance ? `<span class="doc-distance-text"><i class="fa-solid fa-location-dot"></i> ${displayDistance}</span>` : ''}
                         </div>
                         <div class="doc-actions">
                             ${actionButtons}
