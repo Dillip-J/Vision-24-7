@@ -1,7 +1,6 @@
 // js/doctors.js
 document.addEventListener('DOMContentLoaded', () => {
     
-    // 🚨 Rely STRICTLY on config.js.
     const API_BASE = window.API_BASE;
     if (!API_BASE) {
         console.error("FATAL: window.API_BASE is missing.");
@@ -31,9 +30,8 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // ==========================================
-    // --- 1. THE MESSENGER (Must happen first!) ---
+    // --- 1. THE MESSENGER (Grabs Home Page Clicks) ---
     // ==========================================
-    // We grab these values immediately and apply them to the UI elements
     const autoSpecialty = localStorage.getItem('autoSearchSpecialty');
     if (autoSpecialty && filterSpecialty) {
         const searchStr = autoSpecialty.trim().toLowerCase();
@@ -45,7 +43,6 @@ document.addEventListener('DOMContentLoaded', () => {
             filterSpecialty.add(new Option(autoSpecialty.trim(), autoSpecialty.trim()));
             filterSpecialty.value = autoSpecialty.trim();
         }
-        // WIPE IMMEDIATELY AFTER APPLYING TO UI
         localStorage.removeItem('autoSearchSpecialty');
     }
     
@@ -56,32 +53,64 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // ==========================================
-    // --- 2. FASTAPI DATA FETCH ---
+    // --- 2. GPS & DATA FETCH SEQUENCE ---
     // ==========================================
-    // We store the raw data here so we don't have to hit the API every time you type a letter
     let rawDoctorData = [];
 
-    async function fetchApprovedDoctors() {
-        if (doctorList) doctorList.innerHTML = `<div style="text-align:center; padding: 40px; width: 100%;"><i class="fa-solid fa-spinner fa-spin fa-2x"></i><p>Loading Providers...</p></div>`;
+    async function fetchDoctorsWithLocation(lat, lon) {
+        if (doctorList) doctorList.innerHTML = `<div style="text-align:center; padding: 40px; width: 100%;"><i class="fa-solid fa-spinner fa-spin fa-2x" style="color: var(--brand-blue);"></i><p style="margin-top:10px; color: var(--text-secondary);">Loading Providers...</p></div>`;
         
         try {
-            // NOTE: We drop the "category=Doctor" from the URL and handle filtering locally to avoid API mismatches
-            const response = await fetch(`${API_BASE}/home/nearest?lat=${userLat}&lon=${userLon}`);
+            // If we have GPS, ask for nearest. If not, just get everyone.
+            let fetchUrl = `${API_BASE}/home/nearest?category=Doctor`;
+            if (lat !== 0 && lon !== 0) {
+                fetchUrl = `${API_BASE}/home/nearest?lat=${lat}&lon=${lon}&category=Doctor`;
+            }
+
+            const response = await fetch(fetchUrl);
             if (!response.ok) throw new Error("API Offline");
             
             const freshData = await response.json();
             
-            // Only keep people who are actually doctors
             rawDoctorData = freshData.filter(p => p.provider_type === 'Doctor' || p.type === 'Doctor' || (!p.provider_type && !p.type));
-            
             localStorage.setItem('eterna_cache_doctors', JSON.stringify(rawDoctorData));
-            renderDoctors(); // Trigger render once data is loaded
+            
+            renderDoctors();
 
         } catch (err) {
             console.warn("Network Error: Loading real doctors from local cache...");
             const cachedData = localStorage.getItem('eterna_cache_doctors');
             rawDoctorData = cachedData ? JSON.parse(cachedData) : []; 
             renderDoctors();
+        }
+    }
+
+    // 🚨 THE LOCATION TRIGGER 🚨
+    function initializeData() {
+        if (doctorList) doctorList.innerHTML = `<div style="text-align:center; padding: 40px; width: 100%;"><i class="fa-solid fa-location-crosshairs fa-fade fa-2x" style="color: var(--brand-blue);"></i><p style="margin-top:10px; color: var(--text-secondary);">Locating you...</p></div>`;
+
+        if (navigator.geolocation) {
+            navigator.geolocation.getCurrentPosition(
+                // Success: User clicked "Allow"
+                (position) => {
+                    userLat = position.coords.latitude;
+                    userLon = position.coords.longitude;
+                    localStorage.setItem('user_lat', userLat);
+                    localStorage.setItem('user_lon', userLon);
+                    fetchDoctorsWithLocation(userLat, userLon);
+                },
+                // Error: User clicked "Deny" or timeout
+                (error) => {
+                    console.warn("Location denied or unavailable. Fetching all doctors without GPS filtering.");
+                    userLat = 0.0;
+                    userLon = 0.0;
+                    fetchDoctorsWithLocation(0.0, 0.0); // Fallback!
+                },
+                { timeout: 5000 } // Don't hang forever waiting for GPS
+            );
+        } else {
+            console.warn("Browser does not support geolocation.");
+            fetchDoctorsWithLocation(0.0, 0.0);
         }
     }
 
@@ -98,25 +127,22 @@ document.addEventListener('DOMContentLoaded', () => {
             const docName = (doc.name || '').trim().toLowerCase();
             const docCat = (doc.category || '').trim().toLowerCase();
             
-            // 1. Text Search Filter
             const nameMatch = searchTerm === '' || docName.includes(searchTerm) || docCat.includes(searchTerm);
-            
-            // 2. Dropdown Category Filter
             const specMatch = selectedSpecialty === 'all' || docCat === selectedSpecialty;
             
-            // 3. Distance & Type Filter
             let distMatch = true;
             if (filterType === 'home') {
                 const docLat = parseFloat(doc.latitude);
                 const docLon = parseFloat(doc.longitude);
                 
+                // Only enforce the Home Visit boundary if we actually successfully got GPS coordinates
                 if (userLat !== 0 && userLon !== 0 && docLat && docLon) {
                     const distance = calculateDistanceKM(userLat, userLon, docLat, docLon);
                     if (distance > MAX_HOME_VISIT_RADIUS_KM) {
                         distMatch = false; 
                     }
                 } else {
-                    distMatch = false; 
+                    distMatch = false; // Hide home visits if no GPS
                 }
             }
             
@@ -202,13 +228,12 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    // Attach listeners directly to the render function so it updates instantly
     if (searchInput) searchInput.addEventListener('input', renderDoctors);
     if (filterSpecialty) filterSpecialty.addEventListener('change', renderDoctors);
     if (filterTypeDropdown) filterTypeDropdown.addEventListener('change', renderDoctors);
 
-    // KICK OFF THE FETCH!
-    fetchApprovedDoctors();
+    // KICK OFF THE PROCESS
+    initializeData();
 });
 
 // ==========================================
