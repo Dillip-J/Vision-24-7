@@ -1,38 +1,20 @@
 // js/doctors.js
 document.addEventListener('DOMContentLoaded', () => {
     
-    // 🚨 THE SAFETY NET: Try to use config.js, but if it fails/404s, use the live Render URL!
+    // Ensure API_BASE is defined
     const API_BASE = window.API_BASE || 'https://backend-depolyment-3.onrender.com';
-    
-    if (!API_BASE) {
-        console.error("FATAL: API_BASE is missing.");
-        return;
-    }
 
     const doctorList = document.getElementById('doctor-list');
     const doctorCountDisplay = document.getElementById('doctor-count');
     const searchInput = document.getElementById('doctor-search');
     const filterSpecialty = document.getElementById('filter-specialty');
-    const filterTypeDropdown = document.getElementById('filter-type');
 
+    // --- 1. GLOBAL MEMORY (Get Lat/Lon) ---
     let userLat = parseFloat(localStorage.getItem('user_lat')) || 0.0;
     let userLon = parseFloat(localStorage.getItem('user_lon')) || 0.0;
-    const MAX_HOME_VISIT_RADIUS_KM = 15; 
-
-    function calculateDistanceKM(lat1, lon1, lat2, lon2) {
-        if (!lat1 || !lon1 || !lat2 || !lon2) return Infinity; 
-        const R = 6371; 
-        const dLat = (lat2 - lat1) * Math.PI / 180;
-        const dLon = (lon2 - lon1) * Math.PI / 180;
-        const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
-                  Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
-                  Math.sin(dLon/2) * Math.sin(dLon/2);
-        const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
-        return R * c; 
-    }
 
     // ==========================================
-    // --- 1. THE MESSENGER (Grabs Home Page Clicks) ---
+    // --- 2. THE MESSENGER ---
     // ==========================================
     const autoSpecialty = localStorage.getItem('autoSearchSpecialty');
     if (autoSpecialty && filterSpecialty) {
@@ -45,105 +27,50 @@ document.addEventListener('DOMContentLoaded', () => {
             filterSpecialty.add(new Option(autoSpecialty.trim(), autoSpecialty.trim()));
             filterSpecialty.value = autoSpecialty.trim();
         }
-        localStorage.removeItem('autoSearchSpecialty');
     }
     
     const autoQuery = localStorage.getItem('autoSearchQuery');
     if (autoQuery && searchInput) {
         searchInput.value = autoQuery.trim(); 
-        localStorage.removeItem('autoSearchQuery');
     }
 
     // ==========================================
-    // --- 2. GPS & DATA FETCH SEQUENCE ---
+    // --- 3. FASTAPI DATA FETCH ---
     // ==========================================
-    let rawDoctorData = [];
-
-    async function fetchDoctorsWithLocation(lat, lon) {
-        if (doctorList) doctorList.innerHTML = `<div class="loading-state"><i class="fa-solid fa-spinner fa-spin fa-2x loading-icon"></i><p class="loading-text">Loading Providers...</p></div>`;
-        
+    async function fetchApprovedDoctors() {
         try {
-            // If we have GPS, ask for nearest. If not, just get everyone.
-            let fetchUrl = `${API_BASE}/home/nearest?category=Doctor`;
-            if (lat !== 0 && lon !== 0) {
-                fetchUrl = `${API_BASE}/home/nearest?lat=${lat}&lon=${lon}&category=Doctor`;
-            }
-
-            const response = await fetch(fetchUrl);
+            const response = await fetch(`${API_BASE}/home/nearest?lat=${userLat}&lon=${userLon}&category=Doctor`);
             if (!response.ok) throw new Error("API Offline");
             
             const freshData = await response.json();
-            
-            rawDoctorData = freshData.filter(p => p.provider_type === 'Doctor' || p.type === 'Doctor' || (!p.provider_type && !p.type));
-            localStorage.setItem('eterna_cache_doctors', JSON.stringify(rawDoctorData));
-            
-            renderDoctors();
-
+            localStorage.setItem('eterna_cache_doctors', JSON.stringify(freshData));
+            return freshData;
         } catch (err) {
             console.warn("Network Error: Loading real doctors from local cache...");
             const cachedData = localStorage.getItem('eterna_cache_doctors');
-            rawDoctorData = cachedData ? JSON.parse(cachedData) : []; 
-            renderDoctors();
-        }
-    }
-
-    // 🚨 THE LOCATION TRIGGER 🚨
-    function initializeData() {
-        if (doctorList) doctorList.innerHTML = `<div class="loading-state"><i class="fa-solid fa-location-crosshairs fa-fade fa-2x loading-icon"></i><p class="loading-text">Locating you...</p></div>`;
-
-        if (navigator.geolocation) {
-            navigator.geolocation.getCurrentPosition(
-                (position) => {
-                    userLat = position.coords.latitude;
-                    userLon = position.coords.longitude;
-                    localStorage.setItem('user_lat', userLat);
-                    localStorage.setItem('user_lon', userLon);
-                    fetchDoctorsWithLocation(userLat, userLon);
-                },
-                (error) => {
-                    console.warn("Location denied or unavailable. Fetching all doctors without GPS filtering.");
-                    userLat = 0.0;
-                    userLon = 0.0;
-                    fetchDoctorsWithLocation(0.0, 0.0); 
-                },
-                { timeout: 5000 } 
-            );
-        } else {
-            console.warn("Browser does not support geolocation.");
-            fetchDoctorsWithLocation(0.0, 0.0);
+            return cachedData ? JSON.parse(cachedData) : []; 
         }
     }
 
     // ==========================================
-    // --- 3. DYNAMIC RENDER & FILTER ---
+    // --- 4. DYNAMIC RENDER & FILTER ---
     // ==========================================
-    function renderDoctors() {
+    async function renderDoctors() {
+        const providers = await fetchApprovedDoctors();
+        
+        const doctorsOnly = providers.filter(p => p.provider_type === 'Doctor' || p.type === 'Doctor' || (!p.provider_type && !p.type));
         
         const searchTerm = searchInput ? searchInput.value.trim().toLowerCase() : '';
         const selectedSpecialty = filterSpecialty ? filterSpecialty.value.trim().toLowerCase() : 'all';
-        const filterType = filterTypeDropdown ? filterTypeDropdown.value : 'all';
 
-        const filtered = rawDoctorData.filter(doc => {
+        const filtered = doctorsOnly.filter(doc => {
             const docName = (doc.name || '').trim().toLowerCase();
             const docCat = (doc.category || '').trim().toLowerCase();
             
             const nameMatch = searchTerm === '' || docName.includes(searchTerm) || docCat.includes(searchTerm);
-            const specMatch = selectedSpecialty === 'all' || docCat === selectedSpecialty;
+            const specMatch = selectedSpecialty === 'all' || docCat === selectedSpecialty || docCat.includes(selectedSpecialty);
             
-            let distMatch = true;
-            if (filterType === 'home') {
-                const docLat = parseFloat(doc.latitude);
-                const docLon = parseFloat(doc.longitude);
-                
-                if (userLat !== 0 && userLon !== 0 && docLat && docLon) {
-                    const distance = calculateDistanceKM(userLat, userLon, docLat, docLon);
-                    if (distance > MAX_HOME_VISIT_RADIUS_KM) {
-                        distMatch = false; 
-                    }
-                } 
-            }
-            
-            return nameMatch && specMatch && distMatch;
+            return nameMatch && specMatch;
         });
 
         if(doctorCountDisplay) doctorCountDisplay.textContent = filtered.length;
@@ -151,10 +78,10 @@ document.addEventListener('DOMContentLoaded', () => {
         if (filtered.length === 0) {
             if(doctorList) {
                 doctorList.innerHTML = `
-                    <div class="empty-state-box">
-                        <i class="fa-solid fa-user-doctor empty-icon"></i>
-                        <h3 class="empty-title">No providers found</h3>
-                        <p class="empty-desc">Try adjusting your search filters or check your internet connection.</p>
+                    <div style="text-align: center; padding: 60px 20px; background: var(--card-bg); border-radius: 12px; border: 1px dashed var(--border-color);">
+                        <i class="fa-solid fa-user-doctor" style="font-size: 3rem; color: var(--text-secondary); margin-bottom: 16px;"></i>
+                        <h3 style="color: var(--text-primary); margin-bottom: 8px;">No providers found</h3>
+                        <p style="color: var(--text-secondary);">There are currently no approved doctors matching your search criteria.</p>
                     </div>`;
             }
             return;
@@ -163,6 +90,8 @@ document.addEventListener('DOMContentLoaded', () => {
         if(doctorList) doctorList.innerHTML = '';
         
         filtered.forEach(doc => {
+            
+            // 🚨 BULLETPROOF IMAGE LOGIC
             let imgUrl = "images/default-avatar.png"; 
             if (doc.profile_photo_url) {
                 imgUrl = doc.profile_photo_url.startsWith('http') 
@@ -172,43 +101,69 @@ document.addEventListener('DOMContentLoaded', () => {
 
             const providerId = doc.provider_id || doc.id; 
             const displayCategory = doc.category || 'Specialist';
-            
-            let displayDistance = "";
-            if (userLat !== 0 && userLon !== 0 && doc.latitude && doc.longitude) {
-                const dist = calculateDistanceKM(userLat, userLon, parseFloat(doc.latitude), parseFloat(doc.longitude));
-                if (dist !== Infinity) displayDistance = `${dist.toFixed(1)} km away`;
-            } else if (doc.distance_km && doc.distance_km !== "Unknown") {
-                displayDistance = `${doc.distance_km} km away`;
-            }
+            const distance = doc.distance_km !== "Unknown" ? `${doc.distance_km} km away` : "";
 
-            let consultFee = parseFloat(doc.price) || 500;
-            let visitCharge = parseFloat(doc.home_visit_charge) || 200;
+            // 🚨 THE CATALOG PRICE & BUTTON HIDING FIX
+            let consultFee = 500;
+            let visitCharge = 200;
             const platformFee = 15; 
             
-            let showVideo = true;
-            let showHome = true;
-            let actionButtons = '';
-            
-            if (filterType === 'home' && showHome) {
-                actionButtons += `<button class="btn-outline" onclick="initiateDocBooking('${providerId}', 'Home Visit', '${doc.name}', '${displayCategory}', '${imgUrl}', ${consultFee}, ${visitCharge}, ${platformFee})"><i class="fa-solid fa-location-dot"></i> Home - ₹${consultFee + visitCharge}</button>`;
-            } 
-            else if (filterType === 'video' && showVideo) {
-                actionButtons += `<button class="btn-primary" onclick="initiateDocBooking('${providerId}', 'Video Consult', '${doc.name}', '${displayCategory}', '${imgUrl}', ${consultFee}, 0, ${platformFee})"><i class="fa-solid fa-video"></i> Video - ₹${consultFee}</button>`;
-            } 
-            else {
-                if (showVideo) actionButtons += `<button class="btn-primary" onclick="initiateDocBooking('${providerId}', 'Video Consult', '${doc.name}', '${displayCategory}', '${imgUrl}', ${consultFee}, 0, ${platformFee})"><i class="fa-solid fa-video"></i> Video - ₹${consultFee}</button>`;
-                if (showHome) actionButtons += `<button class="btn-outline" onclick="initiateDocBooking('${providerId}', 'Home Visit', '${doc.name}', '${displayCategory}', '${imgUrl}', ${consultFee}, ${visitCharge}, ${platformFee})"><i class="fa-solid fa-location-dot"></i> Home - ₹${consultFee + visitCharge}</button>`;
+            let showVideo = false;
+            let showHome = false;
+
+            // Check if the backend sent the doctor's custom catalog
+            if (doc.doctor_services && doc.doctor_services.length > 0) {
+                // Look for Video Consult
+                const videoService = doc.doctor_services.find(s => s.service_name.toLowerCase().includes("video"));
+                if (videoService) {
+                    showVideo = true;
+                    consultFee = parseFloat(videoService.price);
+                }
+
+                // Look for Home Visit
+                const homeService = doc.doctor_services.find(s => s.service_name.toLowerCase().includes("home"));
+                if (homeService) {
+                    showHome = true;
+                    // Home charge = Total Home Price - Base Consult Fee
+                    visitCharge = parseFloat(homeService.price) - consultFee;
+                    if (visitCharge < 0) visitCharge = 0; // Failsafe
+                }
+            } else {
+                // Legacy Fallback if they have no catalog data at all
+                showVideo = true;
+                showHome = true;
+                consultFee = parseFloat(doc.price) || parseFloat(doc.base_price) || 500;
+                visitCharge = parseFloat(doc.home_visit_charge) || 200; 
             }
 
-            // Fallback if provider has no services
+            // Build Action Buttons Dynamically based on what they sell
+            let actionButtons = '';
+            
+            if (showVideo) {
+                actionButtons += `
+                    <button class="btn-primary" onclick="initiateDocBooking('${providerId}', 'Video Consult', '${doc.name}', '${displayCategory}', '${imgUrl}', ${consultFee}, 0, ${platformFee})">
+                        <i class="fa-solid fa-video"></i> Video - ₹${consultFee}
+                    </button>
+                `;
+            }
+            
+            if (showHome) {
+                actionButtons += `
+                    <button class="btn-outline" onclick="initiateDocBooking('${providerId}', 'Home Visit', '${doc.name}', '${displayCategory}', '${imgUrl}', ${consultFee}, ${visitCharge}, ${platformFee})">
+                        <i class="fa-solid fa-location-dot"></i> Home - ₹${consultFee + visitCharge}
+                    </button>
+                `;
+            }
+
+            // If the doctor deleted everything, disable booking
             if (!showVideo && !showHome) {
-                actionButtons = `<button class="btn-outline btn-disabled" disabled><i class="fa-solid fa-ban"></i> No Services</button>`;
+                actionButtons = `<button class="btn-outline" disabled style="opacity: 0.5; cursor: not-allowed;"><i class="fa-solid fa-ban"></i> No Services Available</button>`;
             }
 
             const card = `
                 <div class="doctor-card">
                     <div class="doc-avatar">
-                        <img src="${imgUrl}" onerror="this.src='images/default-avatar.png'" alt="${doc.name}" class="doc-profile-img">
+                        <img src="${imgUrl}" alt="${doc.name}" style="width:100%; height:100%; object-fit:cover; border-radius:12px;">
                         <div class="verified-badge"><i class="fa-solid fa-check"></i></div>
                     </div>
                     <div class="doc-info">
@@ -218,7 +173,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         </div>
                         <div class="doc-specialty">
                             ${displayCategory} 
-                            ${displayDistance ? `<span class="doc-distance-text"><i class="fa-solid fa-location-dot"></i> ${displayDistance}</span>` : ''}
+                            ${distance ? `<span style="font-size:0.85rem; color: var(--text-secondary); margin-left:10px;"><i class="fa-solid fa-location-dot"></i> ${distance}</span>` : ''}
                         </div>
                         <div class="doc-actions">
                             ${actionButtons}
@@ -232,14 +187,15 @@ document.addEventListener('DOMContentLoaded', () => {
 
     if (searchInput) searchInput.addEventListener('input', renderDoctors);
     if (filterSpecialty) filterSpecialty.addEventListener('change', renderDoctors);
-    if (filterTypeDropdown) filterTypeDropdown.addEventListener('change', renderDoctors);
 
-    // KICK OFF THE PROCESS
-    initializeData();
+    renderDoctors().then(() => {
+        localStorage.removeItem('autoSearchSpecialty'); 
+        localStorage.removeItem('autoSearchQuery'); 
+    });
 });
 
 // ==========================================
-// --- 4. DYNAMIC GLOBAL ROUTING ---
+// --- 5. DYNAMIC GLOBAL ROUTING ---
 // ==========================================
 window.initiateDocBooking = function(docId, type, docName, docCat, docImg, fee, visitFee, platFee) {
     const bookingData = {
@@ -258,10 +214,11 @@ window.initiateDocBooking = function(docId, type, docName, docCat, docImg, fee, 
 
     const token = localStorage.getItem('access_token');
     if (!token) {
+        alert("Please log in or create an account to complete your booking.");
         localStorage.setItem('redirectAfterAuth', 'book.html');
-        window.location.assign('index.html'); 
+        window.location.href = 'index.html'; 
         return; 
     }
 
-    window.location.assign('book.html');
+    window.location.href = 'book.html';
 };
