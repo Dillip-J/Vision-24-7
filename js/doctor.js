@@ -4,7 +4,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // 🚨 Rely STRICTLY on config.js.
     const API_BASE = window.API_BASE;
     if (!API_BASE) {
-        console.error("FATAL: window.API_BASE is missing. Ensure config.js is loaded first.");
+        console.error("FATAL: window.API_BASE is missing.");
         return;
     }
 
@@ -14,15 +14,13 @@ document.addEventListener('DOMContentLoaded', () => {
     const filterSpecialty = document.getElementById('filter-specialty');
     const filterTypeDropdown = document.getElementById('filter-type');
 
-    // --- 1. GLOBAL MEMORY (Get Lat/Lon from user's local storage) ---
     let userLat = parseFloat(localStorage.getItem('user_lat')) || 0.0;
     let userLon = parseFloat(localStorage.getItem('user_lon')) || 0.0;
-    const MAX_HOME_VISIT_RADIUS_KM = 15; // Set strict 15km boundary
+    const MAX_HOME_VISIT_RADIUS_KM = 15; 
 
-    // 🚨 THE HAVERSINE FORMULA (Calculates exact KM between two GPS points)
     function calculateDistanceKM(lat1, lon1, lat2, lon2) {
         if (!lat1 || !lon1 || !lat2 || !lon2) return Infinity; 
-        const R = 6371; // Earth's radius in kilometers
+        const R = 6371; 
         const dLat = (lat2 - lat1) * Math.PI / 180;
         const dLon = (lon2 - lon1) * Math.PI / 180;
         const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
@@ -33,8 +31,9 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // ==========================================
-    // --- 2. THE MESSENGER (Reads clicks from Home Page) ---
+    // --- 1. THE MESSENGER (Must happen first!) ---
     // ==========================================
+    // We grab these values immediately and apply them to the UI elements
     const autoSpecialty = localStorage.getItem('autoSearchSpecialty');
     if (autoSpecialty && filterSpecialty) {
         const searchStr = autoSpecialty.trim().toLowerCase();
@@ -46,52 +45,66 @@ document.addEventListener('DOMContentLoaded', () => {
             filterSpecialty.add(new Option(autoSpecialty.trim(), autoSpecialty.trim()));
             filterSpecialty.value = autoSpecialty.trim();
         }
+        // WIPE IMMEDIATELY AFTER APPLYING TO UI
+        localStorage.removeItem('autoSearchSpecialty');
     }
     
     const autoQuery = localStorage.getItem('autoSearchQuery');
     if (autoQuery && searchInput) {
         searchInput.value = autoQuery.trim(); 
+        localStorage.removeItem('autoSearchQuery');
     }
 
     // ==========================================
-    // --- 3. FASTAPI DATA FETCH ---
+    // --- 2. FASTAPI DATA FETCH ---
     // ==========================================
+    // We store the raw data here so we don't have to hit the API every time you type a letter
+    let rawDoctorData = [];
+
     async function fetchApprovedDoctors() {
+        if (doctorList) doctorList.innerHTML = `<div style="text-align:center; padding: 40px; width: 100%;"><i class="fa-solid fa-spinner fa-spin fa-2x"></i><p>Loading Providers...</p></div>`;
+        
         try {
-            const response = await fetch(`${API_BASE}/home/nearest?lat=${userLat}&lon=${userLon}&category=Doctor`);
+            // NOTE: We drop the "category=Doctor" from the URL and handle filtering locally to avoid API mismatches
+            const response = await fetch(`${API_BASE}/home/nearest?lat=${userLat}&lon=${userLon}`);
             if (!response.ok) throw new Error("API Offline");
             
             const freshData = await response.json();
-            localStorage.setItem('eterna_cache_doctors', JSON.stringify(freshData));
-            return freshData;
+            
+            // Only keep people who are actually doctors
+            rawDoctorData = freshData.filter(p => p.provider_type === 'Doctor' || p.type === 'Doctor' || (!p.provider_type && !p.type));
+            
+            localStorage.setItem('eterna_cache_doctors', JSON.stringify(rawDoctorData));
+            renderDoctors(); // Trigger render once data is loaded
+
         } catch (err) {
             console.warn("Network Error: Loading real doctors from local cache...");
             const cachedData = localStorage.getItem('eterna_cache_doctors');
-            return cachedData ? JSON.parse(cachedData) : []; 
+            rawDoctorData = cachedData ? JSON.parse(cachedData) : []; 
+            renderDoctors();
         }
     }
 
     // ==========================================
-    // --- 4. DYNAMIC RENDER & FILTER ---
+    // --- 3. DYNAMIC RENDER & FILTER ---
     // ==========================================
-    async function renderDoctors() {
-        if (doctorList) doctorList.innerHTML = `<div style="text-align:center; padding: 40px; width: 100%;"><i class="fa-solid fa-spinner fa-spin fa-2x"></i><p>Loading Providers...</p></div>`;
-        
-        const providers = await fetchApprovedDoctors();
-        const doctorsOnly = providers.filter(p => p.provider_type === 'Doctor' || p.type === 'Doctor' || (!p.provider_type && !p.type));
+    function renderDoctors() {
         
         const searchTerm = searchInput ? searchInput.value.trim().toLowerCase() : '';
         const selectedSpecialty = filterSpecialty ? filterSpecialty.value.trim().toLowerCase() : 'all';
         const filterType = filterTypeDropdown ? filterTypeDropdown.value : 'all';
 
-        const filtered = doctorsOnly.filter(doc => {
+        const filtered = rawDoctorData.filter(doc => {
             const docName = (doc.name || '').trim().toLowerCase();
             const docCat = (doc.category || '').trim().toLowerCase();
             
+            // 1. Text Search Filter
             const nameMatch = searchTerm === '' || docName.includes(searchTerm) || docCat.includes(searchTerm);
-            const specMatch = selectedSpecialty === 'all' || docCat === selectedSpecialty || docCat.includes(selectedSpecialty);
             
-            // 🚨 THE DISTANCE FILTER 🚨
+            // 2. Dropdown Category Filter
+            const specMatch = selectedSpecialty === 'all' || docCat === selectedSpecialty;
+            
+            // 3. Distance & Type Filter
             let distMatch = true;
             if (filterType === 'home') {
                 const docLat = parseFloat(doc.latitude);
@@ -100,10 +113,9 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (userLat !== 0 && userLon !== 0 && docLat && docLon) {
                     const distance = calculateDistanceKM(userLat, userLon, docLat, docLon);
                     if (distance > MAX_HOME_VISIT_RADIUS_KM) {
-                        distMatch = false; // Doctor is too far away for a home visit!
+                        distMatch = false; 
                     }
                 } else {
-                    // If we lack GPS data for either the user or doctor, hide them for safety
                     distMatch = false; 
                 }
             }
@@ -119,7 +131,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     <div style="text-align: center; padding: 60px 20px; background: var(--card-bg); border-radius: 12px; border: 1px dashed var(--border-color); width: 100%;">
                         <i class="fa-solid fa-user-doctor" style="font-size: 3rem; color: var(--text-secondary); margin-bottom: 16px;"></i>
                         <h3 style="color: var(--text-primary); margin-bottom: 8px;">No providers found</h3>
-                        <p style="color: var(--text-secondary);">There are currently no approved doctors matching your search criteria or within range for a Home Visit.</p>
+                        <p style="color: var(--text-secondary);">Try adjusting your search filters or check your internet connection.</p>
                     </div>`;
             }
             return;
@@ -138,7 +150,6 @@ document.addEventListener('DOMContentLoaded', () => {
             const providerId = doc.provider_id || doc.id; 
             const displayCategory = doc.category || 'Specialist';
             
-            // Calculate real distance for display
             let displayDistance = "";
             if (userLat !== 0 && userLon !== 0 && doc.latitude && doc.longitude) {
                 const dist = calculateDistanceKM(userLat, userLon, parseFloat(doc.latitude), parseFloat(doc.longitude));
@@ -153,41 +164,17 @@ document.addEventListener('DOMContentLoaded', () => {
             
             let showVideo = true;
             let showHome = true;
-
             let actionButtons = '';
             
-            // If user explicitly filtered by "home", ONLY show the home button
             if (filterType === 'home' && showHome) {
-                actionButtons += `
-                    <button class="btn-outline" onclick="initiateDocBooking('${providerId}', 'Home Visit', '${doc.name}', '${displayCategory}', '${imgUrl}', ${consultFee}, ${visitCharge}, ${platformFee})">
-                        <i class="fa-solid fa-location-dot"></i> Home - ₹${consultFee + visitCharge}
-                    </button>
-                `;
+                actionButtons += `<button class="btn-outline" onclick="initiateDocBooking('${providerId}', 'Home Visit', '${doc.name}', '${displayCategory}', '${imgUrl}', ${consultFee}, ${visitCharge}, ${platformFee})"><i class="fa-solid fa-location-dot"></i> Home - ₹${consultFee + visitCharge}</button>`;
             } 
-            // If user explicitly filtered by "video", ONLY show the video button
             else if (filterType === 'video' && showVideo) {
-                actionButtons += `
-                    <button class="btn-primary" onclick="initiateDocBooking('${providerId}', 'Video Consult', '${doc.name}', '${displayCategory}', '${imgUrl}', ${consultFee}, 0, ${platformFee})">
-                        <i class="fa-solid fa-video"></i> Video - ₹${consultFee}
-                    </button>
-                `;
+                actionButtons += `<button class="btn-primary" onclick="initiateDocBooking('${providerId}', 'Video Consult', '${doc.name}', '${displayCategory}', '${imgUrl}', ${consultFee}, 0, ${platformFee})"><i class="fa-solid fa-video"></i> Video - ₹${consultFee}</button>`;
             } 
-            // Show all available buttons if filter is "all"
             else {
-                if (showVideo) {
-                    actionButtons += `
-                        <button class="btn-primary" onclick="initiateDocBooking('${providerId}', 'Video Consult', '${doc.name}', '${displayCategory}', '${imgUrl}', ${consultFee}, 0, ${platformFee})">
-                            <i class="fa-solid fa-video"></i> Video - ₹${consultFee}
-                        </button>
-                    `;
-                }
-                if (showHome) {
-                    actionButtons += `
-                        <button class="btn-outline" onclick="initiateDocBooking('${providerId}', 'Home Visit', '${doc.name}', '${displayCategory}', '${imgUrl}', ${consultFee}, ${visitCharge}, ${platformFee})">
-                            <i class="fa-solid fa-location-dot"></i> Home - ₹${consultFee + visitCharge}
-                        </button>
-                    `;
-                }
+                if (showVideo) actionButtons += `<button class="btn-primary" onclick="initiateDocBooking('${providerId}', 'Video Consult', '${doc.name}', '${displayCategory}', '${imgUrl}', ${consultFee}, 0, ${platformFee})"><i class="fa-solid fa-video"></i> Video - ₹${consultFee}</button>`;
+                if (showHome) actionButtons += `<button class="btn-outline" onclick="initiateDocBooking('${providerId}', 'Home Visit', '${doc.name}', '${displayCategory}', '${imgUrl}', ${consultFee}, ${visitCharge}, ${platformFee})"><i class="fa-solid fa-location-dot"></i> Home - ₹${consultFee + visitCharge}</button>`;
             }
 
             const card = `
@@ -215,24 +202,19 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
+    // Attach listeners directly to the render function so it updates instantly
     if (searchInput) searchInput.addEventListener('input', renderDoctors);
     if (filterSpecialty) filterSpecialty.addEventListener('change', renderDoctors);
     if (filterTypeDropdown) filterTypeDropdown.addEventListener('change', renderDoctors);
 
-    renderDoctors().then(() => {
-        // Destroy the messenger keys so they don't get stuck!
-        localStorage.removeItem('autoSearchSpecialty'); 
-        localStorage.removeItem('autoSearchQuery'); 
-    });
+    // KICK OFF THE FETCH!
+    fetchApprovedDoctors();
 });
 
 // ==========================================
-// --- 5. DYNAMIC GLOBAL ROUTING ---
+// --- 4. DYNAMIC GLOBAL ROUTING ---
 // ==========================================
-// Attached to window so the HTML onclick handlers can trigger it
 window.initiateDocBooking = function(docId, type, docName, docCat, docImg, fee, visitFee, platFee) {
-    
-    // 1. Save the doctor's info to local storage
     const bookingData = {
         provider_id: docId, 
         doctorName: docName.includes('Dr.') ? docName : 'Dr. ' + docName, 
@@ -244,18 +226,15 @@ window.initiateDocBooking = function(docId, type, docName, docCat, docImg, fee, 
         platformFee: platFee,
         address: type === 'Home Visit' ? (localStorage.getItem('user_address') || "Location not set") : "Platform Default"
     };
+    
     localStorage.setItem('pendingBooking', JSON.stringify(bookingData));
 
-    // 2. Check if the user is logged in BEFORE sending them to book.html
     const token = localStorage.getItem('access_token');
-    
     if (!token) {
-        // Not logged in? Store the destination, and send to login screen.
         localStorage.setItem('redirectAfterAuth', 'book.html');
         window.location.assign('index.html'); 
         return; 
     }
 
-    // 3. Already logged in? Send straight to the booking page!
     window.location.assign('book.html');
-}; 
+};
