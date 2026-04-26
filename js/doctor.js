@@ -1,314 +1,24 @@
-// js/book.js
+// js/doctors.js
 document.addEventListener('DOMContentLoaded', () => {
-
-    // 🚨 Rely STRICTLY on config.js. No fallback link.
-    const API_BASE = window.API_BASE;
+    
+    // 🚨 THE SAFETY NET: Try to use config.js, but if it fails/404s, use the live Render URL!
+    const API_BASE = window.API_BASE || 'https://backend-depolyment-3.onrender.com';
+    
     if (!API_BASE) {
-        console.error("FATAL: window.API_BASE is missing.");
-        alert("Configuration Error: Cannot connect to server.");
+        console.error("FATAL: API_BASE is missing.");
         return;
     }
 
-    const token = localStorage.getItem('access_token');
-    const savedServiceStr = localStorage.getItem('pendingBooking');
-    
-    // 🚨 SMART ROUTE 1: Not logged in? Go to login screen.
-    if (!token) {
-        localStorage.setItem('redirectAfterAuth', 'book.html');
-        window.location.replace('index.html');
-        return; 
-    }
+    const doctorList = document.getElementById('doctor-list');
+    const doctorCountDisplay = document.getElementById('doctor-count');
+    const searchInput = document.getElementById('doctor-search');
+    const filterSpecialty = document.getElementById('filter-specialty');
+    const filterTypeDropdown = document.getElementById('filter-type');
 
-    // 🚨 SMART ROUTE 2: Logged in, but didn't pick a doctor? Go to Find Doctors!
-    if (!savedServiceStr) {
-        console.warn("No doctor selected. Routing back to directory.");
-        window.location.replace('doctors.html');
-        return;
-    }
+    let userLat = parseFloat(localStorage.getItem('user_lat')) || 0.0;
+    let userLon = parseFloat(localStorage.getItem('user_lon')) || 0.0;
+    const MAX_HOME_VISIT_RADIUS_KM = 15; 
 
-    const doctorData = JSON.parse(savedServiceStr);
-    const currentProviderId = doctorData.provider_id || doctorData.id;
-
-    // ==========================================================
-    // 🚨 FETCH FULL PROFILE (BIO & PHONE)
-    // ==========================================================
-    const cachedDoctors = JSON.parse(localStorage.getItem('eterna_cache_doctors') || '[]');
-    const fullDocData = cachedDoctors.find(d => (d.provider_id || d.id) === currentProviderId);
-    
-    const bioEl = document.getElementById('dyn-doc-bio');
-    const phoneEl = document.getElementById('dyn-doc-phone');
-
-    if (fullDocData) {
-        if (bioEl) bioEl.textContent = fullDocData.bio || "No description provided by this professional.";
-        if (phoneEl) phoneEl.textContent = fullDocData.phone || "Contact not available";
-    } else {
-        if (bioEl) bioEl.textContent = "Provider details unavailable.";
-        if (phoneEl) phoneEl.textContent = "N/A";
-    }
-
-    // ==========================================================
-    // 🚨 THE DOCTOR ICON FIX (REPLACES BROKEN/MISSING IMAGES)
-    // ==========================================================
-    const docImgEl = document.getElementById('dyn-doc-img');
-    if(docImgEl) {
-        const rawImg = doctorData.doctorImage || doctorData.doctor_image || "";
-        const parentDiv = docImgEl.parentElement; 
-        
-        parentDiv.style.display = 'flex';
-        parentDiv.style.alignItems = 'center';
-        parentDiv.style.justifyContent = 'center';
-        parentDiv.style.background = 'rgba(37, 99, 235, 0.1)';
-        parentDiv.style.overflow = 'hidden';
-
-        const iconHtml = `<i class="fa-solid fa-user-doctor" style="color: var(--brand-blue); font-size: 3.5rem;"></i>`;
-
-        if (!rawImg || rawImg.includes('default-avatar') || rawImg.includes('default-doc')) {
-            parentDiv.innerHTML = iconHtml;
-        } else {
-            docImgEl.onerror = function() {
-                parentDiv.innerHTML = iconHtml;
-            };
-            docImgEl.src = rawImg.startsWith('http') ? rawImg : `${API_BASE}${rawImg}`;
-            docImgEl.style.width = '100%';
-            docImgEl.style.height = '100%';
-            docImgEl.style.objectFit = 'cover';
-        }
-    }
-
-    // Populate standard details
-    if(document.getElementById('dyn-doc-name')) document.getElementById('dyn-doc-name').textContent = doctorData.doctorName;
-    if(document.getElementById('dyn-doc-spec')) document.getElementById('dyn-doc-spec').textContent = doctorData.doctorSpecialty;
-    
-    const visitBadge = document.getElementById('dyn-visit-type');
-    if (visitBadge) {
-        visitBadge.innerHTML = doctorData.visitType.includes('Video') 
-            ? `<i class="fa-solid fa-video"></i> ${doctorData.visitType}`
-            : `<i class="fa-solid fa-location-dot"></i> ${doctorData.visitType}`;
-    }
-    
-    if(document.getElementById('sum-doc-name')) document.getElementById('sum-doc-name').textContent = doctorData.doctorName;
-    if(document.getElementById('sum-type')) document.getElementById('sum-type').textContent = doctorData.visitType;
-
-    const fee = parseFloat(doctorData.consultationFee) || 500;
-    const visit = doctorData.visitType === 'Home Visit' ? (parseFloat(doctorData.visitCharge) || 200) : 0;
-    const total = fee + visit + (parseFloat(doctorData.platformFee) || 0);
-    
-    if(document.getElementById('sum-fee')) document.getElementById('sum-fee').textContent = `₹${fee}`;
-    if(document.getElementById('sum-visit')) document.getElementById('sum-visit').textContent = `₹${visit}`;
-    if(document.getElementById('sum-total')) document.getElementById('sum-total').textContent = `₹${total}`;
-
-    let cachedUser = {};
-    try { cachedUser = JSON.parse(localStorage.getItem('currentUser')) || {}; } catch(e){}
-    if(document.getElementById('patient-name') && cachedUser.name) {
-        document.getElementById('patient-name').value = cachedUser.name;
-    }
-
-    // 3. Date & Time Engine Variables
-    let selectedTime = null; 
-    let selectedDateAPI = null; 
-    let selectedDateDisplay = null; 
-    
-    const dateContainer = document.getElementById('date-container');
-    const timeSlotContainer = document.getElementById('time-container'); 
-    const proceedBtn = document.getElementById('proceed-btn');
-
-    const formatDateForAPI = (d) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
-
-    const updateSummaryUI = () => {
-        if(document.getElementById('sum-date')) document.getElementById('sum-date').textContent = selectedDateDisplay || "Select a date";
-        
-        const sumTimeEl = document.getElementById('sum-time');
-        const sumTimeRow = document.getElementById('sum-time-row');
-
-        if (selectedTime) {
-            if(sumTimeEl) sumTimeEl.textContent = selectedTime;
-            if(sumTimeRow) sumTimeRow.style.display = 'flex'; 
-            if(proceedBtn) {
-                proceedBtn.disabled = false; 
-                proceedBtn.classList.remove('disabled');
-            }
-        } else {
-            if(sumTimeEl) sumTimeEl.textContent = "Select a time";
-            if(sumTimeRow) sumTimeRow.style.display = 'none'; 
-            if(proceedBtn) {
-                proceedBtn.disabled = true; 
-                proceedBtn.classList.add('disabled');
-            }
-        }
-    };
-
-    // Time slots fetch logic
-    async function fetchAndRenderTimeSlots(apiDateString) {
-        if (!timeSlotContainer) return;
-        selectedTime = null; 
-        updateSummaryUI();
-        
-        timeSlotContainer.innerHTML = '<div style="width: 100%; padding: 12px; text-align: center; color: var(--text-secondary);">Loading available slots...</div>'; 
-
-        try {
-            const response = await fetch(`${API_BASE}/providers/${currentProviderId}/available-slots?date=${apiDateString}`, {
-                headers: { 'Authorization': `Bearer ${token}` }
-            });
-
-            if (!response.ok) throw new Error("Failed to fetch slots");
-            
-            const availableSlots = await response.json();
-            
-            availableSlots.sort((a, b) => {
-                const parseTime = (timeStr) => {
-                    const [time, modifier] = timeStr.split(' ');
-                    let [hours, minutes] = time.split(':');
-                    if (hours === '12') hours = '00';
-                    if (modifier === 'PM') hours = parseInt(hours, 10) + 12;
-                    return parseInt(hours) * 60 + parseInt(minutes);
-                };
-                return parseTime(a) - parseTime(b);
-            });
-
-            timeSlotContainer.innerHTML = ''; 
-
-            if (availableSlots.length === 0) {
-                timeSlotContainer.innerHTML = '<div style="width: 100%; text-align: center; color: var(--text-secondary);">No slots available on this date.</div>';
-                return;
-            }
-
-            const now = new Date();
-            const cutoffTime = new Date(now.getTime() + (5 * 60 * 60 * 1000));
-            
-            let validSlotsCount = 0;
-
-            availableSlots.forEach(time => {
-                const slotDateTime = new Date(`${apiDateString} ${time}`);
-                const slotBtn = document.createElement('button');
-                slotBtn.type = 'button'; 
-                slotBtn.textContent = time;
-
-                if (slotDateTime < cutoffTime) {
-                    slotBtn.className = `time-slot disabled-slot`;
-                    slotBtn.disabled = true;
-                    slotBtn.title = "Must book at least 5 hours in advance";
-                } else {
-                    slotBtn.className = `time-slot`;
-                    validSlotsCount++;
-                    
-                    slotBtn.addEventListener('click', (e) => {
-                        document.querySelectorAll('.time-slot').forEach(s => {
-                            s.classList.remove('active');
-                            s.style.backgroundColor = ''; 
-                            s.style.color = ''; 
-                            s.style.borderColor = ''; 
-                        });
-                        
-                        e.target.classList.add('active');
-                        e.target.style.backgroundColor = 'var(--brand-blue)'; 
-                        e.target.style.color = '#fff';
-                        e.target.style.borderColor = 'var(--brand-blue)';
-                        
-                        selectedTime = time;
-                        updateSummaryUI(); 
-                    });
-                }
-                
-                timeSlotContainer.appendChild(slotBtn);
-            });
-
-            if (validSlotsCount === 0) {
-                timeSlotContainer.innerHTML += `<div style="width: 100%; text-align: center; color: #ef4444; font-size: 0.85rem; margin-top: 10px;">
-                    <i class="fa-solid fa-circle-exclamation"></i> Remaining slots are less than 5 hours away. Please select tomorrow.
-                </div>`;
-            }
-
-        } catch (error) {
-            console.error(error);
-            timeSlotContainer.innerHTML = '<div style="width: 100%; text-align: center; color: #ef4444;">Error loading time slots. Please try again.</div>';
-        }
-    }
-
-    if (dateContainer) {
-        dateContainer.innerHTML = ''; 
-        for (let i = 0; i < 7; i++) {
-            const d = new Date();
-            d.setDate(d.getDate() + i);
-            
-            const apiDateString = formatDateForAPI(d);
-            const displayDateString = d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
-            const dayName = d.toLocaleDateString('en-US', { weekday: 'short' });
-            
-            const dateBtn = document.createElement('div');
-            dateBtn.className = `date-card ${i === 0 ? 'active' : ''}`;
-            dateBtn.innerHTML = `<span>${dayName}</span><strong>${d.getDate()}</strong>`;
-            
-            if (i === 0) {
-                selectedDateAPI = apiDateString;
-                selectedDateDisplay = displayDateString;
-                fetchAndRenderTimeSlots(apiDateString);
-            }
-            
-            dateBtn.addEventListener('click', () => {
-                document.querySelectorAll('.date-card').forEach(c => c.classList.remove('active'));
-                dateBtn.classList.add('active');
-                selectedDateAPI = apiDateString;
-                selectedDateDisplay = displayDateString;
-                fetchAndRenderTimeSlots(apiDateString);
-            });
-            dateContainer.appendChild(dateBtn);
-        }
-    }
-
-    // ==========================================================
-    // 🚨 MAPPLS INTEGRATION LOGIC 
-    // ==========================================================
-    const btnShowMap = document.getElementById('btn-show-map');
-    const mapContainer = document.getElementById('mappls-map');
-    const addressInputField = document.getElementById('patient-address');
-    let mapObject = null;
-    let mapMarker = null;
-
-    if (btnShowMap) {
-        if (doctorData.visitType === 'Video Consult' || doctorData.visitType.includes('Video')) {
-            const addressGroup = document.getElementById('address-form-group');
-            if(addressGroup) addressGroup.style.display = 'none';
-        }
-
-        btnShowMap.addEventListener('click', () => {
-            if (typeof mappls === 'undefined') {
-                alert("Map engine is still loading or API key is invalid.");
-                return;
-            }
-
-            mapContainer.style.display = 'block';
-            btnShowMap.style.display = 'none';
-
-            let startLat = parseFloat(localStorage.getItem('user_lat')) || 28.6139;
-            let startLng = parseFloat(localStorage.getItem('user_lon')) || 77.2090;
-
-            mapObject = new mappls.Map('mappls-map', {
-                center: [startLat, startLng],
-                zoom: 12,
-                zoomControl: true,
-                location: true 
-            });
-
-            mapObject.addListener('click', function(e) {
-                const lat = e.lngLat.lat;
-                const lng = e.lngLat.lng;
-
-                if (mapMarker) mapMarker.remove();
-
-                mapMarker = new mappls.Marker({
-                    map: mapObject,
-                    position: { "lat": lat, "lng": lng }
-                });
-
-                if(addressInputField) {
-                    addressInputField.value = `Pinned Coordinates: ${lat.toFixed(4)}, ${lng.toFixed(4)}`;
-                    addressInputField.style.borderColor = "var(--success-green)";
-                }
-            });
-        });
-    }
-
-    // 🚨 HAVERSINE DISTANCE MATH
     function calculateDistanceKM(lat1, lon1, lat2, lon2) {
         if (!lat1 || !lon1 || !lat2 || !lon2) return Infinity; 
         const R = 6371; 
@@ -321,94 +31,236 @@ document.addEventListener('DOMContentLoaded', () => {
         return R * c; 
     }
 
-    if (proceedBtn) {
-        proceedBtn.addEventListener('click', async (e) => {
-            e.preventDefault(); 
-            if (!selectedTime) { alert("Please select a time slot."); return; }
+    // ==========================================
+    // --- 1. THE MESSENGER (Grabs Home Page Clicks) ---
+    // ==========================================
+    const autoSpecialty = localStorage.getItem('autoSearchSpecialty');
+    if (autoSpecialty && filterSpecialty) {
+        const searchStr = autoSpecialty.trim().toLowerCase();
+        let matchFound = Array.from(filterSpecialty.options).find(opt => opt.value.trim().toLowerCase() === searchStr);
+        
+        if (matchFound) {
+            filterSpecialty.value = matchFound.value; 
+        } else {
+            filterSpecialty.add(new Option(autoSpecialty.trim(), autoSpecialty.trim()));
+            filterSpecialty.value = autoSpecialty.trim();
+        }
+        localStorage.removeItem('autoSearchSpecialty');
+    }
+    
+    const autoQuery = localStorage.getItem('autoSearchQuery');
+    if (autoQuery && searchInput) {
+        searchInput.value = autoQuery.trim(); 
+        localStorage.removeItem('autoSearchQuery');
+    }
 
-            const form = document.getElementById('patient-form');
-            if (form && !form.checkValidity()) { form.reportValidity(); return; }
+    // ==========================================
+    // --- 2. GPS & DATA FETCH SEQUENCE ---
+    // ==========================================
+    let rawDoctorData = [];
+
+    async function fetchDoctorsWithLocation(lat, lon) {
+        if (doctorList) doctorList.innerHTML = `<div style="text-align:center; padding: 40px; width: 100%;"><i class="fa-solid fa-spinner fa-spin fa-2x" style="color: var(--brand-blue);"></i><p style="margin-top:10px; color: var(--text-secondary);">Loading Providers...</p></div>`;
+        
+        try {
+            // If we have GPS, ask for nearest. If not, just get everyone.
+            let fetchUrl = `${API_BASE}/home/nearest?category=Doctor`;
+            if (lat !== 0 && lon !== 0) {
+                fetchUrl = `${API_BASE}/home/nearest?lat=${lat}&lon=${lon}&category=Doctor`;
+            }
+
+            const response = await fetch(fetchUrl);
+            if (!response.ok) throw new Error("API Offline");
             
-            proceedBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Securing...';
-            proceedBtn.disabled = true;
-
-            let finalAddress = document.getElementById('patient-address') ? document.getElementById('patient-address').value : "Online";
+            const freshData = await response.json();
             
-            if (doctorData.visitType === 'Video Consult' || doctorData.visitType.includes('Video')) {
-                finalAddress = "Online";
-            } else {
-                // 🚨 GPS GEOFENCE CHECK
-                if (!mapMarker) {
-                    alert("Please pin your exact location on the map for a Home Visit.");
-                    proceedBtn.innerHTML = '<i class="fa-regular fa-circle-check"></i> Proceed to Payment';
-                    proceedBtn.disabled = false;
-                    return;
-                }
-                
-                const userLat = mapMarker.getPosition().lat;
-                const userLng = mapMarker.getPosition().lng;
-                
-                if(fullDocData) {
-                    const docLat = parseFloat(fullDocData.latitude);
-                    const docLng = parseFloat(fullDocData.longitude);
+            rawDoctorData = freshData.filter(p => p.provider_type === 'Doctor' || p.type === 'Doctor' || (!p.provider_type && !p.type));
+            localStorage.setItem('eterna_cache_doctors', JSON.stringify(rawDoctorData));
+            
+            renderDoctors();
 
-                    if (docLat && docLng) {
-                        const distanceKM = calculateDistanceKM(userLat, userLng, docLat, docLng);
-                        const MAX_RADIUS = 15; // 15 Kilometers boundary
+        } catch (err) {
+            console.warn("Network Error: Loading real doctors from local cache...");
+            const cachedData = localStorage.getItem('eterna_cache_doctors');
+            rawDoctorData = cachedData ? JSON.parse(cachedData) : []; 
+            renderDoctors();
+        }
+    }
 
-                        if (distanceKM > MAX_RADIUS) {
-                            alert(`🚨 Service Unavailable\n\nReason: This provider is ${distanceKM.toFixed(1)} km away. They only provide Home Visits within a ${MAX_RADIUS} km radius.\n\nPlease go back and choose a Video Consult or find a closer provider.`);
-                            proceedBtn.innerHTML = '<i class="fa-regular fa-circle-check"></i> Proceed to Payment';
-                            proceedBtn.disabled = false;
-                            return; // 🛑 Kills the booking
-                        }
+    // 🚨 THE LOCATION TRIGGER 🚨
+    function initializeData() {
+        if (doctorList) doctorList.innerHTML = `<div style="text-align:center; padding: 40px; width: 100%;"><i class="fa-solid fa-location-crosshairs fa-fade fa-2x" style="color: var(--brand-blue);"></i><p style="margin-top:10px; color: var(--text-secondary);">Locating you...</p></div>`;
+
+        if (navigator.geolocation) {
+            navigator.geolocation.getCurrentPosition(
+                // Success: User clicked "Allow"
+                (position) => {
+                    userLat = position.coords.latitude;
+                    userLon = position.coords.longitude;
+                    localStorage.setItem('user_lat', userLat);
+                    localStorage.setItem('user_lon', userLon);
+                    fetchDoctorsWithLocation(userLat, userLon);
+                },
+                // Error: User clicked "Deny" or timeout
+                (error) => {
+                    console.warn("Location denied or unavailable. Fetching all doctors without GPS filtering.");
+                    userLat = 0.0;
+                    userLon = 0.0;
+                    fetchDoctorsWithLocation(0.0, 0.0); // Fallback!
+                },
+                { timeout: 5000 } // Don't hang forever waiting for GPS
+            );
+        } else {
+            console.warn("Browser does not support geolocation.");
+            fetchDoctorsWithLocation(0.0, 0.0);
+        }
+    }
+
+    // ==========================================
+    // --- 3. DYNAMIC RENDER & FILTER ---
+    // ==========================================
+    function renderDoctors() {
+        
+        const searchTerm = searchInput ? searchInput.value.trim().toLowerCase() : '';
+        const selectedSpecialty = filterSpecialty ? filterSpecialty.value.trim().toLowerCase() : 'all';
+        const filterType = filterTypeDropdown ? filterTypeDropdown.value : 'all';
+
+        const filtered = rawDoctorData.filter(doc => {
+            const docName = (doc.name || '').trim().toLowerCase();
+            const docCat = (doc.category || '').trim().toLowerCase();
+            
+            const nameMatch = searchTerm === '' || docName.includes(searchTerm) || docCat.includes(searchTerm);
+            const specMatch = selectedSpecialty === 'all' || docCat === selectedSpecialty;
+            
+            // 🚨 RELAXED RULE: If we don't have user GPS (0.0), let the doctor show up anyway!
+            // We will catch them later on the Payment page if they are too far.
+            let distMatch = true;
+            if (filterType === 'home') {
+                const docLat = parseFloat(doc.latitude);
+                const docLon = parseFloat(doc.longitude);
+                
+                if (userLat !== 0 && userLon !== 0 && docLat && docLon) {
+                    const distance = calculateDistanceKM(userLat, userLon, docLat, docLon);
+                    if (distance > MAX_HOME_VISIT_RADIUS_KM) {
+                        distMatch = false; 
                     }
-                }
+                } 
             }
-
-            const localDateTime = `${selectedDateAPI}T${convertTo24Hour(selectedTime)}:00`;
-            const genderNode = document.querySelector('input[name="gender"]:checked');
             
-            const bookingPayload = {
-                provider_id: currentProviderId, 
-                scheduled_time: localDateTime,
-                delivery_address: finalAddress,
-                patient_name: document.getElementById('patient-name').value,
-                patient_age: parseInt(document.getElementById('patient-age').value) || 0,
-                patient_gender: genderNode ? genderNode.value : "Other",
-                symptoms: document.getElementById('patient-symptoms').value || "None"
-            };
+            return nameMatch && specMatch && distMatch;
+        });
 
-            try {
-                const response = await fetch(`${API_BASE}/bookings/`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
-                    body: JSON.stringify(bookingPayload)
-                });
-
-                const data = await response.json();
-                if (!response.ok) throw new Error(data.detail || "Booking failed");
-
-                localStorage.setItem('activeBookingId', data.booking_id || data.id);
-                localStorage.setItem('paymentTotalAmount', total);
-                localStorage.setItem('bookedDate', selectedDateDisplay);
-                localStorage.setItem('bookedTime', selectedTime);
-                
-                window.location.href = "payment.html"; 
-
-            } catch (error) {
-                alert(error.message);
-                proceedBtn.innerHTML = '<i class="fa-regular fa-circle-check"></i> Proceed to Payment';
-                proceedBtn.disabled = false;
+        if(doctorCountDisplay) doctorCountDisplay.textContent = filtered.length;
+        
+        if (filtered.length === 0) {
+            if(doctorList) {
+                doctorList.innerHTML = `
+                    <div style="text-align: center; padding: 60px 20px; background: var(--card-bg); border-radius: 12px; border: 1px dashed var(--border-color); width: 100%;">
+                        <i class="fa-solid fa-user-doctor" style="font-size: 3rem; color: var(--text-secondary); margin-bottom: 16px;"></i>
+                        <h3 style="color: var(--text-primary); margin-bottom: 8px;">No providers found</h3>
+                        <p style="color: var(--text-secondary);">Try adjusting your search filters or check your internet connection.</p>
+                    </div>`;
             }
+            return;
+        }
+
+        if(doctorList) doctorList.innerHTML = '';
+        
+        filtered.forEach(doc => {
+            let imgUrl = "images/default-avatar.png"; 
+            if (doc.profile_photo_url) {
+                imgUrl = doc.profile_photo_url.startsWith('http') 
+                    ? doc.profile_photo_url 
+                    : `${API_BASE}${doc.profile_photo_url}`;
+            }
+
+            const providerId = doc.provider_id || doc.id; 
+            const displayCategory = doc.category || 'Specialist';
+            
+            let displayDistance = "";
+            if (userLat !== 0 && userLon !== 0 && doc.latitude && doc.longitude) {
+                const dist = calculateDistanceKM(userLat, userLon, parseFloat(doc.latitude), parseFloat(doc.longitude));
+                if (dist !== Infinity) displayDistance = `${dist.toFixed(1)} km away`;
+            } else if (doc.distance_km && doc.distance_km !== "Unknown") {
+                displayDistance = `${doc.distance_km} km away`;
+            }
+
+            let consultFee = parseFloat(doc.price) || 500;
+            let visitCharge = parseFloat(doc.home_visit_charge) || 200;
+            const platformFee = 15; 
+            
+            let showVideo = true;
+            let showHome = true;
+            let actionButtons = '';
+            
+            if (filterType === 'home' && showHome) {
+                actionButtons += `<button class="btn-outline" onclick="initiateDocBooking('${providerId}', 'Home Visit', '${doc.name}', '${displayCategory}', '${imgUrl}', ${consultFee}, ${visitCharge}, ${platformFee})"><i class="fa-solid fa-location-dot"></i> Home - ₹${consultFee + visitCharge}</button>`;
+            } 
+            else if (filterType === 'video' && showVideo) {
+                actionButtons += `<button class="btn-primary" onclick="initiateDocBooking('${providerId}', 'Video Consult', '${doc.name}', '${displayCategory}', '${imgUrl}', ${consultFee}, 0, ${platformFee})"><i class="fa-solid fa-video"></i> Video - ₹${consultFee}</button>`;
+            } 
+            else {
+                if (showVideo) actionButtons += `<button class="btn-primary" onclick="initiateDocBooking('${providerId}', 'Video Consult', '${doc.name}', '${displayCategory}', '${imgUrl}', ${consultFee}, 0, ${platformFee})"><i class="fa-solid fa-video"></i> Video - ₹${consultFee}</button>`;
+                if (showHome) actionButtons += `<button class="btn-outline" onclick="initiateDocBooking('${providerId}', 'Home Visit', '${doc.name}', '${displayCategory}', '${imgUrl}', ${consultFee}, ${visitCharge}, ${platformFee})"><i class="fa-solid fa-location-dot"></i> Home - ₹${consultFee + visitCharge}</button>`;
+            }
+
+            const card = `
+                <div class="doctor-card">
+                    <div class="doc-avatar">
+                        <img src="${imgUrl}" onerror="this.src='images/default-avatar.png'" alt="${doc.name}" style="width:100%; height:100%; object-fit:cover; border-radius:12px;">
+                        <div class="verified-badge"><i class="fa-solid fa-check"></i></div>
+                    </div>
+                    <div class="doc-info">
+                        <div class="doc-title-row">
+                            <h2>${doc.name.includes('Dr.') ? doc.name : 'Dr. ' + doc.name}</h2>
+                            <span class="exp-badge"><i class="fa-solid fa-shield-halved"></i> Verified</span>
+                        </div>
+                        <div class="doc-specialty">
+                            ${displayCategory} 
+                            ${displayDistance ? `<span style="font-size:0.85rem; color: var(--text-secondary); margin-left:10px;"><i class="fa-solid fa-location-dot"></i> ${displayDistance}</span>` : ''}
+                        </div>
+                        <div class="doc-actions">
+                            ${actionButtons}
+                        </div>
+                    </div>
+                </div>
+            `;
+            doctorList.insertAdjacentHTML('beforeend', card);
         });
     }
 
-    function convertTo24Hour(timeStr) {
-        const [time, modifier] = timeStr.split(' ');
-        let [hours, minutes] = time.split(':');
-        if (hours === '12') hours = '00';
-        if (modifier === 'PM') hours = parseInt(hours, 10) + 12;
-        return `${String(hours).padStart(2, '0')}:${minutes}`;
-    }
+    if (searchInput) searchInput.addEventListener('input', renderDoctors);
+    if (filterSpecialty) filterSpecialty.addEventListener('change', renderDoctors);
+    if (filterTypeDropdown) filterTypeDropdown.addEventListener('change', renderDoctors);
+
+    // KICK OFF THE PROCESS
+    initializeData();
 });
+
+// ==========================================
+// --- 4. DYNAMIC GLOBAL ROUTING ---
+// ==========================================
+window.initiateDocBooking = function(docId, type, docName, docCat, docImg, fee, visitFee, platFee) {
+    const bookingData = {
+        provider_id: docId, 
+        doctorName: docName.includes('Dr.') ? docName : 'Dr. ' + docName, 
+        doctorSpecialty: docCat, 
+        visitType: type, 
+        doctorImage: docImg, 
+        consultationFee: fee, 
+        visitCharge: visitFee, 
+        platformFee: platFee,
+        address: type === 'Home Visit' ? (localStorage.getItem('user_address') || "Location not set") : "Platform Default"
+    };
+    
+    localStorage.setItem('pendingBooking', JSON.stringify(bookingData));
+
+    const token = localStorage.getItem('access_token');
+    if (!token) {
+        localStorage.setItem('redirectAfterAuth', 'book.html');
+        window.location.assign('index.html'); 
+        return; 
+    }
+
+    window.location.assign('book.html');
+};
