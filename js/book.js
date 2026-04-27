@@ -93,9 +93,12 @@ document.addEventListener('DOMContentLoaded', () => {
     if(document.getElementById('sum-doc-name')) document.getElementById('sum-doc-name').textContent = doctorData.doctorName;
     if(document.getElementById('sum-type')) document.getElementById('sum-type').textContent = doctorData.visitType;
 
-    const fee = parseFloat(doctorData.consultationFee) || 500;
-    const visit = doctorData.visitType === 'Home Visit' ? (parseFloat(doctorData.visitCharge) || 200) : 0;
-    const total = fee + visit //+ (parseFloat(doctorData.platformFee) || 0);
+    // ==========================================================
+    // 🚨 BULLETPROOF PRICING: Syncs perfectly with Catalog Price
+    // ==========================================================
+    const fee = parseFloat(doctorData.price) || parseFloat(doctorData.consultationFee) || parseFloat(doctorData.consultation_fee) || 500;
+    const visit = doctorData.visitType === 'Home Visit' ? (parseFloat(doctorData.visitCharge) || parseFloat(doctorData.home_visit_charge) || 0) : 0;
+    const total = fee + visit;
     
     if(document.getElementById('sum-fee')) document.getElementById('sum-fee').textContent = `₹${fee}`;
     if(document.getElementById('sum-visit')) document.getElementById('sum-visit').textContent = `₹${visit}`;
@@ -121,7 +124,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const formatDateForAPI = (d) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 
     // ==========================================================
-    // 🚨 THE UNLOCK BUTTON FIX (Force explicit unlock)
+    // 🚨 THE UNLOCK BUTTON FIX
     // ==========================================================
     const proceedBtn = document.getElementById('proceed-btn');
 
@@ -133,22 +136,22 @@ document.addEventListener('DOMContentLoaded', () => {
 
         if (selectedTime) {
             if(sumTimeEl) sumTimeEl.textContent = selectedTime;
-            if(sumTimeRow) sumTimeRow.style.display = 'flex'; // Show the time row in summary
+            if(sumTimeRow) sumTimeRow.style.display = 'flex'; 
             if(proceedBtn) {
-                proceedBtn.disabled = false; // 🚨 EXPLICITLY UNLOCK
+                proceedBtn.disabled = false; 
                 proceedBtn.classList.remove('disabled');
             }
         } else {
             if(sumTimeEl) sumTimeEl.textContent = "Select a time";
-            if(sumTimeRow) sumTimeRow.style.display = 'none'; // Hide the time row if no time
+            if(sumTimeRow) sumTimeRow.style.display = 'none'; 
             if(proceedBtn) {
-                proceedBtn.disabled = true; // 🚨 EXPLICITLY LOCK
+                proceedBtn.disabled = true; 
                 proceedBtn.classList.add('disabled');
             }
         }
     };
 
-    // Enforce 6-Hour Rule and fetch from backend
+    // Enforce 5-Hour Rule and fetch exact slots from backend
     async function fetchAndRenderTimeSlots(apiDateString) {
         if (!timeSlotContainer) return;
         selectedTime = null; 
@@ -165,14 +168,16 @@ document.addEventListener('DOMContentLoaded', () => {
             
             const availableSlots = await response.json();
             
-            // Forces the database strings into perfect chronological order
+            // 🚨 UPDATED SAFELY PARSE 45-MINUTE BLOCKS
             availableSlots.sort((a, b) => {
                 const parseTime = (timeStr) => {
                     const [time, modifier] = timeStr.split(' ');
-                    let [hours, minutes] = time.split(':');
-                    if (hours === '12') hours = '00';
-                    if (modifier === 'PM') hours = parseInt(hours, 10) + 12;
-                    return parseInt(hours) * 60 + parseInt(minutes);
+                    let [hoursStr, minutesStr] = time.split(':');
+                    let hours = parseInt(hoursStr, 10);
+                    let minutes = parseInt(minutesStr, 10);
+                    if (hours === 12) hours = 0;
+                    if (modifier === 'PM') hours += 12;
+                    return hours * 60 + minutes;
                 };
                 return parseTime(a) - parseTime(b);
             });
@@ -185,7 +190,7 @@ document.addEventListener('DOMContentLoaded', () => {
             }
 
             const now = new Date();
-            const cutoffTime = new Date(now.getTime() + (5 * 60 * 60 * 1000));
+            const cutoffTime = new Date(now.getTime() + (5 * 60 * 60 * 1000)); // 5 Hour Buffer
             
             let validSlotsCount = 0;
 
@@ -204,22 +209,20 @@ document.addEventListener('DOMContentLoaded', () => {
                     validSlotsCount++;
                     
                     slotBtn.addEventListener('click', (e) => {
-                        // Remove active class from all buttons
                         document.querySelectorAll('.time-slot').forEach(s => {
                             s.classList.remove('active');
-                            s.style.backgroundColor = ''; // Reset background
-                            s.style.color = ''; // Reset text color
-                            s.style.borderColor = ''; // Reset border
+                            s.style.backgroundColor = ''; 
+                            s.style.color = ''; 
+                            s.style.borderColor = ''; 
                         });
                         
-                        // Add active styling to the clicked button
                         e.target.classList.add('active');
-                        e.target.style.backgroundColor = 'var(--brand-blue)'; // Visual confirmation
+                        e.target.style.backgroundColor = 'var(--brand-blue)'; 
                         e.target.style.color = '#fff';
                         e.target.style.borderColor = 'var(--brand-blue)';
                         
                         selectedTime = time;
-                        updateSummaryUI(); // 🚨 This triggers the button unlock!
+                        updateSummaryUI(); 
                     });
                 }
                 
