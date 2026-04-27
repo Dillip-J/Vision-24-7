@@ -90,6 +90,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // 4. STATS RENDERER
+    // 4. STATS RENDERER
     function renderStats() {
         const statsContainer = document.getElementById('stats-container');
         if(!statsContainer) return;
@@ -97,6 +98,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const completedCount = myBookings.filter(a => a.status === 'completed').length;
         const canceledCount = myBookings.filter(a => a.status === 'canceled').length;
 
+        // 🚨 I have completely deleted the 4th "Reports" card from this list!
         statsContainer.innerHTML = `
             <div class="stat-card">
                 <div class="stat-info"><span class="stat-title">Appointments</span><span class="stat-value text-blue">${activeCount}</span></div>
@@ -110,9 +112,31 @@ document.addEventListener('DOMContentLoaded', () => {
                 <div class="stat-info"><span class="stat-title">Canceled</span><span class="stat-value" style="color: #EF4444;">${canceledCount}</span></div>
                 <div class="stat-icon" style="background: rgba(239, 68, 68, 0.15); color: #F87171;"><i class="fa-solid fa-ban"></i></div>
             </div>
-            
-            `;
+        `;
     }
+    // function renderStats() {
+    //     const statsContainer = document.getElementById('stats-container');
+    //     if(!statsContainer) return;
+    //     const activeCount = myBookings.filter(a => a.status === 'active').length;
+    //     const completedCount = myBookings.filter(a => a.status === 'completed').length;
+    //     const canceledCount = myBookings.filter(a => a.status === 'canceled').length;
+
+    //     statsContainer.innerHTML = `
+    //         <div class="stat-card">
+    //             <div class="stat-info"><span class="stat-title">Appointments</span><span class="stat-value text-blue">${activeCount}</span></div>
+    //             <div class="stat-icon icon-blue"><i class="fa-regular fa-clock"></i></div>
+    //         </div>
+    //         <div class="stat-card">
+    //             <div class="stat-info"><span class="stat-title">Completed</span><span class="stat-value" style="color: var(--success-green);">${completedCount}</span></div>
+    //             <div class="stat-icon icon-green"><i class="fa-regular fa-circle-check"></i></div>
+    //         </div>
+    //         <div class="stat-card">
+    //             <div class="stat-info"><span class="stat-title">Canceled</span><span class="stat-value" style="color: #EF4444;">${canceledCount}</span></div>
+    //             <div class="stat-icon" style="background: rgba(239, 68, 68, 0.15); color: #F87171;"><i class="fa-solid fa-ban"></i></div>
+    //         </div>
+            
+    //         `;
+    // }
 
     // 5. TAB LIST RENDERING ENGINE
     function renderAllLists() {
