@@ -49,9 +49,7 @@
                 <button class="dash-tab active" data-target="view-active">Appointments</button>
                 <button class="dash-tab" data-target="view-completed">Completed</button>
                 <button class="dash-tab" data-target="view-canceled">Canceled</button>
-                <!-- <button class="dash-tab" data-target="view-reports">Reports</button>
-                <button class="dash-tab" data-target="view-complaints">Complaints</button> -->
-            </nav>
+                </nav>
         </section>
 
         <section class="appointments-section">
@@ -71,14 +69,7 @@
                 <div id="list-canceled" class="appointments-list"></div>
             </section>
 
-            <section id="view-reports" class="tab-content hidden">
-                <div id="list-reports" class="appointments-list"></div>
             </section>
-
-            <section id="view-complaints" class="tab-content hidden">
-                <div id="list-complaints" class="appointments-list"></div>
-            </section>
-        </section>
 
         <div class="modal-overlay hidden" id="booking-modal">
             <div class="modal-container">
@@ -169,6 +160,7 @@
     </main>
 
     <script src="js/config.js"></script>
+    <script src="js/auth_guard.js"></script>
     <script src="js/script.js"></script>
     <script src="js/dashboard.js"></script>
 </body>

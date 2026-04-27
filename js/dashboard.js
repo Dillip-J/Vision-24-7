@@ -72,7 +72,6 @@ document.addEventListener('DOMContentLoaded', () => {
                     date: dateStr,
                     time: timeStr,
                     visitType: vType,
-                    // 🚨 ADDED REPORT URL TRACKING HERE:
                     hasReport: mappedStatus === 'completed' && !!apt.report_url, 
                     reportUrl: apt.report_url, 
                     clinicalNotes: apt.symptoms || apt.order_notes || "No additional notes.",
@@ -111,11 +110,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 <div class="stat-info"><span class="stat-title">Canceled</span><span class="stat-value" style="color: #EF4444;">${canceledCount}</span></div>
                 <div class="stat-icon" style="background: rgba(239, 68, 68, 0.15); color: #F87171;"><i class="fa-solid fa-ban"></i></div>
             </div>
-            <div class="stat-card">
-                <div class="stat-info"><span class="stat-title">Reports</span><span class="stat-value" style="color: #9333EA;">${myReports.length}</span></div>
-                <div class="stat-icon" style="background: rgba(147, 51, 234, 0.15); color: #C084FC;"><i class="fa-regular fa-file-lines"></i></div>
-            </div>
-        `;
+            
+            `;
     }
 
     // 5. TAB LIST RENDERING ENGINE
@@ -144,13 +140,10 @@ document.addEventListener('DOMContentLoaded', () => {
             const isOnline = apt.visitType === 'Video Consult';
             const typeIcon = isOnline ? 'fa-video' : (apt.visitType === 'Delivery' ? 'fa-motorcycle' : 'fa-location-dot');
 
-            // 🚨 THE IMAGE FIX (Forces a specific size and circle crop)
             let avatarHtml = `<div class="apt-avatar">${initials}</div>`;
             if (apt.raw && apt.raw.provider && apt.raw.provider.profile_photo_url) {
                 const photoUrl = apt.raw.provider.profile_photo_url;
                 const finalImgUrl = photoUrl.startsWith('http') ? photoUrl : `${API_BASE}${photoUrl}`;
-                
-                // Added strictly enforced width, height, object-fit, and border-radius directly to the image
                 avatarHtml = `<div class="apt-avatar-img"><img src="${finalImgUrl}" alt="${apt.doctorName}" style="width: 50px; height: 50px; object-fit: cover; border-radius: 50%;" onerror="this.parentElement.innerHTML='${initials}'"></div>`;
             }
 
@@ -161,11 +154,15 @@ document.addEventListener('DOMContentLoaded', () => {
             } else if (apt.status === 'active') {
                 actionButtonsHtml += `<button class="btn-action-outline" style="color: #F59E0B; border-color: #F59E0B;"><i class="fa-regular fa-clock"></i> Awaiting</button>`;
             } else if (apt.status === 'completed') {
+                /* 🚨 TEMPORARILY DISABLED REPORT BUTTON FOR MVP - Force "View Notes"
                 if (apt.hasReport) {
                     actionButtonsHtml += `<button class="btn-action" style="background: #9333EA; color: white;" onclick="downloadSimulation('${apt.rawId}')"><i class="fa-solid fa-download"></i> Download Report</button>`;
                 } else {
                     actionButtonsHtml += `<button class="btn-action-outline" onclick="openBookingModal('${apt.rawId}')"><i class="fa-solid fa-notes-medical"></i> View Notes</button>`;
                 }
+                */
+                // ONLY SHOW VIEW NOTES BUTTON
+                actionButtonsHtml += `<button class="btn-action-outline" onclick="openBookingModal('${apt.rawId}')"><i class="fa-solid fa-notes-medical"></i> View Notes</button>`;
             }
 
             actionButtonsHtml += `<button class="btn-action-outline" onclick="openBookingModal('${apt.rawId}')" style="margin-left: 8px;"><i class="fa-solid fa-circle-info"></i> Details</button>`;
@@ -200,45 +197,6 @@ document.addEventListener('DOMContentLoaded', () => {
             `;
         });
     }
-
-    /* 🚨 TEMPORARILY DISABLED FOR MVP
-    function renderReports() {
-        const repList = document.getElementById('list-reports');
-        if(!repList) return;
-        repList.innerHTML = '';
-        if (myReports.length === 0) { repList.innerHTML = `<div class="empty-state"><i class="fa-regular fa-file-pdf"></i><p>No medical reports uploaded by providers yet.</p></div>`; return; }
-
-        myReports.forEach(rep => {
-            repList.innerHTML += `
-                <div class="apt-card">
-                    <div class="apt-avatar" style="background: rgba(147, 51, 234, 0.15); color: #C084FC;"><i class="fa-regular fa-file-pdf"></i></div>
-                    <div class="apt-content">
-                        <div class="apt-top-row">
-                            <div class="apt-title-group">
-                                <h3>Medical Record / Summary</h3>
-                                <span class="status-badge status-completed">Available</span>
-                            </div>
-                            <span class="apt-id">${rep.bookingId}</span>
-                        </div>
-                        <div class="apt-doctor">Provider: ${rep.doctorName}</div>
-                        <div class="apt-meta-grid" style="grid-template-columns: 1fr;">
-                            <div class="meta-item"><i class="fa-regular fa-calendar"></i> Date: ${rep.date}</div>
-                        </div>
-                        <div class="apt-actions" style="margin-top: 12px;">
-                            <button class="btn-action" style="background: #9333EA; border: none; color: white;" onclick="downloadSimulation('${rep.rawId}')"><i class="fa-solid fa-download"></i> Secure Download</button>
-                        </div>
-                    </div>
-                </div>
-            `;
-        });
-    }
-
-    function renderComplaints() {
-        const compList = document.getElementById('list-complaints');
-        if(!compList) return;
-        compList.innerHTML = `<div class="empty-state"><i class="fa-solid fa-triangle-exclamation" style="font-size: 3rem; margin-bottom: 16px; opacity: 0.5;"></i><p>You have no active complaints.</p></div>`;
-    }
-    */
 
     // 6. SAFE TABS SWITCHING LOGIC
     const tabs = document.querySelectorAll('.dash-tab');
@@ -355,7 +313,7 @@ document.addEventListener('DOMContentLoaded', () => {
         alert(`Initiating Complaint Protocol for Booking ID: ${rawId}\n\n(In Phase 2, this will open the Complaint Submission Modal.)`);
     };
 
-    // 🚨 SECURE FILE DOWNLOAD ACTION
+    // 🚨 SECURE FILE DOWNLOAD ACTION (Kept active in code but unused in UI for MVP)
     window.downloadSimulation = function(rawId) {
         const apt = myBookings.find(b => b.rawId === rawId || b.bookingId === rawId);
         
