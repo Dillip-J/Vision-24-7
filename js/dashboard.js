@@ -47,7 +47,10 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (apt.scheduled_time) {
                     const d = new Date(apt.scheduled_time);
                     dateStr = d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
-                    timeStr = d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+                    
+                    // 🚨 THE FIX: Strictly force 12-hour AM/PM format
+                    timeStr = d.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true });
+                    
                 } else if (apt.created_at) {
                     dateStr = new Date(apt.created_at).toLocaleDateString(); timeStr = "ASAP";
                 }
@@ -90,7 +93,6 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // 4. STATS RENDERER
-    // 4. STATS RENDERER
     function renderStats() {
         const statsContainer = document.getElementById('stats-container');
         if(!statsContainer) return;
@@ -98,7 +100,6 @@ document.addEventListener('DOMContentLoaded', () => {
         const completedCount = myBookings.filter(a => a.status === 'completed').length;
         const canceledCount = myBookings.filter(a => a.status === 'canceled').length;
 
-        // 🚨 I have completely deleted the 4th "Reports" card from this list!
         statsContainer.innerHTML = `
             <div class="stat-card">
                 <div class="stat-info"><span class="stat-title">Appointments</span><span class="stat-value text-blue">${activeCount}</span></div>
@@ -114,40 +115,12 @@ document.addEventListener('DOMContentLoaded', () => {
             </div>
         `;
     }
-    // function renderStats() {
-    //     const statsContainer = document.getElementById('stats-container');
-    //     if(!statsContainer) return;
-    //     const activeCount = myBookings.filter(a => a.status === 'active').length;
-    //     const completedCount = myBookings.filter(a => a.status === 'completed').length;
-    //     const canceledCount = myBookings.filter(a => a.status === 'canceled').length;
-
-    //     statsContainer.innerHTML = `
-    //         <div class="stat-card">
-    //             <div class="stat-info"><span class="stat-title">Appointments</span><span class="stat-value text-blue">${activeCount}</span></div>
-    //             <div class="stat-icon icon-blue"><i class="fa-regular fa-clock"></i></div>
-    //         </div>
-    //         <div class="stat-card">
-    //             <div class="stat-info"><span class="stat-title">Completed</span><span class="stat-value" style="color: var(--success-green);">${completedCount}</span></div>
-    //             <div class="stat-icon icon-green"><i class="fa-regular fa-circle-check"></i></div>
-    //         </div>
-    //         <div class="stat-card">
-    //             <div class="stat-info"><span class="stat-title">Canceled</span><span class="stat-value" style="color: #EF4444;">${canceledCount}</span></div>
-    //             <div class="stat-icon" style="background: rgba(239, 68, 68, 0.15); color: #F87171;"><i class="fa-solid fa-ban"></i></div>
-    //         </div>
-            
-    //         `;
-    // }
 
     // 5. TAB LIST RENDERING ENGINE
     function renderAllLists() {
         renderList('list-active', myBookings.filter(b => b.status === 'active'), "No active appointments right now.");
         renderList('list-completed', myBookings.filter(b => b.status === 'completed'), "You have no completed appointments yet.");
         renderList('list-canceled', myBookings.filter(b => b.status === 'canceled'), "No canceled appointments.");
-        
-        /* 🚨 TEMPORARILY DISABLED FOR MVP
-        renderReports();
-        renderComplaints();
-        */
     }
 
     function renderList(containerId, dataArray, emptyMessage) {
@@ -178,14 +151,6 @@ document.addEventListener('DOMContentLoaded', () => {
             } else if (apt.status === 'active') {
                 actionButtonsHtml += `<button class="btn-action-outline" style="color: #F59E0B; border-color: #F59E0B;"><i class="fa-regular fa-clock"></i> Awaiting</button>`;
             } else if (apt.status === 'completed') {
-                /* 🚨 TEMPORARILY DISABLED REPORT BUTTON FOR MVP - Force "View Notes"
-                if (apt.hasReport) {
-                    actionButtonsHtml += `<button class="btn-action" style="background: #9333EA; color: white;" onclick="downloadSimulation('${apt.rawId}')"><i class="fa-solid fa-download"></i> Download Report</button>`;
-                } else {
-                    actionButtonsHtml += `<button class="btn-action-outline" onclick="openBookingModal('${apt.rawId}')"><i class="fa-solid fa-notes-medical"></i> View Notes</button>`;
-                }
-                */
-                // ONLY SHOW VIEW NOTES BUTTON
                 actionButtonsHtml += `<button class="btn-action-outline" onclick="openBookingModal('${apt.rawId}')"><i class="fa-solid fa-notes-medical"></i> View Notes</button>`;
             }
 
@@ -311,7 +276,7 @@ document.addEventListener('DOMContentLoaded', () => {
     fetchDashboardData();
 
     // ==========================================
-    // GLOBAL ACTIONS (Cancel & Complaint & Download)
+    // GLOBAL ACTIONS (Cancel)
     // ==========================================
     window.cancelBooking = async function(rawId) {
         if (!confirm("Are you sure you want to cancel this appointment? This action cannot be undone.")) return;
@@ -330,22 +295,6 @@ document.addEventListener('DOMContentLoaded', () => {
         } catch(e) {
             console.error(e);
             alert("Network Error while canceling.");
-        }
-    };
-
-    window.fileComplaint = function(rawId) {
-        alert(`Initiating Complaint Protocol for Booking ID: ${rawId}\n\n(In Phase 2, this will open the Complaint Submission Modal.)`);
-    };
-
-    // 🚨 SECURE FILE DOWNLOAD ACTION (Kept active in code but unused in UI for MVP)
-    window.downloadSimulation = function(rawId) {
-        const apt = myBookings.find(b => b.rawId === rawId || b.bookingId === rawId);
-        
-        if (apt && apt.reportUrl) {
-            const finalUrl = apt.reportUrl.startsWith('http') ? apt.reportUrl : `${API_BASE}${apt.reportUrl}`;
-            window.open(finalUrl, '_blank');
-        } else {
-            alert("The provider did not attach a downloadable file for this record.");
         }
     };
 });
