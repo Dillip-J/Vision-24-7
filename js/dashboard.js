@@ -123,8 +123,11 @@ document.addEventListener('DOMContentLoaded', () => {
         renderList('list-active', myBookings.filter(b => b.status === 'active'), "No active appointments right now.");
         renderList('list-completed', myBookings.filter(b => b.status === 'completed'), "You have no completed appointments yet.");
         renderList('list-canceled', myBookings.filter(b => b.status === 'canceled'), "No canceled appointments.");
+        
+        /* 🚨 TEMPORARILY DISABLED FOR MVP
         renderReports();
         renderComplaints();
+        */
     }
 
     function renderList(containerId, dataArray, emptyMessage) {
@@ -198,6 +201,7 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
+    /* 🚨 TEMPORARILY DISABLED FOR MVP
     function renderReports() {
         const repList = document.getElementById('list-reports');
         if(!repList) return;
@@ -234,6 +238,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if(!compList) return;
         compList.innerHTML = `<div class="empty-state"><i class="fa-solid fa-triangle-exclamation" style="font-size: 3rem; margin-bottom: 16px; opacity: 0.5;"></i><p>You have no active complaints.</p></div>`;
     }
+    */
 
     // 6. SAFE TABS SWITCHING LOGIC
     const tabs = document.querySelectorAll('.dash-tab');
