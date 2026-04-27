@@ -95,7 +95,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const fee = parseFloat(doctorData.consultationFee) || 500;
     const visit = doctorData.visitType === 'Home Visit' ? (parseFloat(doctorData.visitCharge) || 200) : 0;
-    const total = fee + visit + (parseFloat(doctorData.platformFee) || 0);
+    const total = fee + visit //+ (parseFloat(doctorData.platformFee) || 0);
     
     if(document.getElementById('sum-fee')) document.getElementById('sum-fee').textContent = `₹${fee}`;
     if(document.getElementById('sum-visit')) document.getElementById('sum-visit').textContent = `₹${visit}`;
