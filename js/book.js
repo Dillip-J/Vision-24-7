@@ -1,5 +1,3 @@
-const { Component } = require("react");
-
 // js/book.js
 document.addEventListener('DOMContentLoaded', () => {
 
