@@ -335,13 +335,13 @@ document.addEventListener('DOMContentLoaded', () => {
 
 //=========== auto complete address ==========//
 let autocomplete;
-function initautocomplete (){
-    autocomplete=new.google.maps.places.autocomplete(
+function initAutocomplete (){
+    autocomplete=new google.maps.places.Autocomplete(
         document.getElementById("patient-address"),
         {
-            type:["established"],
+            type:["geocode"],
             ComponentRestrictions:{'country':['in']},
-            field:['place_id','geometry','name']
+            field:['place_id','geometry','formatted_address']
         }
     );
 }
