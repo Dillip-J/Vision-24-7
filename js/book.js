@@ -342,8 +342,8 @@ function initautocomplete (){
         document.getElementById("patient-address"),
         {
             type:["established"],
-            ComponentRestrictions:{'country':['ind']},
-            field:['place','geometry','name']
+            ComponentRestrictions:{'country':['in']},
+            field:['place_id','geometry','name']
         }
     );
 }
