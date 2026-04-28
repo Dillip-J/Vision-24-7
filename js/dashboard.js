@@ -47,10 +47,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (apt.scheduled_time) {
                     const d = new Date(apt.scheduled_time);
                     dateStr = d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
-                    
-                    // 🚨 THE FIX: Strictly force 12-hour AM/PM format
                     timeStr = d.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true });
-                    
                 } else if (apt.created_at) {
                     dateStr = new Date(apt.created_at).toLocaleDateString(); timeStr = "ASAP";
                 }
@@ -77,7 +74,8 @@ document.addEventListener('DOMContentLoaded', () => {
                     visitType: vType,
                     hasReport: mappedStatus === 'completed' && !!apt.report_url, 
                     reportUrl: apt.report_url, 
-                    clinicalNotes: apt.symptoms || apt.order_notes || "No additional notes.",
+                    // Make sure we grab the correct clinical notes field from the backend
+                    clinicalNotes: apt.notes || apt.clinical_notes || "No clinical notes provided by the doctor.",
                     raw: apt 
                 };
             });
@@ -150,11 +148,14 @@ document.addEventListener('DOMContentLoaded', () => {
                 actionButtonsHtml += `<button class="btn-action" onclick="window.open('video-room.html?room=${apt.rawId}&role=patient', '_blank')"><i class="fa-solid fa-video"></i> Join Call</button>`;
             } else if (apt.status === 'active') {
                 actionButtonsHtml += `<button class="btn-action-outline" style="color: #F59E0B; border-color: #F59E0B;"><i class="fa-regular fa-clock"></i> Awaiting</button>`;
-            } else if (apt.status === 'completed') {
-                actionButtonsHtml += `<button class="btn-action-outline" onclick="openBookingModal('${apt.rawId}')"><i class="fa-solid fa-notes-medical"></i> View Notes</button>`;
+            } 
+            
+            // 🚨 THE FIX: Pass a flag to openBookingModal to tell it WHICH view to show
+            if (apt.status === 'completed') {
+                actionButtonsHtml += `<button class="btn-action-outline" onclick="openBookingModal('${apt.rawId}', 'notes')"><i class="fa-solid fa-notes-medical"></i> View Notes</button>`;
             }
 
-            actionButtonsHtml += `<button class="btn-action-outline" onclick="openBookingModal('${apt.rawId}')" style="margin-left: 8px;"><i class="fa-solid fa-circle-info"></i> Details</button>`;
+            actionButtonsHtml += `<button class="btn-action-outline" onclick="openBookingModal('${apt.rawId}', 'details')" style="margin-left: 8px;"><i class="fa-solid fa-circle-info"></i> Details</button>`;
 
             if (apt.status === 'active') {
                 actionButtonsHtml += `<button class="btn-action-outline" onclick="cancelBooking('${apt.rawId}')" style="margin-left: 8px; color: #EF4444; border-color: #EF4444;"><i class="fa-solid fa-ban"></i> Cancel</button>`;
@@ -208,16 +209,18 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     });
 
-    // 7. MODAL ENGINE
+    // 7. MODAL ENGINE (CHAMELEON FIX)
     const modal = document.getElementById('booking-modal');
     const closeModalBtn = document.getElementById('modal-close-btn');
 
     if (closeModalBtn) closeModalBtn.addEventListener('click', () => modal.classList.add('hidden'));
 
-    window.openBookingModal = function(rawId) {
+    // 🚨 viewType will either be 'details' or 'notes'
+    window.openBookingModal = function(rawId, viewType = 'details') {
         const apt = myBookings.find(b => b.rawId === rawId);
         if (!apt) return;
 
+        // Populate header data (always visible)
         document.getElementById('modal-booking-id').textContent = `Booking ID: ${apt.bookingId}`;
         document.getElementById('modal-status-badge').textContent = apt.status.toUpperCase();
         document.getElementById('modal-doc-initials').textContent = getInitials(apt.doctorName);
@@ -232,37 +235,46 @@ document.addEventListener('DOMContentLoaded', () => {
         document.getElementById('modal-date').textContent = apt.date;
         document.getElementById('modal-time').textContent = apt.time;
 
-        document.getElementById('modal-patient-name').textContent = apt.raw.patient_name || "Self";
-        
-        const ageEl = document.getElementById('modal-patient-age');
-        if(ageEl) ageEl.textContent = apt.raw.patient_age || "N/A";
-        
-        const genderEl = document.getElementById('modal-patient-gender');
-        if(genderEl) genderEl.textContent = apt.raw.patient_gender || "N/A";
-        
-        // 🚨 HIDE ADDRESS ROW IN MODAL FOR VIDEO CALLS
-        const addressEl = document.getElementById('modal-patient-address');
-        if (addressEl) {
-            const addressRow = addressEl.parentElement;
-            
-            if (apt.visitType === 'Video Consult' || apt.visitType.includes('Video')) {
-                addressRow.style.display = 'none'; 
-            } else {
-                addressRow.style.display = 'flex'; 
-                addressEl.textContent = apt.raw.delivery_address || "Platform Default";
-            }
-        }
-        
-        const reasonEl = document.getElementById('modal-patient-reason');
-        if(reasonEl) reasonEl.textContent = apt.raw.symptoms || apt.raw.order_notes || "None provided";
-
+        // Grab containers
+        const detailsSection = document.getElementById('modal-details-section'); // You need to wrap your patient details in this ID in your HTML
         const notesSection = document.getElementById('modal-notes-section');
         const notesText = document.getElementById('modal-notes-text');
-        if (apt.status === 'completed' && notesSection) {
-            notesSection.classList.remove('hidden');
-            notesText.textContent = apt.clinicalNotes;
-        } else if (notesSection) {
-            notesSection.classList.add('hidden');
+
+        if (viewType === 'details') {
+            // SHOW details, HIDE notes
+            if (detailsSection) detailsSection.style.display = 'block';
+            if (notesSection) notesSection.classList.add('hidden');
+            
+            // Populate details
+            document.getElementById('modal-patient-name').textContent = apt.raw.patient_name || "Self";
+            
+            const ageEl = document.getElementById('modal-patient-age');
+            if(ageEl) ageEl.textContent = apt.raw.patient_age || "N/A";
+            
+            const genderEl = document.getElementById('modal-patient-gender');
+            if(genderEl) genderEl.textContent = apt.raw.patient_gender || "N/A";
+            
+            const addressEl = document.getElementById('modal-patient-address');
+            if (addressEl) {
+                const addressRow = addressEl.parentElement;
+                if (apt.visitType === 'Video Consult' || apt.visitType.includes('Video')) {
+                    addressRow.style.display = 'none'; 
+                } else {
+                    addressRow.style.display = 'flex'; 
+                    addressEl.textContent = apt.raw.delivery_address || "Platform Default";
+                }
+            }
+            
+            const reasonEl = document.getElementById('modal-patient-reason');
+            if(reasonEl) reasonEl.textContent = apt.raw.symptoms || "None provided";
+
+        } else if (viewType === 'notes') {
+            // HIDE details, SHOW notes
+            if (detailsSection) detailsSection.style.display = 'none';
+            if (notesSection) {
+                notesSection.classList.remove('hidden');
+                notesText.textContent = apt.clinicalNotes;
+            }
         }
         
         modal.classList.remove('hidden');
