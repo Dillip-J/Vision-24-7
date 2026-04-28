@@ -1,3 +1,5 @@
+const { Component } = require("react");
+
 // js/book.js
 document.addEventListener('DOMContentLoaded', () => {
 
@@ -332,3 +334,16 @@ document.addEventListener('DOMContentLoaded', () => {
         return `${String(hours).padStart(2, '0')}:${minutes}`;
     }
 });
+
+//=========== auto complete address ==========//
+let autocomplete;
+function initautocomplete (){
+    autocomplete=new.google.maps.places.autocomplete(
+        document.getElementById("patient-address"),
+        {
+            type:["established"],
+            ComponentRestrictions:{'country':['ind']},
+            field:['place','geometry','name']
+        }
+    );
+}
