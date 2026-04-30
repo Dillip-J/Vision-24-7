@@ -340,7 +340,7 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 // ==========================================================
-// GOOGLE MAPS AUTOCOMPLETE ENGINE
+// 🚨 GOOGLE MAPS AUTOCOMPLETE ENGINE
 // ==========================================================
 let autocomplete;
 window.initAutocomplete = function() {
@@ -350,7 +350,7 @@ window.initAutocomplete = function() {
     autocomplete = new google.maps.places.Autocomplete(
         addressInput,
         {
-            types: ["geocode", "establishment"], // Added establishment to find buildings too
+            types: ["geocode", "establishment"], 
             componentRestrictions: { 'country': ['in'] },
             fields: ['place_id', 'geometry', 'formatted_address']
         }
@@ -367,30 +367,6 @@ function onPlaceChanged() {
     if (!place.geometry) {
         addressInput.placeholder = "Enter your Address";
     } else {
-        // 🚨 Correct ID variable name used here
         addressInput.value = place.formatted_address;
-    }
-}
-
-//=========== auto complete address ==========//
-let autocomplete;
-function initAutocomplete (){
-    autocomplete=new google.maps.places.Autocomplete(
-        document.getElementById("patient-address"),
-        {
-            types:["geocode"],
-            componentRestrictions:{'country':['in']},
-            fields:['place_id','geometry','formatted_address']
-        }
-    );
-    autocomplete.addListener('place_changed', onplacechanged);
-}
-//to change the place//
-function onplacechanged(){
-    let place=autocomplete.getPlace();
-    if (!place.geometry){
-        document.getElementById('patient-address').placeholder="Enter you Address";
-    }else{
-        document.getElementById('patient-address').value=place.formatted_address;
     }
 }
