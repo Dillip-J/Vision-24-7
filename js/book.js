@@ -349,39 +349,13 @@ document.addEventListener('DOMContentLoaded', () => {
 // ==========================================================
 // GOOGLE MAPS AUTOCOMPLETE ENGINE
 // ==========================================================
-// let autocomplete;
-
-// window.initAutocomplete = function() {
-//     const addressInput = document.getElementById("patient-address");
-//     if (!addressInput) return;
-
-//     // Create element (no arguments)
-//     autocomplete = new google.maps.places.PlaceAutocompleteElement();
-
-//     // Attach it to your input
-//     autocomplete.inputElement = addressInput;
-
-//     // Listen for selection
-//     autocomplete.addEventListener('gmpx-placechange', onPlaceChanged);
-// };
-
-// function onPlaceChanged(event) {
-//     const place = event.detail.place;
-//     const addressInput = document.getElementById('patient-address');
-
-//     if (!place || !place.location) {
-//         addressInput.placeholder = "Enter your Address";
-//     } else {
-//         addressInput.value = place.formattedAddress;
-//     }
-// }
-
 let autocomplete;
 window.initAutocomplete = function() {
     const addressInput = document.getElementById("patient-address");
     if (!addressInput) return;
 
-    autocomplete = new google.maps.places.PlaceAutocompleteElement(
+    // 🚨 THE FIX: It is strictly "Autocomplete", do NOT add "Element"
+    autocomplete = new google.maps.places.Autocomplete(
         addressInput,
         {
             types: ["geocode", "establishment"], 
@@ -403,3 +377,30 @@ function onPlaceChanged() {
         addressInput.value = place.formatted_address;
     }
 }
+
+// let autocomplete;
+
+// window.initAutocomplete = function() {
+//     const addressInput = document.getElementById("patient-address");
+//     if (!addressInput) return;
+
+//     // Create element (no arguments)
+//     autocomplete = new google.maps.places.PlaceAutocompleteElement();
+
+//     // Attach it to your input
+//     autocomplete.inputElement = addressInput;
+
+//     // Listen for selection
+//     autocomplete.addEventListener('placechange', onPlaceChanged);
+// };
+
+// function onPlaceChanged(event) {
+//     const place = event.detail.place;
+//     const addressInput = document.getElementById('patient-address');
+
+//     if (!place || !place.location) {
+//         addressInput.placeholder = "Enter your Address";
+//     } else {
+//         addressInput.value = place.formattedAddress;
+//     }
+// }
