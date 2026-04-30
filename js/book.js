@@ -347,7 +347,7 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 // ==========================================================
-// 🚨 GOOGLE MAPS AUTOCOMPLETE ENGINE
+// GOOGLE MAPS AUTOCOMPLETE ENGINE
 // ==========================================================
 let autocomplete;
 window.initAutocomplete = function() {
