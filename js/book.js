@@ -349,57 +349,57 @@ document.addEventListener('DOMContentLoaded', () => {
 // ==========================================================
 // GOOGLE MAPS AUTOCOMPLETE ENGINE
 // ==========================================================
-let autocomplete;
-
-window.initAutocomplete = function() {
-    const addressInput = document.getElementById("patient-address");
-    if (!addressInput) return;
-
-    // Create element (no arguments)
-    autocomplete = new google.maps.places.PlaceAutocompleteElement();
-
-    // Attach it to your input
-    autocomplete.inputElement = addressInput;
-
-    // Listen for selection
-    autocomplete.addEventListener('gmpx-placechange', onPlaceChanged);
-};
-
-function onPlaceChanged(event) {
-    const place = event.detail.place;
-    const addressInput = document.getElementById('patient-address');
-
-    if (!place || !place.location) {
-        addressInput.placeholder = "Enter your Address";
-    } else {
-        addressInput.value = place.formattedAddress;
-    }
-}
-
 // let autocomplete;
+
 // window.initAutocomplete = function() {
 //     const addressInput = document.getElementById("patient-address");
 //     if (!addressInput) return;
 
-//     autocomplete = new google.maps.places.AutocompleteElement(
-//         addressInput,
-//         {
-//             types: ["geocode", "establishment"], 
-//             componentRestrictions: { 'country': ['in'] },
-//             fields: ['place_id', 'geometry', 'formatted_address']
-//         }
-//     );
-    
-//     autocomplete.addListener('place_changed', onPlaceChanged);
+//     // Create element (no arguments)
+//     autocomplete = new google.maps.places.PlaceAutocompleteElement();
+
+//     // Attach it to your input
+//     autocomplete.inputElement = addressInput;
+
+//     // Listen for selection
+//     autocomplete.addEventListener('gmpx-placechange', onPlaceChanged);
 // };
 
-// function onPlaceChanged() {
-//     let place = autocomplete.getPlace();
+// function onPlaceChanged(event) {
+//     const place = event.detail.place;
 //     const addressInput = document.getElementById('patient-address');
-    
-//     if (!place.geometry) {
+
+//     if (!place || !place.location) {
 //         addressInput.placeholder = "Enter your Address";
 //     } else {
-//         addressInput.value = place.formatted_address;
+//         addressInput.value = place.formattedAddress;
 //     }
 // }
+
+let autocomplete;
+window.initAutocomplete = function() {
+    const addressInput = document.getElementById("patient-address");
+    if (!addressInput) return;
+
+    autocomplete = new google.maps.places.PlaceAutocompleteElement(
+        addressInput,
+        {
+            types: ["geocode", "establishment"], 
+            componentRestrictions: { 'country': ['in'] },
+            fields: ['place_id', 'geometry', 'formatted_address']
+        }
+    );
+    
+    autocomplete.addListener('place_changed', onPlaceChanged);
+};
+
+function onPlaceChanged() {
+    let place = autocomplete.getPlace();
+    const addressInput = document.getElementById('patient-address');
+    
+    if (!place.geometry) {
+        addressInput.placeholder = "Enter your Address";
+    } else {
+        addressInput.value = place.formatted_address;
+    }
+}
