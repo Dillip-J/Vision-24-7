@@ -21,17 +21,26 @@ document.addEventListener('DOMContentLoaded', () => {
     const currentProviderId = doctorData.provider_id || doctorData.id;
 
     // ==========================================================
-    // 🚨 FETCH FULL PROFILE (BIO & PHONE)
+    // 🚨 DATA NORMALIZATION (PREVENTS FATAL CRASHES)
     // ==========================================================
     const cachedDoctors = JSON.parse(localStorage.getItem('eterna_cache_doctors') || '[]');
-    const fullDocData = cachedDoctors.find(d => (d.provider_id || d.id) === currentProviderId);
+    const fullDocData = cachedDoctors.find(d => (d.provider_id || d.id) === currentProviderId) || {};
     
+    // Safely extract variables no matter how the previous page saved them
+    const docName = doctorData.doctorName || doctorData.name || fullDocData.name || "Doctor";
+    const docSpec = doctorData.doctorSpecialty || doctorData.specialty || doctorData.category || fullDocData.category || "Specialist";
+    const visitType = doctorData.visitType || doctorData.visit_type || "Home Visit";
+    const rawImg = doctorData.doctorImage || doctorData.doctor_image || fullDocData.profile_photo_url || "";
+
+    // ==========================================================
+    // 🚨 FETCH FULL PROFILE (BIO & PHONE)
+    // ==========================================================
     const bioEl = document.getElementById('dyn-doc-bio');
     const phoneEl = document.getElementById('dyn-doc-phone');
 
-    if (fullDocData) {
-        if (bioEl) bioEl.textContent = fullDocData.bio || "No description provided by this professional.";
-        if (phoneEl) phoneEl.textContent = fullDocData.phone || "Contact not available";
+    if (fullDocData.bio || doctorData.bio) {
+        if (bioEl) bioEl.textContent = fullDocData.bio || doctorData.bio;
+        if (phoneEl) phoneEl.textContent = fullDocData.phone || doctorData.phone || "Contact not available";
     } else {
         if (bioEl) bioEl.textContent = "Provider details unavailable.";
         if (phoneEl) phoneEl.textContent = "N/A";
@@ -42,7 +51,6 @@ document.addEventListener('DOMContentLoaded', () => {
     // ==========================================================
     const docImgEl = document.getElementById('dyn-doc-img');
     if(docImgEl) {
-        const rawImg = doctorData.doctorImage || doctorData.doctor_image || "";
         const parentDiv = docImgEl.parentElement; 
         
         parentDiv.style.display = 'flex';
@@ -71,7 +79,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if (addressInput) {
         const formGroup = addressInput.closest('.form-group') || addressInput.parentElement;
         
-        if (doctorData.visitType === 'Video Consult' || doctorData.visitType.includes('Video')) {
+        if (visitType === 'Video Consult' || visitType.includes('Video')) {
             formGroup.style.display = 'none'; 
             addressInput.value = 'Online';    
         } else {
@@ -80,24 +88,24 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // Populate standard details
-    if(document.getElementById('dyn-doc-name')) document.getElementById('dyn-doc-name').textContent = doctorData.doctorName;
-    if(document.getElementById('dyn-doc-spec')) document.getElementById('dyn-doc-spec').textContent = doctorData.doctorSpecialty;
+    if(document.getElementById('dyn-doc-name')) document.getElementById('dyn-doc-name').textContent = docName;
+    if(document.getElementById('dyn-doc-spec')) document.getElementById('dyn-doc-spec').textContent = docSpec;
     
     const visitBadge = document.getElementById('dyn-visit-type');
     if (visitBadge) {
-        visitBadge.innerHTML = doctorData.visitType.includes('Video') 
-            ? `<i class="fa-solid fa-video"></i> ${doctorData.visitType}`
-            : `<i class="fa-solid fa-location-dot"></i> ${doctorData.visitType}`;
+        visitBadge.innerHTML = visitType.includes('Video') 
+            ? `<i class="fa-solid fa-video"></i> ${visitType}`
+            : `<i class="fa-solid fa-location-dot"></i> ${visitType}`;
     }
     
-    if(document.getElementById('sum-doc-name')) document.getElementById('sum-doc-name').textContent = doctorData.doctorName;
-    if(document.getElementById('sum-type')) document.getElementById('sum-type').textContent = doctorData.visitType;
+    if(document.getElementById('sum-doc-name')) document.getElementById('sum-doc-name').textContent = docName;
+    if(document.getElementById('sum-type')) document.getElementById('sum-type').textContent = visitType;
 
     // ==========================================================
     // 🚨 BULLETPROOF PRICING: Syncs perfectly with Catalog Price
     // ==========================================================
-    const fee = parseFloat(doctorData.price) || parseFloat(doctorData.consultationFee) || parseFloat(doctorData.consultation_fee) || 500;
-    const visit = doctorData.visitType === 'Home Visit' ? (parseFloat(doctorData.visitCharge) || parseFloat(doctorData.home_visit_charge) || 0) : 0;
+    const fee = parseFloat(doctorData.price) || parseFloat(doctorData.consultationFee) || parseFloat(doctorData.consultation_fee) || parseFloat(fullDocData.consultation_fee) || 500;
+    const visit = visitType === 'Home Visit' ? (parseFloat(doctorData.visitCharge) || parseFloat(doctorData.home_visit_charge) || 0) : 0;
     const total = fee + visit;
     
     if(document.getElementById('sum-fee')) document.getElementById('sum-fee').textContent = `₹${fee}`;
@@ -285,13 +293,11 @@ document.addEventListener('DOMContentLoaded', () => {
             const localDateTime = `${selectedDateAPI}T${convertTo24Hour(selectedTime)}:00`;
             const genderNode = document.querySelector('input[name="gender"]:checked');
             
-            // Collect the detailed address with the new Landmark input
             const landmarkVal = document.getElementById('landmark_house') ? document.getElementById('landmark_house').value.trim() : "";
             const addressVal = document.getElementById('patient-address') ? document.getElementById('patient-address').value.trim() : "";
             
             let finalAddress = "Online";
-            if (doctorData.visitType !== 'Video Consult' && !doctorData.visitType.includes('Video')) {
-                // Combine them smoothly
+            if (visitType !== 'Video Consult' && !visitType.includes('Video')) {
                 finalAddress = `${landmarkVal}, ${addressVal}`;
             }
 
@@ -302,7 +308,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 patient_name: document.getElementById('patient-name').value,
                 patient_age: parseInt(document.getElementById('patient-age').value) || 0,
                 patient_gender: genderNode ? genderNode.value : "Other",
-                symptoms: document.getElementById('patient-symptoms').value || "None"
+                symptoms: document.getElementById('patient-symptoms').value || "None",
+                total_amount: total // 🚨 Sent to backend so provider earnings are accurate
             };
 
             try {
@@ -356,7 +363,6 @@ window.initAutocomplete = function() {
         }
     );
     
-    // Google specifically requires "addListener" here, NOT addEventListener!
     autocomplete.addListener('place_changed', onPlaceChanged);
 };
 
