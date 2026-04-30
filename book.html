@@ -41,19 +41,15 @@
                     <img id="dyn-doc-img" src="" alt="Doctor">
                 </div>
                 
-                <div class="doc-header-details" style="flex: 1;">
+                <div class="doc-header-details">
                     <div class="doc-header-top">
                         <h2 id="dyn-doc-name">Loading...</h2>
                         <span class="badge-visit-type" id="dyn-visit-type"><i class="fa-solid fa-location-dot"></i> Home Visit</span>
                     </div>
                     <div class="doc-specialty" id="dyn-doc-spec">Loading...</div>
                     
-                    <div style="margin-top: 10px; font-size: 0.9rem; color: var(--text-secondary);">
-                        <i class="fa-solid fa-phone"></i> <span id="dyn-doc-phone">Fetching contact...</span>
-                    </div>
-                    
-                    <div style="margin-top: 8px; font-size: 0.9rem; color: var(--text-primary); line-height: 1.4; background: rgba(0,0,0,0.02); padding: 10px; border-radius: 6px;">
-                        <strong style="display: block; margin-bottom: 4px; font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.5px;">About Provider</strong>
+                    <div class="doc-bio-box">
+                        <strong>About Provider</strong>
                         <span id="dyn-doc-bio">Fetching details...</span>
                     </div>
                 </div>
@@ -110,11 +106,12 @@
                         <textarea id="patient-symptoms" rows="3" placeholder="Describe your symptoms or reason for consultation..." required></textarea>
                     </div>
 
-                    <div class="form-row form-group">
-                        <label id="address-label">Enter your house number/flat number and building name *</label>
-                        <input id="patient-address" type="text"placeholder="Please enter your flat no./house number" required /><br>
-                        <label id="address-label">Enter your area / address *</label>
-                        <input id="patient-address" type="text"placeholder="Please enter your address" required />
+                    <div class="form-row form-group address-group">
+                        <label id="landmark-label">Enter your house number/flat number and building name *</label>
+                        <input id="landmark_house" type="text" placeholder="Please enter your flat no./house number and landmark" required />
+                        
+                        <label id="address-label" class="mt-spacing">Enter your area / address *</label>
+                        <input id="patient-address" type="text" placeholder="Please enter your address" required />
                     </div>
                 </form>
             </section>
@@ -185,6 +182,7 @@
 
     <script src="js/config.js"></script> 
     <script src="js/script.js"></script>
-    <script src="js/book.js"></script>  
+    <script src="js/book.js"></script>
+    <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyA4BQN5ky7wehZWFwcwLMvM_89GXDn5IxQ&libraries=places&callback=initAutocomplete" async defer></script>  
 </body>
 </html>

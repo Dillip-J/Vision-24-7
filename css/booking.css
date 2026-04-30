@@ -251,6 +251,28 @@
 .terms-text { text-align: center; font-size: 0.8rem; color: var(--text-secondary, #6b7280); margin-top: 16px; }
 .terms-text a { color: var(--brand-blue, #2563eb); text-decoration: none; font-weight: 500; }
 
+/* Clean styling for the Doctor Bio box */
+.doc-bio-box {
+    margin-top: 8px; 
+    font-size: 0.9rem; 
+    color: var(--text-primary); 
+    line-height: 1.4; 
+    background: rgba(0,0,0,0.02); 
+    padding: 10px; 
+    border-radius: 6px;
+}
+.doc-bio-box strong {
+    display: block; 
+    margin-bottom: 4px; 
+    font-size: 0.8rem; 
+    text-transform: uppercase; 
+    letter-spacing: 0.5px;
+}
+.doc-header-details { flex: 1; }
+
+/* Proper spacing for the new Address Block */
+.address-group input { margin-bottom: 16px; }
+.mt-spacing { margin-top: 8px; display: block; }
 
 /* ==========================================
    --- RESPONSIVE DESIGN ---

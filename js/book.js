@@ -168,7 +168,6 @@ document.addEventListener('DOMContentLoaded', () => {
             
             const availableSlots = await response.json();
             
-            // 🚨 UPDATED SAFELY PARSE 45-MINUTE BLOCKS
             availableSlots.sort((a, b) => {
                 const parseTime = (timeStr) => {
                     const [time, modifier] = timeStr.split(' ');
@@ -286,8 +285,15 @@ document.addEventListener('DOMContentLoaded', () => {
             const localDateTime = `${selectedDateAPI}T${convertTo24Hour(selectedTime)}:00`;
             const genderNode = document.querySelector('input[name="gender"]:checked');
             
-            let finalAddress = document.getElementById('patient-address') ? document.getElementById('patient-address').value : "Online";
-            if (doctorData.visitType === 'Video Consult' || doctorData.visitType.includes('Video')) finalAddress = "Online";
+            // Collect the detailed address with the new Landmark input
+            const landmarkVal = document.getElementById('landmark_house') ? document.getElementById('landmark_house').value.trim() : "";
+            const addressVal = document.getElementById('patient-address') ? document.getElementById('patient-address').value.trim() : "";
+            
+            let finalAddress = "Online";
+            if (doctorData.visitType !== 'Video Consult' && !doctorData.visitType.includes('Video')) {
+                // Combine them smoothly
+                finalAddress = `${landmarkVal}, ${addressVal}`;
+            }
 
             const bookingPayload = {
                 provider_id: currentProviderId, 
@@ -333,15 +339,58 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 });
 
+// ==========================================================
+// GOOGLE MAPS AUTOCOMPLETE ENGINE
+// ==========================================================
+let autocomplete;
+window.initAutocomplete = function() {
+    const addressInput = document.getElementById("patient-address");
+    if (!addressInput) return;
+
+    autocomplete = new google.maps.places.Autocomplete(
+        addressInput,
+        {
+            types: ["geocode", "establishment"], // Added establishment to find buildings too
+            componentRestrictions: { 'country': ['in'] },
+            fields: ['place_id', 'geometry', 'formatted_address']
+        }
+    );
+    
+    // Google specifically requires "addListener" here, NOT addEventListener!
+    autocomplete.addListener('place_changed', onPlaceChanged);
+};
+
+function onPlaceChanged() {
+    let place = autocomplete.getPlace();
+    const addressInput = document.getElementById('patient-address');
+    
+    if (!place.geometry) {
+        addressInput.placeholder = "Enter your Address";
+    } else {
+        // 🚨 Correct ID variable name used here
+        addressInput.value = place.formatted_address;
+    }
+}
+
 //=========== auto complete address ==========//
 let autocomplete;
 function initAutocomplete (){
     autocomplete=new google.maps.places.Autocomplete(
         document.getElementById("patient-address"),
         {
-            type:["geocode"],
-            ComponentRestrictions:{'country':['in']},
-            field:['place_id','geometry','formatted_address']
+            types:["geocode"],
+            componentRestrictions:{'country':['in']},
+            fields:['place_id','geometry','formatted_address']
         }
     );
+    autocomplete.addListener('place_changed', onplacechanged);
+}
+//to change the place//
+function onplacechanged(){
+    let place=autocomplete.getPlace();
+    if (!place.geometry){
+        document.getElementById('patient-address').placeholder="Enter you Address";
+    }else{
+        document.getElementById('patient-address').value=place.formatted_address;
+    }
 }
