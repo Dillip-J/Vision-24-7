@@ -25,7 +25,6 @@ document.addEventListener('DOMContentLoaded', () => {
     // ==========================================
     // --- 2. DYNAMIC CATEGORY BUILDER ---
     // ==========================================
-    // The DB only returns text (e.g., "Cardiologist"). We map that text to UI designs here.
     const designMap = {
         "Cardiologist": { icon: "fa-heart", color: "red" },
         "Pediatrician": { icon: "fa-baby", color: "pink" },
@@ -35,7 +34,7 @@ document.addEventListener('DOMContentLoaded', () => {
         "Neurologist": { icon: "fa-brain", color: "indigo" },
         "Dermatologist": { icon: "fa-face-smile", color: "yellow" },
         "Dietitian": { icon: "fa-apple-whole", color: "green" },
-        "default": { icon: "fa-user-doctor", color: "blue" } // Catch-all for new specialties
+        "default": { icon: "fa-user-doctor", color: "blue" } 
     };
 
     async function fetchAndRenderSpecialties() {
@@ -43,7 +42,6 @@ document.addEventListener('DOMContentLoaded', () => {
         if (!grid) return;
 
         try {
-            // Hit your Python backend
             const response = await fetch(`${API_BASE}/home/`);
             if (!response.ok) throw new Error("API Offline");
             
@@ -53,11 +51,10 @@ document.addEventListener('DOMContentLoaded', () => {
             grid.innerHTML = ''; // Clear the loading spinner
 
             if (categories.length === 0) {
-                grid.innerHTML = `<p style="grid-column: 1/-1; text-align: center; color: var(--text-secondary);">No specialties available at the moment.</p>`;
+                grid.innerHTML = `<p class="empty-state-text">No specialties available at the moment.</p>`;
                 return;
             }
 
-            // Build a button for every category found in the PostgreSQL Database
             categories.forEach(cat => {
                 const style = designMap[cat] || designMap["default"];
                 const cardHTML = `
@@ -69,7 +66,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 grid.insertAdjacentHTML('beforeend', cardHTML);
             });
 
-            // ATTACH "THE MESSENGER" LISTENER TO THE NEWLY CREATED CARDS
             document.querySelectorAll('.specialty-card').forEach(card => {
                 card.addEventListener('click', (e) => {
                     const specialtyName = card.getAttribute('data-specialty');
@@ -85,7 +81,6 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    // Fire the function!
     fetchAndRenderSpecialties();
 
     // ==========================================

@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-theme="light">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -17,14 +17,20 @@
             <span class="brand-text">Vision<br><small>Healthcare</small></span>
         </div>
         
-        <button class="mobile-menu-btn" id="mobile-menu-btn" style="display: none; background: transparent; border: none; font-size: 1.5rem; color: var(--text-main);"><i class="fa-solid fa-bars"></i></button>
+        <button class="mobile-menu-btn" id="mobile-menu-btn" aria-label="Menu">
+            <i class="fa-solid fa-bars"></i>
+        </button>
 
         <nav class="nav-links" id="nav-links">
             <a href="#" data-nav="doctors.html" class="active">Find Doctors</a>
             <a href="#">About</a>
         </nav>
+        
         <div class="nav-actions" id="nav-actions">
-            </div>
+            <a href="dashboard.html" data-nav="dashboard.html" class="nav-text-link">Dashboard</a>
+            <a href="profile.html" data-nav="profile.html" class="nav-text-link">Profile</a>
+            <a href="#" id="logout-btn" class="nav-text-link text-red">Logout</a>
+        </div>
     </header>
 
     <main class="container">
@@ -34,18 +40,17 @@
                 <h1 class="hero-title">Your Health,<br><span class="text-blue">Our Priority</span></h1>
                 <p class="hero-subtitle">Connect with verified doctors, book home visits, and access healthcare services from the comfort of your home.</p>
                 
-                <div class="search-bar" style="position: relative;">
+                <div class="search-bar search-wrapper">
                     <i class="fa-solid fa-magnifying-glass search-icon"></i>
                     <input type="text" id="global-search" placeholder="Search for doctors, services...">
                     <button class="btn-primary search-btn" id="btn-global-search">Search</button>
-                    
-                    <div id="search-results" style="position: absolute; top: 100%; left: 0; right: 0; background: var(--bg-card, #fff); border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); z-index: 100; max-height: 300px; overflow-y: auto;"></div>
+                    <div id="search-results" class="search-results-dropdown"></div>
                 </div>
 
                 <div class="quick-tags">
                     <span class="tag"><i class="fa-solid fa-video"></i> Video Consult</span>
                     <span class="tag"><i class="fa-solid fa-location-dot"></i> Home Visit</span>
-                    </div>
+                </div>
             </div>
             
             <div class="hero-image-container">
@@ -65,7 +70,7 @@
             </div>
             
             <div class="specialties-grid" id="dynamic-specialties">
-                <div style="text-align:center; grid-column: 1/-1; padding: 20px;">
+                <div class="loading-spinner-container">
                     <i class="fa-solid fa-spinner fa-spin"></i> Loading Specialties...
                 </div>
             </div>
