@@ -1,15 +1,13 @@
 // js/dashboard.js
 document.addEventListener('DOMContentLoaded', () => {
 
-    // 🚨 Rely STRICTLY on config.js. No fallback link.
     const API_BASE = window.API_BASE;
     if (!API_BASE) {
-        console.error("FATAL: window.API_BASE is missing. Ensure config.js is loaded before dashboard.js.");
+        console.error("FATAL: window.API_BASE is missing.");
         alert("Configuration Error: Cannot connect to server.");
         return;
     }
 
-    // 1. SECURITY & SESSION GUARD
     const token = localStorage.getItem('access_token');
     if (!token) { window.location.replace('index.html'); return; }
 
@@ -23,7 +21,6 @@ document.addEventListener('DOMContentLoaded', () => {
         return parts.length >= 2 ? `${parts[0][0]}${parts[1][0]}`.toUpperCase() : `${cleanName[0]}X`.toUpperCase();
     };
 
-    // 3. BULLETPROOF FASTAPI FETCH
     window.fetchDashboardData = async function() {
         try {
             const [activeRes, historyRes] = await Promise.all([
@@ -74,7 +71,6 @@ document.addEventListener('DOMContentLoaded', () => {
                     visitType: vType,
                     hasReport: mappedStatus === 'completed' && !!apt.report_url, 
                     reportUrl: apt.report_url, 
-                    // Make sure we grab the correct clinical notes field from the backend
                     clinicalNotes: apt.notes || apt.clinical_notes || "No clinical notes provided by the doctor.",
                     raw: apt 
                 };
@@ -90,7 +86,6 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    // 4. STATS RENDERER
     function renderStats() {
         const statsContainer = document.getElementById('stats-container');
         if(!statsContainer) return;
@@ -114,7 +109,6 @@ document.addEventListener('DOMContentLoaded', () => {
         `;
     }
 
-    // 5. TAB LIST RENDERING ENGINE
     function renderAllLists() {
         renderList('list-active', myBookings.filter(b => b.status === 'active'), "No active appointments right now.");
         renderList('list-completed', myBookings.filter(b => b.status === 'completed'), "You have no completed appointments yet.");
@@ -150,7 +144,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 actionButtonsHtml += `<button class="btn-action-outline" style="color: #F59E0B; border-color: #F59E0B;"><i class="fa-regular fa-clock"></i> Awaiting</button>`;
             } 
             
-            // 🚨 THE FIX: Pass a flag to openBookingModal to tell it WHICH view to show
             if (apt.status === 'completed') {
                 actionButtonsHtml += `<button class="btn-action-outline" onclick="openBookingModal('${apt.rawId}', 'notes')"><i class="fa-solid fa-notes-medical"></i> View Notes</button>`;
             }
@@ -188,7 +181,6 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    // 6. SAFE TABS SWITCHING LOGIC
     const tabs = document.querySelectorAll('.dash-tab');
     const tabContents = document.querySelectorAll('.tab-content');
     const sectionTitle = document.getElementById('dynamic-section-title');
@@ -209,18 +201,15 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     });
 
-    // 7. MODAL ENGINE (CHAMELEON FIX)
     const modal = document.getElementById('booking-modal');
     const closeModalBtn = document.getElementById('modal-close-btn');
 
     if (closeModalBtn) closeModalBtn.addEventListener('click', () => modal.classList.add('hidden'));
 
-    // 🚨 viewType will either be 'details' or 'notes'
     window.openBookingModal = function(rawId, viewType = 'details') {
         const apt = myBookings.find(b => b.rawId === rawId);
         if (!apt) return;
 
-        // Populate header data (always visible)
         document.getElementById('modal-booking-id').textContent = `Booking ID: ${apt.bookingId}`;
         document.getElementById('modal-status-badge').textContent = apt.status.toUpperCase();
         document.getElementById('modal-doc-initials').textContent = getInitials(apt.doctorName);
@@ -235,17 +224,14 @@ document.addEventListener('DOMContentLoaded', () => {
         document.getElementById('modal-date').textContent = apt.date;
         document.getElementById('modal-time').textContent = apt.time;
 
-        // Grab containers
-        const detailsSection = document.getElementById('modal-details-section'); // You need to wrap your patient details in this ID in your HTML
+        const detailsSection = document.getElementById('modal-details-section'); 
         const notesSection = document.getElementById('modal-notes-section');
         const notesText = document.getElementById('modal-notes-text');
 
         if (viewType === 'details') {
-            // SHOW details, HIDE notes
             if (detailsSection) detailsSection.style.display = 'block';
             if (notesSection) notesSection.classList.add('hidden');
             
-            // Populate details
             document.getElementById('modal-patient-name').textContent = apt.raw.patient_name || "Self";
             
             const ageEl = document.getElementById('modal-patient-age');
@@ -269,7 +255,6 @@ document.addEventListener('DOMContentLoaded', () => {
             if(reasonEl) reasonEl.textContent = apt.raw.symptoms || "None provided";
 
         } else if (viewType === 'notes') {
-            // HIDE details, SHOW notes
             if (detailsSection) detailsSection.style.display = 'none';
             if (notesSection) {
                 notesSection.classList.remove('hidden');
@@ -284,12 +269,8 @@ document.addEventListener('DOMContentLoaded', () => {
         if (e.target === modal) modal.classList.add('hidden'); 
     });
 
-    // 8. START ENGINE
     fetchDashboardData();
 
-    // ==========================================
-    // GLOBAL ACTIONS (Cancel)
-    // ==========================================
     window.cancelBooking = async function(rawId) {
         if (!confirm("Are you sure you want to cancel this appointment? This action cannot be undone.")) return;
         
@@ -309,4 +290,4 @@ document.addEventListener('DOMContentLoaded', () => {
             alert("Network Error while canceling.");
         }
     };
-});yc
+});

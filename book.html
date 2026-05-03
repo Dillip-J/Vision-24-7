@@ -84,11 +84,11 @@
                     <div class="form-row two-col">
                         <div class="input-group">
                             <label>Full Name *</label>
-                            <input type="text" id="patient-name" placeholder="Full Name" required>
+                            <input type="text" id="patient-name" class="form-control" placeholder="Full Name" required>
                         </div>
                         <div class="input-group">
                             <label>Age *</label>
-                            <input type="number" id="patient-age" placeholder="Age" required>
+                            <input type="number" id="patient-age" class="form-control" placeholder="Age" required>
                         </div>
                     </div>
 
@@ -103,15 +103,29 @@
 
                     <div class="form-row">
                         <label>Symptoms / Reason for Visit *</label>
-                        <textarea id="patient-symptoms" rows="3" placeholder="Describe your symptoms or reason for consultation..." required></textarea>
+                        <textarea id="patient-symptoms" class="form-control" rows="3" placeholder="Describe your symptoms or reason for consultation..." required></textarea>
                     </div>
 
-                    <div class="form-row form-group address-group">
-                        <label id="landmark-label">Enter your house number/flat number and building name *</label>
-                        <input id="landmark_house" type="text" placeholder="Please enter your flat no./house number and landmark" required />
-                        
-                        <label id="address-label" class="mt-spacing">Enter your area / address *</label>
-                        <input id="patient-address" type="text" placeholder="Please enter your address" required />
+                    <div class="form-row form-group address-group" id="address-block">
+                        <div class="input-group">
+                            <label>Flat / House Number *</label>
+                            <input type="text" id="flat-number" class="form-control" placeholder="e.g., Flat 402" required>
+                        </div>
+
+                        <div class="input-group mt-spacing">
+                            <label>Building / Apartment Name *</label>
+                            <input type="text" id="building-name" class="form-control" placeholder="e.g., Sunshine Apartments" required>
+                        </div>
+
+                        <div class="input-group mt-spacing">
+                            <label>Landmark</label>
+                            <input type="text" id="landmark" class="form-control" placeholder="e.g., Near Metro Station">
+                        </div>
+
+                        <div class="input-group mt-spacing">
+                            <label>Enter your area / address via Map *</label>
+                            <input id="patient-address" class="form-control" type="text" placeholder="Please enter your address" required />
+                        </div>
                     </div>
                 </form>
             </section>
@@ -124,8 +138,6 @@
                 <div class="summary-doc-info">
                     <span class="summary-label">Doctor</span>
                     <strong id="sum-doc-name">...</strong>
-                    <!-- <span class="summary-label mt-2">Specialization</span>
-                    <strong class="text-blue" id="sum-doc-spec">...</strong> -->
                 </div>
 
                 <div class="summary-datetime">
@@ -136,7 +148,7 @@
                             <strong id="sum-date">Select a date</strong>
                         </div>
                     </div>
-                    <div class="sum-row" id="sum-time-row" style="display: none;">
+                    <div class="sum-row hidden" id="sum-time-row">
                         <i class="fa-regular fa-clock"></i>
                         <div>
                             <span class="sum-sub">Time</span>
@@ -168,7 +180,7 @@
                     </div>
                 </div>
 
-                <button class="btn-primary full-width" id="proceed-btn" disabled>
+                <button class="btn-primary full-width disabled" id="proceed-btn" disabled>
                     <i class="fa-regular fa-circle-check"></i> Proceed to Payment
                 </button>
 

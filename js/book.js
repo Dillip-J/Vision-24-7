@@ -1,10 +1,9 @@
 // js/book.js
 document.addEventListener('DOMContentLoaded', () => {
 
-    // 🚨 Rely STRICTLY on config.js. No fallback link.
     const API_BASE = window.API_BASE;
     if (!API_BASE) {
-        console.error("FATAL: window.API_BASE is missing. Ensure config.js is loaded before book.js.");
+        console.error("FATAL: window.API_BASE is missing.");
         alert("Configuration Error: Cannot connect to server.");
         return;
     }
@@ -20,21 +19,14 @@ document.addEventListener('DOMContentLoaded', () => {
     const doctorData = savedService;
     const currentProviderId = doctorData.provider_id || doctorData.id;
 
-    // ==========================================================
-    // 🚨 DATA NORMALIZATION (PREVENTS FATAL CRASHES)
-    // ==========================================================
     const cachedDoctors = JSON.parse(localStorage.getItem('eterna_cache_doctors') || '[]');
     const fullDocData = cachedDoctors.find(d => (d.provider_id || d.id) === currentProviderId) || {};
     
-    // Safely extract variables no matter how the previous page saved them
     const docName = doctorData.doctorName || doctorData.name || fullDocData.name || "Doctor";
     const docSpec = doctorData.doctorSpecialty || doctorData.specialty || doctorData.category || fullDocData.category || "Specialist";
     const visitType = doctorData.visitType || doctorData.visit_type || "Home Visit";
     const rawImg = doctorData.doctorImage || doctorData.doctor_image || fullDocData.profile_photo_url || "";
 
-    // ==========================================================
-    // 🚨 FETCH FULL PROFILE (BIO & PHONE)
-    // ==========================================================
     const bioEl = document.getElementById('dyn-doc-bio');
     const phoneEl = document.getElementById('dyn-doc-phone');
 
@@ -46,48 +38,33 @@ document.addEventListener('DOMContentLoaded', () => {
         if (phoneEl) phoneEl.textContent = "N/A";
     }
 
-    // ==========================================================
-    // 🚨 THE DOCTOR ICON FIX (REPLACES BROKEN/MISSING IMAGES)
-    // ==========================================================
     const docImgEl = document.getElementById('dyn-doc-img');
     if(docImgEl) {
         const parentDiv = docImgEl.parentElement; 
         
-        parentDiv.style.display = 'flex';
-        parentDiv.style.alignItems = 'center';
-        parentDiv.style.justifyContent = 'center';
-        parentDiv.style.background = 'rgba(37, 99, 235, 0.1)';
-        parentDiv.style.overflow = 'hidden';
-
-        const iconHtml = `<i class="fa-solid fa-user-doctor" style="color: var(--brand-blue); font-size: 3.5rem;"></i>`;
-
         if (!rawImg || rawImg.includes('default-avatar') || rawImg.includes('default-doc')) {
-            parentDiv.innerHTML = iconHtml;
+            // Relies entirely on your external CSS class
+            parentDiv.classList.add('doc-icon-fallback');
+            parentDiv.innerHTML = `<i class="fa-solid fa-user-doctor"></i>`;
         } else {
             docImgEl.onerror = function() {
-                parentDiv.innerHTML = iconHtml;
+                parentDiv.classList.add('doc-icon-fallback');
+                parentDiv.innerHTML = `<i class="fa-solid fa-user-doctor"></i>`;
             };
             docImgEl.src = rawImg.startsWith('http') ? rawImg : `${API_BASE}${rawImg}`;
-            docImgEl.style.width = '100%';
-            docImgEl.style.height = '100%';
-            docImgEl.style.objectFit = 'cover';
         }
     }
 
-    // 1. COMPLETELY Hide Address Row for Video Consults
-    const addressInput = document.getElementById('patient-address');
-    if (addressInput) {
-        const formGroup = addressInput.closest('.form-group') || addressInput.parentElement;
-        
+    // Hide entire address block via CSS classes instead of inline style
+    const addressBlock = document.getElementById('address-block');
+    if (addressBlock) {
         if (visitType === 'Video Consult' || visitType.includes('Video')) {
-            formGroup.style.display = 'none'; 
-            addressInput.value = 'Online';    
+            addressBlock.classList.add('hidden'); 
         } else {
-            formGroup.style.display = 'block'; 
+            addressBlock.classList.remove('hidden'); 
         }
     }
 
-    // Populate standard details
     if(document.getElementById('dyn-doc-name')) document.getElementById('dyn-doc-name').textContent = docName;
     if(document.getElementById('dyn-doc-spec')) document.getElementById('dyn-doc-spec').textContent = docSpec;
     
@@ -101,9 +78,6 @@ document.addEventListener('DOMContentLoaded', () => {
     if(document.getElementById('sum-doc-name')) document.getElementById('sum-doc-name').textContent = docName;
     if(document.getElementById('sum-type')) document.getElementById('sum-type').textContent = visitType;
 
-    // ==========================================================
-    // 🚨 BULLETPROOF PRICING: Syncs perfectly with Catalog Price
-    // ==========================================================
     const fee = parseFloat(doctorData.price) || parseFloat(doctorData.consultationFee) || parseFloat(doctorData.consultation_fee) || parseFloat(fullDocData.consultation_fee) || 500;
     const visit = visitType === 'Home Visit' ? (parseFloat(doctorData.visitCharge) || parseFloat(doctorData.home_visit_charge) || 0) : 0;
     const total = fee + visit;
@@ -121,7 +95,6 @@ document.addEventListener('DOMContentLoaded', () => {
     const backBtn = document.getElementById("backbtn");
     if (backBtn) backBtn.addEventListener("click", (e) => { e.preventDefault(); window.history.back(); });
 
-    // 3. Date & Time Engine Variables
     let selectedTime = null; 
     let selectedDateAPI = null; 
     let selectedDateDisplay = null; 
@@ -131,9 +104,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const formatDateForAPI = (d) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 
-    // ==========================================================
-    // 🚨 THE UNLOCK BUTTON FIX
-    // ==========================================================
     const proceedBtn = document.getElementById('proceed-btn');
 
     const updateSummaryUI = () => {
@@ -144,14 +114,14 @@ document.addEventListener('DOMContentLoaded', () => {
 
         if (selectedTime) {
             if(sumTimeEl) sumTimeEl.textContent = selectedTime;
-            if(sumTimeRow) sumTimeRow.style.display = 'flex'; 
+            if(sumTimeRow) sumTimeRow.classList.remove('hidden'); 
             if(proceedBtn) {
                 proceedBtn.disabled = false; 
                 proceedBtn.classList.remove('disabled');
             }
         } else {
             if(sumTimeEl) sumTimeEl.textContent = "Select a time";
-            if(sumTimeRow) sumTimeRow.style.display = 'none'; 
+            if(sumTimeRow) sumTimeRow.classList.add('hidden'); 
             if(proceedBtn) {
                 proceedBtn.disabled = true; 
                 proceedBtn.classList.add('disabled');
@@ -159,13 +129,12 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     };
 
-    // Enforce 5-Hour Rule and fetch exact slots from backend
     async function fetchAndRenderTimeSlots(apiDateString) {
         if (!timeSlotContainer) return;
         selectedTime = null; 
         updateSummaryUI();
         
-        timeSlotContainer.innerHTML = '<div style="width: 100%; padding: 12px; text-align: center; color: var(--text-secondary);">Loading available slots...</div>'; 
+        timeSlotContainer.innerHTML = '<div class="empty-state">Loading available slots...</div>'; 
 
         try {
             const response = await fetch(`${API_BASE}/providers/${currentProviderId}/available-slots?date=${apiDateString}`, {
@@ -192,12 +161,12 @@ document.addEventListener('DOMContentLoaded', () => {
             timeSlotContainer.innerHTML = ''; 
 
             if (availableSlots.length === 0) {
-                timeSlotContainer.innerHTML = '<div style="width: 100%; text-align: center; color: var(--text-secondary);">No slots available on this date.</div>';
+                timeSlotContainer.innerHTML = '<div class="empty-state">No slots available on this date.</div>';
                 return;
             }
 
             const now = new Date();
-            const cutoffTime = new Date(now.getTime() + (5 * 60 * 60 * 1000)); // 5 Hour Buffer
+            const cutoffTime = new Date(now.getTime() + (5 * 60 * 60 * 1000)); 
             
             let validSlotsCount = 0;
 
@@ -218,15 +187,10 @@ document.addEventListener('DOMContentLoaded', () => {
                     slotBtn.addEventListener('click', (e) => {
                         document.querySelectorAll('.time-slot').forEach(s => {
                             s.classList.remove('active');
-                            s.style.backgroundColor = ''; 
-                            s.style.color = ''; 
-                            s.style.borderColor = ''; 
                         });
                         
+                        // Let CSS handle the active state coloring
                         e.target.classList.add('active');
-                        e.target.style.backgroundColor = 'var(--brand-blue)'; 
-                        e.target.style.color = '#fff';
-                        e.target.style.borderColor = 'var(--brand-blue)';
                         
                         selectedTime = time;
                         updateSummaryUI(); 
@@ -237,14 +201,14 @@ document.addEventListener('DOMContentLoaded', () => {
             });
 
             if (validSlotsCount === 0) {
-                timeSlotContainer.innerHTML += `<div style="width: 100%; text-align: center; color: #ef4444; font-size: 0.85rem; margin-top: 10px;">
+                timeSlotContainer.innerHTML += `<div class="empty-state text-red">
                     <i class="fa-solid fa-circle-exclamation"></i> Remaining slots are less than 5 hours away. Please select tomorrow.
                 </div>`;
             }
 
         } catch (error) {
             console.error(error);
-            timeSlotContainer.innerHTML = '<div style="width: 100%; text-align: center; color: #ef4444;">Error loading time slots. Please try again.</div>';
+            timeSlotContainer.innerHTML = '<div class="empty-state text-red">Error loading time slots. Please try again.</div>';
         }
     }
 
@@ -293,23 +257,29 @@ document.addEventListener('DOMContentLoaded', () => {
             const localDateTime = `${selectedDateAPI}T${convertTo24Hour(selectedTime)}:00`;
             const genderNode = document.querySelector('input[name="gender"]:checked');
             
-            const landmarkVal = document.getElementById('landmark_house') ? document.getElementById('landmark_house').value.trim() : "";
-            const addressVal = document.getElementById('patient-address') ? document.getElementById('patient-address').value.trim() : "";
+            // 🚨 GRAB THE NEW SEPARATED ADDRESS FIELDS
+            const buildingVal = document.getElementById('building-name') ? document.getElementById('building-name').value.trim() : "Online";
+            const flatVal = document.getElementById('flat-number') ? document.getElementById('flat-number').value.trim() : "Online";
+            const landmarkVal = document.getElementById('landmark') ? document.getElementById('landmark').value.trim() : "Online";
+            const addressVal = document.getElementById('patient-address') ? document.getElementById('patient-address').value.trim() : "Online";
             
             let finalAddress = "Online";
             if (visitType !== 'Video Consult' && !visitType.includes('Video')) {
-                finalAddress = `${landmarkVal}, ${addressVal}`;
+                finalAddress = `${flatVal}, ${buildingVal}, ${landmarkVal}, ${addressVal}`;
             }
 
             const bookingPayload = {
                 provider_id: currentProviderId, 
                 scheduled_time: localDateTime,
                 delivery_address: finalAddress,
+                building_name: buildingVal,
+                flat_number: flatVal,
+                landmark: landmarkVal,
                 patient_name: document.getElementById('patient-name').value,
                 patient_age: parseInt(document.getElementById('patient-age').value) || 0,
                 patient_gender: genderNode ? genderNode.value : "Other",
                 symptoms: document.getElementById('patient-symptoms').value || "None",
-                total_amount: total // 🚨 Sent to backend so provider earnings are accurate
+                total_amount: total 
             };
 
             try {
@@ -331,7 +301,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
             } catch (error) {
                 alert(error.message);
-                proceedBtn.innerHTML = 'Proceed to Payment';
+                proceedBtn.innerHTML = '<i class="fa-regular fa-circle-check"></i> Proceed to Payment';
                 proceedBtn.disabled = false;
             }
         });
@@ -346,15 +316,11 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 });
 
-// ==========================================================
-// GOOGLE MAPS AUTOCOMPLETE ENGINE
-// ==========================================================
 let autocomplete;
 window.initAutocomplete = function() {
     const addressInput = document.getElementById("patient-address");
     if (!addressInput) return;
 
-    // 🚨 THE FIX: It is strictly "Autocomplete", do NOT add "Element"
     autocomplete = new google.maps.places.Autocomplete(
         addressInput,
         {
@@ -377,7 +343,6 @@ function onPlaceChanged() {
         addressInput.value = place.formatted_address;
     }
 }
-
 // let autocomplete;
 
 // window.initAutocomplete = function() {

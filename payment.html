@@ -33,11 +33,6 @@
     <main class="content-wrapper booking-layout">
         
         <div class="booking-flow">
-            
-            <div class="secure-badge-top">
-                <i class="fa-solid fa-shield-halved"></i> Secure & encrypted payment
-            </div>
-
             <section class="booking-card">
                 <h2 class="card-title">Select Payment Method</h2>
                 
@@ -82,7 +77,7 @@
 
             <div class="payment-panel" id="panel-card" style="display: none;">
                 <section class="booking-card">
-                    <h2 class="card-title"><i class="fa-solid fa-lock text-blue"></i> Card Details</h2>
+                    <h2 class="card-title">Card Details</h2>
                     <form class="payment-form" id="form-card">
                         <div class="form-row">
                             <label>Card Number</label>
@@ -135,7 +130,7 @@
 
                 <section class="booking-card">
                     <h2 class="card-title">
-                        <i class="fa-solid fa-lock text-blue"></i> <span id="dynamic-bank-name">HDFC Bank</span> Login
+                        <span id="dynamic-bank-name">HDFC Bank</span> Login
                     </h2>
                     <p class="sub-text">Enter your net banking credentials to proceed with the payment</p>
                     
@@ -147,9 +142,6 @@
                         <div class="form-row">
                             <label>Password</label>
                             <input type="password" placeholder="Enter your password" id="nb-pass" required>
-                        </div>
-                        <div class="security-banner">
-                            <i class="fa-solid fa-shield-halved"></i> Your banking credentials are encrypted and secure. We never store your password.
                         </div>
                     </form>
                 </section>
@@ -205,10 +197,6 @@
                         <span>Visit Charges</span>
                         <span id="pay-visit">...</span>
                     </div>
-                    <div class="cost-row">
-                        <span>Platform Fee</span>
-                        <span id="pay-platform">...</span>
-                    </div>
                     <hr class="cost-divider">
                     <div class="cost-row total-row">
                         <span>Total Amount</span>
@@ -220,9 +208,6 @@
                     Pay <span id="btn-amount">$0</span>
                 </button>
 
-                <div class="secure-footer">
-                    <i class="fa-solid fa-lock"></i> 100% secure payment powered by SSL encryption
-                </div>
             </div>
         </aside>
 

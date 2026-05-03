@@ -310,3 +310,26 @@
         grid-template-columns: repeat(2, 1fr); /* 2x2 time grid on phones */
     }
 }
+
+/* Add this to css/booking.css */
+.doc-icon-fallback {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background-color: rgba(37, 99, 235, 0.1);
+    width: 100%;
+    height: 100%;
+}
+.doc-icon-fallback i {
+    color: var(--brand-blue);
+    font-size: 3.5rem;
+}
+.text-red {
+    color: #ef4444;
+}
+.empty-state {
+    width: 100%; 
+    padding: 12px; 
+    text-align: center; 
+    color: var(--text-secondary);
+}

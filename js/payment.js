@@ -25,8 +25,6 @@ document.addEventListener('DOMContentLoaded', () => {
     // ==========================================
     // --- 2. DYNAMIC UI ADAPTATION ---
     // ==========================================
-    const providerType = bookingData.provider_type || 'Doctor'; 
-    
     const docImg = document.getElementById('pay-doc-img');
     const docName = document.getElementById('pay-doc-name');
     const docSpec = document.getElementById('pay-doc-spec');
@@ -36,7 +34,6 @@ document.addEventListener('DOMContentLoaded', () => {
     
     const feeEl = document.getElementById('pay-fee');
     const visitEl = document.getElementById('pay-visit');
-    const platformEl = document.getElementById('pay-platform');
     const totalEl = document.getElementById('pay-total');
     const btnAmount = document.getElementById('btn-amount');
 
@@ -45,24 +42,20 @@ document.addEventListener('DOMContentLoaded', () => {
     if (docSpec) docSpec.textContent = bookingData.doctorSpecialty || bookingData.category;
     if (typeEl) typeEl.textContent = bookingData.visitType;
 
-    // Pull the saved Date & Time from the booking step
     if (dateEl) dateEl.textContent = localStorage.getItem('bookedDate') || "Today";
     if (timeEl) timeEl.textContent = localStorage.getItem('bookedTime') || "TBD";
 
-    // 🚨 THE FIX: Remove Platform Fee math and hide it
+    // 🚨 BUG FIX: Ensure we use the EXACT total calculated in book.js so it matches the DB
     const baseFee = bookingData.consultationFee || bookingData.price || 500;
     const visitFee = bookingData.visitType === 'Home Visit' ? (bookingData.visitCharge || 200) : 0;
-    const totalAmount = baseFee + visitFee;
+    
+    const savedTotalAmount = localStorage.getItem('paymentTotalAmount');
+    const totalAmount = savedTotalAmount ? parseFloat(savedTotalAmount) : (baseFee + visitFee);
 
     const formatCurrency = (amount) => new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR' }).format(amount);
 
     if (feeEl) feeEl.textContent = formatCurrency(baseFee);
     if (visitEl) visitEl.textContent = formatCurrency(visitFee);
-    
-    if (platformEl) {
-        const platformRow = platformEl.parentElement; 
-        if (platformRow) platformRow.style.display = 'none'; 
-    }
     
     if (totalEl) totalEl.textContent = formatCurrency(totalAmount);
     if (btnAmount) btnAmount.textContent = formatCurrency(totalAmount);
@@ -126,7 +119,6 @@ document.addEventListener('DOMContentLoaded', () => {
     if (payBtn) {
         payBtn.addEventListener('click', async () => {
             
-            // Validate Inputs before "paying"
             const activeRadioNode = document.querySelector('input[name="payment_method"]:checked');
             if (!activeRadioNode) return;
             const activeRadio = activeRadioNode.value;
@@ -146,15 +138,12 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
             }
 
-            // Lock the button
             const originalHtml = payBtn.innerHTML;
             payBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Processing...';
             payBtn.disabled = true;
 
-            // Simulate Payment Gateway Delay
             await new Promise(resolve => setTimeout(resolve, 1500));
 
-            // Clean up and Redirect
             localStorage.removeItem('pendingBooking');
             localStorage.removeItem('paymentTotalAmount');
             localStorage.setItem('latestBookingId', activeBookingId); 
