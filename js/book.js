@@ -40,7 +40,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const docImgEl = document.getElementById('dyn-doc-img');
     if(docImgEl) {
-        // 🚨 MAGIC AVATAR FALLBACK
+        // 🚨 FIX: Safe fallback generator using UI Avatars
         const fallbackUrl = `https://ui-avatars.com/api/?name=${encodeURIComponent(docName)}&background=1E293B&color=fff&size=128`;
         
         if (!rawImg || rawImg.includes('default-avatar') || rawImg.includes('default-doc')) {
@@ -254,6 +254,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const localDateTime = `${selectedDateAPI}T${convertTo24Hour(selectedTime)}:00`;
             const genderNode = document.querySelector('input[name="gender"]:checked');
             
+            // 🚨 FIX: Address logic prevents double commas if building name is empty
             const bNameNode = document.getElementById('building-name');
             const flatNode = document.getElementById('flat-number');
             const landNode = document.getElementById('landmark');
@@ -268,7 +269,7 @@ document.addEventListener('DOMContentLoaded', () => {
             if (visitType !== 'Video Consult' && !visitType.includes('Video')) {
                 const addrParts = [];
                 if (flatVal) addrParts.push(flatVal);
-                if (buildingVal) addrParts.push(buildingVal); 
+                if (buildingVal) addrParts.push(buildingVal); // Ignores completely if empty
                 if (landmarkVal) addrParts.push(landmarkVal);
                 if (addressVal) addrParts.push(addressVal);
                 
@@ -279,7 +280,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 provider_id: currentProviderId, 
                 scheduled_time: localDateTime,
                 delivery_address: finalAddress,
-                building_name: buildingVal || "N/A", 
+                building_name: buildingVal || "N/A", // Backend fallback if empty
                 flat_number: flatVal || "Online",
                 landmark: landmarkVal || "Online",
                 patient_name: document.getElementById('patient-name').value,
