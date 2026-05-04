@@ -101,8 +101,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 <div class="stat-icon icon-green"><i class="fa-regular fa-circle-check"></i></div>
             </div>
             <div class="stat-card">
-                <div class="stat-info"><span class="stat-title">Canceled</span><span class="stat-value" style="color: #EF4444;">${canceledCount}</span></div>
-                <div class="stat-icon" style="background: rgba(239, 68, 68, 0.15); color: #F87171;"><i class="fa-solid fa-ban"></i></div>
+                <div class="stat-info"><span class="stat-title">Refunded</span><span class="stat-value" style="color: #10B981;">${canceledCount}</span></div>
+                <div class="stat-icon" style="background: rgba(16, 185, 129, 0.15); color: #10B981;"><i class="fa-solid fa-money-bill-wave"></i></div>
             </div>
         `;
     }
@@ -110,7 +110,7 @@ document.addEventListener('DOMContentLoaded', () => {
     function renderAllLists() {
         renderList('list-active', myBookings.filter(b => b.status === 'active'), "No active appointments right now.");
         renderList('list-completed', myBookings.filter(b => b.status === 'completed'), "You have no completed appointments yet.");
-        renderList('list-canceled', myBookings.filter(b => b.status === 'canceled'), "No canceled appointments.");
+        renderList('list-canceled', myBookings.filter(b => b.status === 'canceled'), "No refunded appointments.");
     }
 
     function renderList(containerId, dataArray, emptyMessage) {
@@ -153,7 +153,10 @@ document.addEventListener('DOMContentLoaded', () => {
             }
 
             let statusClass = `status-${apt.status}`;
-            if (apt.status === 'canceled') statusClass = 'status-canceled'; 
+            if (apt.status === 'canceled') statusClass = 'status-refunded'; // Connect to CSS
+
+            // 🚨 FIX: Force UI to display "REFUNDED" instead of CANCELED
+            const displayStatusText = apt.status === 'canceled' ? 'REFUNDED' : apt.status.toUpperCase();
 
             container.innerHTML += `
                 <div class="apt-card">
@@ -162,7 +165,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         <div class="apt-top-row">
                             <div class="apt-title-group">
                                 <h3>${apt.doctorSpecialty}</h3>
-                                <span class="status-badge ${statusClass}">${apt.status.toUpperCase()}</span>
+                                <span class="status-badge ${statusClass}">${displayStatusText}</span>
                             </div>
                             <span class="apt-id">${apt.bookingId}</span>
                         </div>
@@ -208,8 +211,11 @@ document.addEventListener('DOMContentLoaded', () => {
         const apt = myBookings.find(b => b.rawId === rawId);
         if (!apt) return;
 
+        // 🚨 FIX: Ensure modal also shows "REFUNDED"
+        const displayStatusText = apt.status === 'canceled' ? 'REFUNDED' : apt.status.toUpperCase();
+
         document.getElementById('modal-booking-id').textContent = `Booking ID: ${apt.bookingId}`;
-        document.getElementById('modal-status-badge').textContent = apt.status.toUpperCase();
+        document.getElementById('modal-status-badge').textContent = displayStatusText;
         document.getElementById('modal-doc-initials').textContent = getInitials(apt.doctorName);
         document.getElementById('modal-doc-name').textContent = apt.doctorName;
         document.getElementById('modal-doc-spec').textContent = apt.doctorSpecialty;
@@ -226,7 +232,6 @@ document.addEventListener('DOMContentLoaded', () => {
         const notesSection = document.getElementById('modal-notes-section');
         const notesText = document.getElementById('modal-notes-text');
 
-        // 🚨 UI BUG FIX: Toggle visibility properly between Details and Notes
         if (viewType === 'details') {
             if (detailsSection) detailsSection.style.display = 'grid'; // info-grid uses grid, not block!
             if (notesSection) notesSection.classList.add('hidden');
@@ -271,7 +276,7 @@ document.addEventListener('DOMContentLoaded', () => {
     fetchDashboardData();
 
     window.cancelBooking = async function(rawId) {
-        if (!confirm("Are you sure you want to cancel this appointment? This action cannot be undone.")) return;
+        if (!confirm("Are you sure you want to cancel this appointment? Your payment will be refunded.")) return;
         
         try {
             const response = await fetch(`${API_BASE}/bookings/${rawId}/cancel`, {
@@ -279,7 +284,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 headers: { 'Authorization': `Bearer ${token}` }
             });
             if (response.ok) {
-                alert("Booking successfully canceled.");
+                alert("Booking successfully canceled and refunded.");
                 if(window.fetchDashboardData) window.fetchDashboardData(); 
             } else {
                 alert("Failed to cancel booking.");
