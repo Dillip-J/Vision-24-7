@@ -8,6 +8,10 @@ document.addEventListener('DOMContentLoaded', () => {
     const doctorCountDisplay = document.getElementById('doctor-count');
     const searchInput = document.getElementById('doctor-search');
     const filterSpecialty = document.getElementById('filter-specialty');
+    
+    // 🚨 FIX: Re-added the missing dropdown elements!
+    const filterType = document.getElementById('filter-type'); 
+    const sortFilter = document.getElementById('sort-filter');
 
     // --- 1. GLOBAL MEMORY (Get Lat/Lon) ---
     let userLat = parseFloat(localStorage.getItem('user_lat')) || 0.0;
@@ -62,6 +66,8 @@ document.addEventListener('DOMContentLoaded', () => {
         
         const searchTerm = searchInput ? searchInput.value.trim().toLowerCase() : '';
         const selectedSpecialty = filterSpecialty ? filterSpecialty.value.trim().toLowerCase() : 'all';
+        const selectedType = filterType ? filterType.value.toLowerCase() : 'all';
+        const selectedSort = sortFilter ? sortFilter.value : 'closest';
 
         const filtered = doctorsOnly.filter(doc => {
             const docName = (doc.name || '').trim().toLowerCase();
@@ -70,8 +76,31 @@ document.addEventListener('DOMContentLoaded', () => {
             const nameMatch = searchTerm === '' || docName.includes(searchTerm) || docCat.includes(searchTerm);
             const specMatch = selectedSpecialty === 'all' || docCat === selectedSpecialty || docCat.includes(selectedSpecialty);
             
-            return nameMatch && specMatch;
+            // 🚨 FIX: Restored Type Filtering Logic
+            let hasVideo = false;
+            let hasHome = false;
+            if (doc.doctor_services && doc.doctor_services.length > 0) {
+                hasVideo = !!doc.doctor_services.find(s => s.service_name.toLowerCase().includes("video"));
+                hasHome = !!doc.doctor_services.find(s => s.service_name.toLowerCase().includes("home"));
+            } else {
+                hasVideo = true; hasHome = true; 
+            }
+
+            let typeMatch = true;
+            if (selectedType === 'video' && !hasVideo) typeMatch = false;
+            if (selectedType === 'home' && !hasHome) typeMatch = false;
+
+            return nameMatch && specMatch && typeMatch;
         });
+
+        // 🚨 FIX: Restored Sorting Logic
+        if (selectedSort === 'closest') {
+            filtered.sort((a, b) => (a.distance_km === 'Unknown' ? 999 : a.distance_km) - (b.distance_km === 'Unknown' ? 999 : b.distance_km));
+        } else if (selectedSort === 'price_low') {
+            filtered.sort((a, b) => (a.price || 500) - (b.price || 500));
+        } else if (selectedSort === 'price_high') {
+            filtered.sort((a, b) => (b.price || 500) - (a.price || 500));
+        }
 
         if(doctorCountDisplay) doctorCountDisplay.textContent = filtered.length;
         
@@ -90,46 +119,47 @@ document.addEventListener('DOMContentLoaded', () => {
         if(doctorList) doctorList.innerHTML = '';
         
         filtered.forEach(doc => {
-            
-            // 🚨 BULLETPROOF IMAGE LOGIC
-            let imgUrl = "images/default-avatar.png"; 
+            const safeName = doc.name.replace(/'/g, "\\'");
+
+            // 🚨 FIX: Bulletproof Image Fallback
+            // Default icon if no photo exists
+            let avatarHtml = `<div style="width:100%; height:100%; display:flex; align-items:center; justify-content:center; background:#1E293B; color:#fff; border-radius:12px; font-size:2rem;"><i class="fa-solid fa-user-doctor"></i></div>`;
+            let imgUrl = "";
+
             if (doc.profile_photo_url) {
                 imgUrl = doc.profile_photo_url.startsWith('http') 
                     ? doc.profile_photo_url 
                     : `${API_BASE}${doc.profile_photo_url}`;
+                
+                // If photo URL exists but breaks, fallback to UI Avatars with their initials
+                avatarHtml = `<img src="${imgUrl}" alt="${safeName}" style="width:100%; height:100%; object-fit:cover; border-radius:12px;" onerror="this.onerror=null; this.src='https://ui-avatars.com/api/?name=${encodeURIComponent(doc.name)}&background=1E293B&color=fff&size=128';">`;
             }
 
             const providerId = doc.provider_id || doc.id; 
             const displayCategory = doc.category || 'Specialist';
             const distance = doc.distance_km !== "Unknown" ? `${doc.distance_km} km away` : "";
 
-            // 🚨 THE CATALOG PRICE & BUTTON HIDING FIX
             let consultFee = 500;
             let visitCharge = 200;
-            const platformFee = 15; 
             
             let showVideo = false;
             let showHome = false;
 
             // Check if the backend sent the doctor's custom catalog
             if (doc.doctor_services && doc.doctor_services.length > 0) {
-                // Look for Video Consult
                 const videoService = doc.doctor_services.find(s => s.service_name.toLowerCase().includes("video"));
                 if (videoService) {
                     showVideo = true;
                     consultFee = parseFloat(videoService.price);
                 }
 
-                // Look for Home Visit
                 const homeService = doc.doctor_services.find(s => s.service_name.toLowerCase().includes("home"));
                 if (homeService) {
                     showHome = true;
-                    // Home charge = Total Home Price - Base Consult Fee
                     visitCharge = parseFloat(homeService.price) - consultFee;
-                    if (visitCharge < 0) visitCharge = 0; // Failsafe
+                    if (visitCharge < 0) visitCharge = 0; 
                 }
             } else {
-                // Legacy Fallback if they have no catalog data at all
                 showVideo = true;
                 showHome = true;
                 consultFee = parseFloat(doc.price) || parseFloat(doc.base_price) || 500;
@@ -141,7 +171,7 @@ document.addEventListener('DOMContentLoaded', () => {
             
             if (showVideo) {
                 actionButtons += `
-                    <button class="btn-primary" onclick="initiateDocBooking('${providerId}', 'Video Consult', '${doc.name}', '${displayCategory}', '${imgUrl}', ${consultFee}, 0, ${platformFee})">
+                    <button class="btn-primary" onclick="initiateDocBooking('${providerId}', 'Video Consult', '${safeName}', '${displayCategory}', '${imgUrl}', ${consultFee}, 0)">
                         <i class="fa-solid fa-video"></i> Video - ₹${consultFee}
                     </button>
                 `;
@@ -149,7 +179,7 @@ document.addEventListener('DOMContentLoaded', () => {
             
             if (showHome) {
                 actionButtons += `
-                    <button class="btn-outline" onclick="initiateDocBooking('${providerId}', 'Home Visit', '${doc.name}', '${displayCategory}', '${imgUrl}', ${consultFee}, ${visitCharge}, ${platformFee})">
+                    <button class="btn-outline" onclick="initiateDocBooking('${providerId}', 'Home Visit', '${safeName}', '${displayCategory}', '${imgUrl}', ${consultFee}, ${visitCharge})">
                         <i class="fa-solid fa-location-dot"></i> Home - ₹${consultFee + visitCharge}
                     </button>
                 `;
@@ -163,7 +193,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const card = `
                 <div class="doctor-card">
                     <div class="doc-avatar">
-                        <img src="${imgUrl}" alt="${doc.name}" style="width:100%; height:100%; object-fit:cover; border-radius:12px;">
+                        ${avatarHtml}
                         <div class="verified-badge"><i class="fa-solid fa-check"></i></div>
                     </div>
                     <div class="doc-info">
@@ -175,7 +205,7 @@ document.addEventListener('DOMContentLoaded', () => {
                             ${displayCategory} 
                             ${distance ? `<span style="font-size:0.85rem; color: var(--text-secondary); margin-left:10px;"><i class="fa-solid fa-location-dot"></i> ${distance}</span>` : ''}
                         </div>
-                        <div class="doc-actions">
+                        <div class="doc-actions" style="margin-top: 12px;">
                             ${actionButtons}
                         </div>
                     </div>
@@ -187,6 +217,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
     if (searchInput) searchInput.addEventListener('input', renderDoctors);
     if (filterSpecialty) filterSpecialty.addEventListener('change', renderDoctors);
+    
+    // 🚨 FIX: Actually listen for changes on Type and Sort dropdowns!
+    if (filterType) filterType.addEventListener('change', renderDoctors);
+    if (sortFilter) sortFilter.addEventListener('change', renderDoctors);
 
     renderDoctors().then(() => {
         localStorage.removeItem('autoSearchSpecialty'); 
@@ -197,7 +231,8 @@ document.addEventListener('DOMContentLoaded', () => {
 // ==========================================
 // --- 5. DYNAMIC GLOBAL ROUTING ---
 // ==========================================
-window.initiateDocBooking = function(docId, type, docName, docCat, docImg, fee, visitFee, platFee) {
+// 🚨 FIX: Removed platformFee argument
+window.initiateDocBooking = function(docId, type, docName, docCat, docImg, fee, visitFee) {
     const bookingData = {
         provider_id: docId, 
         doctorName: docName.includes('Dr.') ? docName : 'Dr. ' + docName, 
@@ -206,7 +241,6 @@ window.initiateDocBooking = function(docId, type, docName, docCat, docImg, fee, 
         doctorImage: docImg, 
         consultationFee: fee, 
         visitCharge: visitFee, 
-        platformFee: platFee,
         address: type === 'Home Visit' ? (localStorage.getItem('user_address') || "Location not set") : "Platform Default"
     };
     
