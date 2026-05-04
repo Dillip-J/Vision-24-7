@@ -101,8 +101,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 <div class="stat-icon icon-green"><i class="fa-regular fa-circle-check"></i></div>
             </div>
             <div class="stat-card">
-                <div class="stat-info"><span class="stat-title">Refunded</span><span class="stat-value" style="color: #10B981;">${canceledCount}</span></div>
-                <div class="stat-icon" style="background: rgba(16, 185, 129, 0.15); color: #10B981;"><i class="fa-solid fa-money-bill-wave"></i></div>
+                <div class="stat-info"><span class="stat-title">Canceled</span><span class="stat-value" style="color: #EF4444;">${canceledCount}</span></div>
+                <div class="stat-icon" style="background: rgba(239, 68, 68, 0.15); color: #F87171;"><i class="fa-solid fa-ban"></i></div>
             </div>
         `;
     }
@@ -110,7 +110,7 @@ document.addEventListener('DOMContentLoaded', () => {
     function renderAllLists() {
         renderList('list-active', myBookings.filter(b => b.status === 'active'), "No active appointments right now.");
         renderList('list-completed', myBookings.filter(b => b.status === 'completed'), "You have no completed appointments yet.");
-        renderList('list-canceled', myBookings.filter(b => b.status === 'canceled'), "No refunded appointments.");
+        renderList('list-canceled', myBookings.filter(b => b.status === 'canceled'), "No canceled appointments.");
     }
 
     function renderList(containerId, dataArray, emptyMessage) {
@@ -153,10 +153,13 @@ document.addEventListener('DOMContentLoaded', () => {
             }
 
             let statusClass = `status-${apt.status}`;
-            if (apt.status === 'canceled') statusClass = 'status-refunded'; // Connect to CSS
+            if (apt.status === 'canceled') statusClass = 'status-canceled'; 
 
-            // 🚨 FIX: Force UI to display "REFUNDED" instead of CANCELED
-            const displayStatusText = apt.status === 'canceled' ? 'REFUNDED' : apt.status.toUpperCase();
+            // 🚨 FIX: Inject "Refunded" UI badge if the appointment is canceled
+            let refundBadgeHtml = '';
+            if (apt.status === 'canceled') {
+                refundBadgeHtml = `<div style="margin-top: 12px; font-size: 0.85rem; color: #10B981; display: flex; align-items: center; gap: 6px; font-weight: 600;"><i class="fa-solid fa-money-bill-transfer"></i> Payment Refunded to Original Source</div>`;
+            }
 
             container.innerHTML += `
                 <div class="apt-card">
@@ -165,7 +168,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         <div class="apt-top-row">
                             <div class="apt-title-group">
                                 <h3>${apt.doctorSpecialty}</h3>
-                                <span class="status-badge ${statusClass}">${displayStatusText}</span>
+                                <span class="status-badge ${statusClass}">${apt.status.toUpperCase()}</span>
                             </div>
                             <span class="apt-id">${apt.bookingId}</span>
                         </div>
@@ -176,7 +179,7 @@ document.addEventListener('DOMContentLoaded', () => {
                             <div class="meta-item"><i class="fa-solid ${typeIcon}"></i> ${apt.visitType}</div>
                         </div>
                         <div class="apt-actions" style="margin-top: 12px;">${actionButtonsHtml}</div>
-                    </div>
+                        ${refundBadgeHtml} </div>
                 </div>
             `;
         });
@@ -211,11 +214,8 @@ document.addEventListener('DOMContentLoaded', () => {
         const apt = myBookings.find(b => b.rawId === rawId);
         if (!apt) return;
 
-        // 🚨 FIX: Ensure modal also shows "REFUNDED"
-        const displayStatusText = apt.status === 'canceled' ? 'REFUNDED' : apt.status.toUpperCase();
-
         document.getElementById('modal-booking-id').textContent = `Booking ID: ${apt.bookingId}`;
-        document.getElementById('modal-status-badge').textContent = displayStatusText;
+        document.getElementById('modal-status-badge').textContent = apt.status.toUpperCase();
         document.getElementById('modal-doc-initials').textContent = getInitials(apt.doctorName);
         document.getElementById('modal-doc-name').textContent = apt.doctorName;
         document.getElementById('modal-doc-spec').textContent = apt.doctorSpecialty;
@@ -233,7 +233,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const notesText = document.getElementById('modal-notes-text');
 
         if (viewType === 'details') {
-            if (detailsSection) detailsSection.style.display = 'grid'; // info-grid uses grid, not block!
+            if (detailsSection) detailsSection.style.display = 'grid'; 
             if (notesSection) notesSection.classList.add('hidden');
             
             document.getElementById('modal-patient-name').textContent = apt.raw.patient_name || "Self";
@@ -276,7 +276,7 @@ document.addEventListener('DOMContentLoaded', () => {
     fetchDashboardData();
 
     window.cancelBooking = async function(rawId) {
-        if (!confirm("Are you sure you want to cancel this appointment? Your payment will be refunded.")) return;
+        if (!confirm("Are you sure you want to cancel this appointment? This action cannot be undone.")) return;
         
         try {
             const response = await fetch(`${API_BASE}/bookings/${rawId}/cancel`, {
@@ -284,7 +284,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 headers: { 'Authorization': `Bearer ${token}` }
             });
             if (response.ok) {
-                alert("Booking successfully canceled and refunded.");
+                alert("Booking successfully canceled. Any payment made will be refunded.");
                 if(window.fetchDashboardData) window.fetchDashboardData(); 
             } else {
                 alert("Failed to cancel booking.");
