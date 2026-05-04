@@ -12,7 +12,40 @@ document.addEventListener('DOMContentLoaded', () => {
     localStorage.removeItem('redirectAfterAuth');
 
     // ==========================================
-    // --- 1. JS-Based Global Navigation Router ---
+    // --- 1. DYNAMIC TEXT NAVBAR INJECTION ---
+    // ==========================================
+    const token = localStorage.getItem('access_token');
+    const navActions = document.getElementById('nav-actions');
+
+    if (navActions) {
+        if (token) {
+            // USER IS LOGGED IN: Show Text Links
+            navActions.innerHTML = `
+                <a href="dashboard.html" class="nav-text-link">Dashboard</a>
+                <a href="profile.html" class="nav-text-link">Profile</a>
+                <a href="#" id="logout-btn" class="nav-text-link text-red">Logout</a>
+            `;
+
+            // Attach Logout Logic
+            const logoutBtn = document.getElementById('logout-btn');
+            if (logoutBtn) {
+                logoutBtn.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    localStorage.clear(); // Safely nuke all session data
+                    window.location.replace('index.html');
+                });
+            }
+        } else {
+            // USER IS LOGGED OUT: Show Login/Signup text
+            navActions.innerHTML = `
+                <a href="index.html" class="nav-text-link">Login</a>
+                <a href="signup.html" class="btn-primary" style="text-decoration:none; padding:10px 20px; text-align:center;">Sign Up</a>
+            `;
+        }
+    }
+
+    // ==========================================
+    // --- 2. JS-Based Global Navigation Router ---
     // ==========================================
     document.querySelectorAll('[data-nav]').forEach(element => {
         element.addEventListener('click', (e) => {
@@ -23,7 +56,7 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     // ==========================================
-    // --- 2. DYNAMIC CATEGORY BUILDER ---
+    // --- 3. DYNAMIC CATEGORY BUILDER ---
     // ==========================================
     const designMap = {
         "Cardiologist": { icon: "fa-heart", color: "red" },
@@ -84,7 +117,7 @@ document.addEventListener('DOMContentLoaded', () => {
     fetchAndRenderSpecialties();
 
     // ==========================================
-    // --- 3. Global Search Bar Logic ---
+    // --- 4. Global Search Bar Logic ---
     // ==========================================
     const searchBtn = document.getElementById('btn-global-search');
     const searchInput = document.getElementById('global-search');
@@ -100,16 +133,17 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // ==========================================
-    // --- 4. Mobile Hamburger Menu Toggle ---
+    // --- 5. Mobile Hamburger Menu Toggle ---
     // ==========================================
     const mobileBtn = document.getElementById('mobile-menu-btn');
     const navLinks = document.getElementById('nav-links');
-    const navActions = document.getElementById('nav-actions');
 
-    if (mobileBtn && navLinks && navActions) {
+    // Make sure we grab the newly injected navActions too
+    if (mobileBtn && navLinks) {
         mobileBtn.addEventListener('click', () => {
             navLinks.classList.toggle('active');
-            navActions.classList.toggle('active');
+            const dynamicNavActions = document.getElementById('nav-actions');
+            if(dynamicNavActions) dynamicNavActions.classList.toggle('active');
         });
     }
 });
