@@ -27,30 +27,48 @@ document.addEventListener('DOMContentLoaded', () => {
     const visitType = doctorData.visitType || doctorData.visit_type || "Home Visit";
     const rawImg = doctorData.doctorImage || doctorData.doctor_image || fullDocData.profile_photo_url || "";
 
-    const bioEl = document.getElementById('dyn-doc-bio');
-    const phoneEl = document.getElementById('dyn-doc-phone');
+    // 🚨 FIX 1: Generate clean initials for the fallback avatar
+    const getInitials = (name) => {
+        if(!name) return 'DR';
+        const cleanName = name.replace(/^Dr\.\s*/i, '');
+        const parts = cleanName.split(' ');
+        return parts.length >= 2 ? `${parts[0][0]}${parts[1][0]}`.toUpperCase() : `${cleanName[0]}X`.toUpperCase();
+    };
 
-    if (fullDocData.bio || doctorData.bio) {
-        if (bioEl) bioEl.textContent = fullDocData.bio || doctorData.bio;
-        if (phoneEl) phoneEl.textContent = fullDocData.phone || doctorData.phone || "Contact not available";
-    } else {
-        if (bioEl) bioEl.textContent = "Provider details unavailable.";
-        if (phoneEl) phoneEl.textContent = "N/A";
+    // 🚨 FIX 2: Smart Bio Fallback (Hides the ugly "unavailable" error)
+    const bioEl = document.getElementById('dyn-doc-bio');
+    if (bioEl) {
+        const actualBio = fullDocData.bio || doctorData.bio;
+        if (actualBio && actualBio.trim() !== "") {
+            bioEl.textContent = actualBio;
+        } else {
+            // Professional fallback if the doctor didn't write a bio
+            bioEl.textContent = `A dedicated ${docSpec} committed to providing excellent and compassionate healthcare services to all patients.`;
+        }
     }
 
+    // 🚨 FIX 3: Bulletproof Image URL compiler
     const docImgEl = document.getElementById('dyn-doc-img');
     if(docImgEl) {
-        // 🚨 FIX: Safe fallback generator using UI Avatars
-        const fallbackUrl = `https://ui-avatars.com/api/?name=${encodeURIComponent(docName)}&background=1E293B&color=fff&size=128`;
+        const initials = getInitials(docName);
+        const fallbackUrl = `https://ui-avatars.com/api/?name=${initials}&background=1E293B&color=fff&size=128`;
         
         if (!rawImg || rawImg.includes('default-avatar') || rawImg.includes('default-doc')) {
             docImgEl.src = fallbackUrl;
         } else {
+            // Safely combine API_BASE and rawImg ensuring exactly one slash between them
+            let finalImgUrl = rawImg;
+            if (!rawImg.startsWith('http')) {
+                const cleanBase = API_BASE.replace(/\/$/, ''); // Remove trailing slash
+                const cleanImg = rawImg.replace(/^\//, '');    // Remove leading slash
+                finalImgUrl = `${cleanBase}/${cleanImg}`;
+            }
+
             docImgEl.onerror = function() {
-                this.onerror = null; 
+                this.onerror = null; // Prevent infinite loops
                 this.src = fallbackUrl;
             };
-            docImgEl.src = rawImg.startsWith('http') ? rawImg : `${API_BASE}${rawImg}`;
+            docImgEl.src = finalImgUrl;
         }
     }
 
@@ -254,22 +272,16 @@ document.addEventListener('DOMContentLoaded', () => {
             const localDateTime = `${selectedDateAPI}T${convertTo24Hour(selectedTime)}:00`;
             const genderNode = document.querySelector('input[name="gender"]:checked');
             
-            // 🚨 FIX: Address logic prevents double commas if building name is empty
-            const bNameNode = document.getElementById('building-name');
-            const flatNode = document.getElementById('flat-number');
-            const landNode = document.getElementById('landmark');
-            const addrNode = document.getElementById('patient-address');
-
-            const buildingVal = bNameNode ? bNameNode.value.trim() : "";
-            const flatVal = flatNode ? flatNode.value.trim() : "";
-            const landmarkVal = landNode ? landNode.value.trim() : "";
-            const addressVal = addrNode ? addrNode.value.trim() : "";
+            const flatVal = document.getElementById('flat-number') ? document.getElementById('flat-number').value.trim() : "";
+            const buildingVal = document.getElementById('building-name') ? document.getElementById('building-name').value.trim() : "";
+            const landmarkVal = document.getElementById('landmark') ? document.getElementById('landmark').value.trim() : "";
+            const addressVal = document.getElementById('patient-address') ? document.getElementById('patient-address').value.trim() : "Online";
             
             let finalAddress = "Online";
             if (visitType !== 'Video Consult' && !visitType.includes('Video')) {
                 const addrParts = [];
                 if (flatVal) addrParts.push(flatVal);
-                if (buildingVal) addrParts.push(buildingVal); // Ignores completely if empty
+                if (buildingVal) addrParts.push(buildingVal); 
                 if (landmarkVal) addrParts.push(landmarkVal);
                 if (addressVal) addrParts.push(addressVal);
                 
@@ -280,7 +292,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 provider_id: currentProviderId, 
                 scheduled_time: localDateTime,
                 delivery_address: finalAddress,
-                building_name: buildingVal || "N/A", // Backend fallback if empty
+                building_name: buildingVal || "N/A", 
                 flat_number: flatVal || "Online",
                 landmark: landmarkVal || "Online",
                 patient_name: document.getElementById('patient-name').value,
