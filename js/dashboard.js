@@ -158,7 +158,7 @@ document.addEventListener('DOMContentLoaded', () => {
             // 🚨 FIX: Inject "Refunded" UI badge if the appointment is canceled
             let refundBadgeHtml = '';
             if (apt.status === 'canceled') {
-                refundBadgeHtml = `<div style="margin-top: 12px; font-size: 0.85rem; color: #10B981; display: flex; align-items: center; gap: 6px; font-weight: 600;"><i class="fa-solid fa-money-bill-transfer"></i> Payment Refunded to Original Source</div>`;
+                refundBadgeHtml = `<div style="margin-top: 12px; font-size: 0.85rem; color: #10B981; display: flex; align-items: center; gap: 6px; font-weight: 600;"><i class="fa-solid fa-money-bill-transfer"></i> Payment Refunded </div>`;
             }
 
             container.innerHTML += `
