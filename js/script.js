@@ -1,7 +1,7 @@
 // js/script.js
 
 // ==========================================
-// --- 0. INSTANT GLOBAL THEME MANAGER ---
+// --- 1. INSTANT GLOBAL THEME MANAGER ---
 // ==========================================
 (function() {
     const savedTheme = localStorage.getItem('theme');
@@ -10,23 +10,33 @@
     }
 })();
 
-// ==========================================
-// --- 1. Global Navigation Logic ---
-// ==========================================
 document.addEventListener('DOMContentLoaded', () => {
-    document.querySelectorAll('[data-nav]').forEach(element => {
-        element.addEventListener('click', (e) => {
-            e.preventDefault(); 
-            const targetPage = element.getAttribute('data-nav');
-            window.location.assign(targetPage);
-        });
-    });
-});
+    const themeToggleBtn = document.getElementById('theme-toggle');
+    const themeIcon = document.getElementById('theme-icon');
 
-window.goToLogin = function() {
-    localStorage.setItem('redirectAfterAuth', window.location.href);
-    window.location.assign('index.html');
-};
+    if (themeToggleBtn && themeIcon) {
+        // Set initial icon state
+        if (document.documentElement.getAttribute('data-theme') === 'dark') {
+            themeIcon.className = 'fa-solid fa-sun';
+        } else {
+            themeIcon.className = 'fa-regular fa-moon';
+        }
+
+        // Toggle logic
+        themeToggleBtn.addEventListener('click', (e) => {
+            e.preventDefault();
+            if (document.documentElement.getAttribute('data-theme') === 'dark') {
+                document.documentElement.removeAttribute('data-theme');
+                localStorage.setItem('theme', 'light');
+                themeIcon.className = 'fa-regular fa-moon';
+            } else {
+                document.documentElement.setAttribute('data-theme', 'dark');
+                localStorage.setItem('theme', 'dark');
+                themeIcon.className = 'fa-solid fa-sun';
+            }
+        });
+    }
+});
 
 // ==========================================
 // --- 2. Auth Form Submissions ---
@@ -62,6 +72,11 @@ if (signupFormEl) {
             return;
         }
 
+        const submitBtn = signupFormEl.querySelector('button[type="submit"]');
+        const originalText = submitBtn.textContent;
+        submitBtn.textContent = "Creating...";
+        submitBtn.disabled = true;
+
         try {
             const response = await fetch(`${window.API_BASE}/auth/register`, {
                 method: 'POST',
@@ -90,6 +105,9 @@ if (signupFormEl) {
         } catch (err) {
             console.error("Signup Fetch Error:", err);
             alert("Server connection failed. The server is currently disconnected.");
+        } finally {
+            submitBtn.textContent = originalText;
+            submitBtn.disabled = false;
         }
     });
 }
@@ -174,42 +192,7 @@ if (tabLogin && tabSignup) {
 }
 
 // ==========================================
-// --- 4. Global Search Logic ---
-// ==========================================
-const searchInput = document.getElementById('global-search');
-const resultsDropdown = document.getElementById('search-results');
-
-if (searchInput) {
-    searchInput.addEventListener('input', async (e) => {
-        const query = e.target.value.trim();
-        if (query.length < 3) {
-            if (resultsDropdown) resultsDropdown.innerHTML = '';
-            return;
-        }
-
-        try {
-            const response = await fetch(`${window.API_BASE}/home/search?q=${encodeURIComponent(query)}`);
-            const data = await response.json();
-
-            if (resultsDropdown) {
-                resultsDropdown.innerHTML = '';
-                
-                if (data.doctors) {
-                    data.doctors.forEach(doc => {
-                        resultsDropdown.innerHTML += `<div onclick="location.href='doctors.html?id=${doc.provider_id}'">
-                            Dr. ${doc.name} - ${doc.category}
-                        </div>`;
-                    });
-                }
-            }
-        } catch (err) {
-            console.error("Search Error:", err);
-        }
-    });
-}
-
-// ==========================================
-// --- Universal Password Visibility Toggle ---
+// --- 4. Universal Password Visibility Toggle ---
 // ==========================================
 document.querySelectorAll('.toggle-password').forEach(icon => {
     icon.addEventListener('click', function() {

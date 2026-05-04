@@ -49,7 +49,7 @@
                 <button class="dash-tab active" data-target="view-active">Appointments</button>
                 <button class="dash-tab" data-target="view-completed">Completed</button>
                 <button class="dash-tab" data-target="view-canceled">Canceled</button>
-                </nav>
+            </nav>
         </section>
 
         <section class="appointments-section">
@@ -68,8 +68,7 @@
             <section id="view-canceled" class="tab-content hidden">
                 <div id="list-canceled" class="appointments-list"></div>
             </section>
-
-            </section>
+        </section>
 
         <div class="modal-overlay hidden" id="booking-modal">
             <div class="modal-container">
@@ -126,7 +125,7 @@
 
                     <div class="modal-section">
                         <div class="section-title"><i class="fa-regular fa-user"></i> Patient Information</div>
-                        <div class="info-grid">
+                        <div class="info-grid" id="modal-details-section">
                             <div class="info-item">
                                 <label>Patient Name</label>
                                 <strong id="modal-patient-name">...</strong>
@@ -147,9 +146,12 @@
                                 <label>Symptoms/Reason</label>
                                 <strong id="modal-patient-reason">...</strong>
                             </div>
-                            <div id="modal-notes-section" class="info-item full-width hidden">
+                        </div>
+                        
+                        <div id="modal-notes-section" class="info-grid hidden mt-3">
+                            <div class="info-item full-width">
                                 <label>Clinical Notes</label>
-                                <strong id="modal-notes-text">...</strong>
+                                <strong id="modal-notes-text" style="color: var(--primary-blue);">...</strong>
                             </div>
                         </div>
                     </div>
@@ -157,6 +159,7 @@
                 </div>
             </div>
         </div>
+
     </main>
 
     <script src="js/config.js"></script>

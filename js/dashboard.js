@@ -12,7 +12,6 @@ document.addEventListener('DOMContentLoaded', () => {
     if (!token) { window.location.replace('index.html'); return; }
 
     let myBookings = [];
-    let myReports = [];
 
     const getInitials = (name) => {
         if(!name) return 'DR';
@@ -76,7 +75,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 };
             });
 
-            myReports = myBookings.filter(apt => apt.status === 'completed' && apt.hasReport === true);
             renderStats();
             renderAllLists();
 
@@ -228,8 +226,9 @@ document.addEventListener('DOMContentLoaded', () => {
         const notesSection = document.getElementById('modal-notes-section');
         const notesText = document.getElementById('modal-notes-text');
 
+        // 🚨 UI BUG FIX: Toggle visibility properly between Details and Notes
         if (viewType === 'details') {
-            if (detailsSection) detailsSection.style.display = 'block';
+            if (detailsSection) detailsSection.style.display = 'grid'; // info-grid uses grid, not block!
             if (notesSection) notesSection.classList.add('hidden');
             
             document.getElementById('modal-patient-name').textContent = apt.raw.patient_name || "Self";
