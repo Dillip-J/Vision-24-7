@@ -40,16 +40,15 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const docImgEl = document.getElementById('dyn-doc-img');
     if(docImgEl) {
-        const parentDiv = docImgEl.parentElement; 
+        // 🚨 BUG FIX: Bulletproof UI-Avatars Fallback (No more broken layout!)
+        const fallbackUrl = `https://ui-avatars.com/api/?name=${encodeURIComponent(docName)}&background=1E293B&color=fff&size=128`;
         
         if (!rawImg || rawImg.includes('default-avatar') || rawImg.includes('default-doc')) {
-            // Relies entirely on your external CSS class
-            parentDiv.classList.add('doc-icon-fallback');
-            parentDiv.innerHTML = `<i class="fa-solid fa-user-doctor"></i>`;
+            docImgEl.src = fallbackUrl;
         } else {
             docImgEl.onerror = function() {
-                parentDiv.classList.add('doc-icon-fallback');
-                parentDiv.innerHTML = `<i class="fa-solid fa-user-doctor"></i>`;
+                this.onerror = null;
+                this.src = fallbackUrl;
             };
             docImgEl.src = rawImg.startsWith('http') ? rawImg : `${API_BASE}${rawImg}`;
         }
@@ -68,11 +67,10 @@ document.addEventListener('DOMContentLoaded', () => {
     if(document.getElementById('dyn-doc-name')) document.getElementById('dyn-doc-name').textContent = docName;
     if(document.getElementById('dyn-doc-spec')) document.getElementById('dyn-doc-spec').textContent = docSpec;
     
+    // 🚨 BUG FIX: Removed location symbol from the badge!
     const visitBadge = document.getElementById('dyn-visit-type');
     if (visitBadge) {
-        visitBadge.innerHTML = visitType.includes('Video') 
-            ? `<i class="fa-solid fa-video"></i> ${visitType}`
-            : `<i class="fa-solid fa-location-dot"></i> ${visitType}`;
+        visitBadge.textContent = visitType;
     }
     
     if(document.getElementById('sum-doc-name')) document.getElementById('sum-doc-name').textContent = docName;
@@ -315,6 +313,9 @@ document.addEventListener('DOMContentLoaded', () => {
         return `${String(hours).padStart(2, '0')}:${minutes}`;
     }
 });
+//====================================================================
+//LOcation autocomplete
+//====================================================================
 
 let autocomplete;
 window.initAutocomplete = function() {
