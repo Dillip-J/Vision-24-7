@@ -40,15 +40,15 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const docImgEl = document.getElementById('dyn-doc-img');
     if(docImgEl) {
-        const parentDiv = docImgEl.parentElement; 
+        // 🚨 MAGIC AVATAR FALLBACK
+        const fallbackUrl = `https://ui-avatars.com/api/?name=${encodeURIComponent(docName)}&background=1E293B&color=fff&size=128`;
         
         if (!rawImg || rawImg.includes('default-avatar') || rawImg.includes('default-doc')) {
-            parentDiv.classList.add('doc-icon-fallback');
-            parentDiv.innerHTML = `<i class="fa-solid fa-user-doctor"></i>`;
+            docImgEl.src = fallbackUrl;
         } else {
             docImgEl.onerror = function() {
-                parentDiv.classList.add('doc-icon-fallback');
-                parentDiv.innerHTML = `<i class="fa-solid fa-user-doctor"></i>`;
+                this.onerror = null; 
+                this.src = fallbackUrl;
             };
             docImgEl.src = rawImg.startsWith('http') ? rawImg : `${API_BASE}${rawImg}`;
         }
@@ -188,6 +188,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         });
                         
                         e.target.classList.add('active');
+                        
                         selectedTime = time;
                         updateSummaryUI(); 
                     });
@@ -253,29 +254,32 @@ document.addEventListener('DOMContentLoaded', () => {
             const localDateTime = `${selectedDateAPI}T${convertTo24Hour(selectedTime)}:00`;
             const genderNode = document.querySelector('input[name="gender"]:checked');
             
-            // 🚨 FIX: Address Construction Logic that handles empty fields gracefully
-            const flatVal = document.getElementById('flat-number') ? document.getElementById('flat-number').value.trim() : "Online";
-            const buildingVal = document.getElementById('building-name') ? document.getElementById('building-name').value.trim() : "Online";
-            const landmarkVal = document.getElementById('landmark') ? document.getElementById('landmark').value.trim() : "Online";
-            const addressVal = document.getElementById('patient-address') ? document.getElementById('patient-address').value.trim() : "Online";
+            const bNameNode = document.getElementById('building-name');
+            const flatNode = document.getElementById('flat-number');
+            const landNode = document.getElementById('landmark');
+            const addrNode = document.getElementById('patient-address');
+
+            const buildingVal = bNameNode ? bNameNode.value.trim() : "";
+            const flatVal = flatNode ? flatNode.value.trim() : "";
+            const landmarkVal = landNode ? landNode.value.trim() : "";
+            const addressVal = addrNode ? addrNode.value.trim() : "";
             
             let finalAddress = "Online";
             if (visitType !== 'Video Consult' && !visitType.includes('Video')) {
-                const addressParts = [];
-                // Only push if the string actually has text and isn't our "Online" default
-                if (flatVal && flatVal !== "Online") addressParts.push(flatVal);
-                if (buildingVal && buildingVal !== "Online") addressParts.push(buildingVal);
-                if (landmarkVal && landmarkVal !== "Online") addressParts.push(landmarkVal);
-                if (addressVal && addressVal !== "Online") addressParts.push(addressVal);
+                const addrParts = [];
+                if (flatVal) addrParts.push(flatVal);
+                if (buildingVal) addrParts.push(buildingVal); 
+                if (landmarkVal) addrParts.push(landmarkVal);
+                if (addressVal) addrParts.push(addressVal);
                 
-                finalAddress = addressParts.join(', ');
+                finalAddress = addrParts.length > 0 ? addrParts.join(', ') : "Address not provided";
             }
 
             const bookingPayload = {
                 provider_id: currentProviderId, 
                 scheduled_time: localDateTime,
                 delivery_address: finalAddress,
-                building_name: buildingVal || "Online",
+                building_name: buildingVal || "N/A", 
                 flat_number: flatVal || "Online",
                 landmark: landmarkVal || "Online",
                 patient_name: document.getElementById('patient-name').value,

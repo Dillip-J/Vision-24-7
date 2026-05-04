@@ -1,17 +1,18 @@
+/* css/booking.css */
 /* ==========================================
    --- BOOKING PAGE SPECIFIC STYLES ---
    ========================================== */
 
 .booking-layout {
     display: grid;
-    grid-template-columns: minmax(0, 1fr) 380px; /* Safe flexible width */
+    grid-template-columns: minmax(0, 1fr) 380px;
     gap: 32px;
     padding-top: 40px;
     padding-bottom: 80px;
     max-width: 1200px;
     margin: 0 auto;
     width: 90%;
-    align-items: flex-start; /* 🚨 CRITICAL FIX: Required for sticky sidebar */
+    align-items: flex-start;
 }
 
 /* --- Left Column --- */
@@ -19,7 +20,7 @@
     display: flex;
     flex-direction: column;
     gap: 24px;
-    min-width: 0; /* Prevents input overflow on mobile */
+    min-width: 0;
 }
 
 .doc-header-card {
@@ -28,25 +29,29 @@
     border-radius: 12px;
     padding: 24px;
     display: flex;
-    gap: 20px;
-    align-items: center;
+    gap: 24px;
+    align-items: flex-start;
+    overflow: hidden; 
 }
 
+/* 🚨 THE MAGIC AVATAR LOCK */
 .doc-header-avatar {
-    width: 80px;
-    height: 80px;
-    flex-shrink: 0;
+    width: 120px;
+    height: 120px;
+    flex-shrink: 0; /* Prevents the avatar from blowing up or shrinking */
+    border-radius: 12px;
+    overflow: hidden;
 }
 
 .doc-header-avatar img {
     width: 100%;
     height: 100%;
     object-fit: cover;
-    border-radius: 12px;
 }
 
 .doc-header-details {
     flex: 1;
+    min-width: 0; /* Prevents text overflow from pushing the avatar */
 }
 
 .doc-header-top {
@@ -112,7 +117,7 @@
 .section-title i { color: var(--brand-blue, #2563eb); }
 .duration-text { color: var(--text-secondary, #6b7280); font-size: 0.9rem; }
 
-/* Date Selection (Native Scroll, No Broken Arrows) */
+/* Date Selection */
 .date-scroll-container {
     display: flex;
     gap: 12px;
@@ -215,7 +220,7 @@
     border-radius: 12px;
     padding: 24px;
     position: sticky;
-    top: 24px; /* 🚨 FIXED STICKY TOP */
+    top: 24px; 
 }
 
 .summary-card h3 { font-size: 1.25rem; color: var(--text-primary, #111827); margin-bottom: 24px; }
@@ -251,7 +256,6 @@
 .terms-text { text-align: center; font-size: 0.8rem; color: var(--text-secondary, #6b7280); margin-top: 16px; }
 .terms-text a { color: var(--brand-blue, #2563eb); text-decoration: none; font-weight: 500; }
 
-/* Clean styling for the Doctor Bio box */
 .doc-bio-box {
     margin-top: 8px; 
     font-size: 0.9rem; 
@@ -268,9 +272,7 @@
     text-transform: uppercase; 
     letter-spacing: 0.5px;
 }
-.doc-header-details { flex: 1; }
 
-/* Proper spacing for the new Address Block */
 .address-group input { margin-bottom: 16px; }
 .mt-spacing { margin-top: 8px; display: block; }
 
@@ -279,17 +281,17 @@
    ========================================== */
 @media (max-width: 992px) {
     .booking-layout {
-        grid-template-columns: 1fr; /* Stacks to 1 column */
+        grid-template-columns: 1fr;
         gap: 24px;
         width: 95%;
     }
 
     .booking-sidebar {
-        order: -1; /* Puts the summary at the TOP on mobile */
+        order: -1; 
     }
 
     .summary-card {
-        position: static; /* Disables sticky on mobile */
+        position: static; 
     }
 }
 
@@ -297,6 +299,7 @@
     .doc-header-card {
         flex-direction: column;
         text-align: center;
+        align-items: center;
     }
     .doc-header-top {
         flex-direction: column;
@@ -304,14 +307,13 @@
         justify-content: center;
     }
     .form-row.two-col {
-        grid-template-columns: 1fr; /* Stacks name and age on phones */
+        grid-template-columns: 1fr; 
     }
     .time-grid {
-        grid-template-columns: repeat(2, 1fr); /* 2x2 time grid on phones */
+        grid-template-columns: repeat(2, 1fr); 
     }
 }
 
-/* Add this to css/booking.css */
 .doc-icon-fallback {
     display: flex;
     align-items: center;
