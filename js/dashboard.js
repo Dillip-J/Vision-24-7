@@ -155,7 +155,6 @@ document.addEventListener('DOMContentLoaded', () => {
             let statusClass = `status-${apt.status}`;
             if (apt.status === 'canceled') statusClass = 'status-canceled'; 
 
-            // 🚨 FIX: Inject "Refunded" UI badge if the appointment is canceled
             let refundBadgeHtml = '';
             if (apt.status === 'canceled') {
                 refundBadgeHtml = `<div style="margin-top: 12px; font-size: 0.85rem; color: #10B981; display: flex; align-items: center; gap: 6px; font-weight: 600;"><i class="fa-solid fa-money-bill-transfer"></i> Payment Refunded </div>`;
@@ -179,7 +178,8 @@ document.addEventListener('DOMContentLoaded', () => {
                             <div class="meta-item"><i class="fa-solid ${typeIcon}"></i> ${apt.visitType}</div>
                         </div>
                         <div class="apt-actions" style="margin-top: 12px;">${actionButtonsHtml}</div>
-                        ${refundBadgeHtml} </div>
+                        ${refundBadgeHtml} 
+                    </div>
                 </div>
             `;
         });
@@ -228,13 +228,14 @@ document.addEventListener('DOMContentLoaded', () => {
         document.getElementById('modal-date').textContent = apt.date;
         document.getElementById('modal-time').textContent = apt.time;
 
-        const detailsSection = document.getElementById('modal-details-section'); 
-        const notesSection = document.getElementById('modal-notes-section');
+        // 🚨 FIX: Grab the wrappers we just built in the HTML
+        const patientWrapper = document.getElementById('modal-patient-wrapper'); 
+        const notesWrapper = document.getElementById('modal-notes-wrapper');
         const notesText = document.getElementById('modal-notes-text');
 
         if (viewType === 'details') {
-            if (detailsSection) detailsSection.style.display = 'grid'; 
-            if (notesSection) notesSection.classList.add('hidden');
+            if (patientWrapper) patientWrapper.classList.remove('hidden');
+            if (notesWrapper) notesWrapper.classList.add('hidden');
             
             document.getElementById('modal-patient-name').textContent = apt.raw.patient_name || "Self";
             
@@ -259,9 +260,9 @@ document.addEventListener('DOMContentLoaded', () => {
             if(reasonEl) reasonEl.textContent = apt.raw.symptoms || "None provided";
 
         } else if (viewType === 'notes') {
-            if (detailsSection) detailsSection.style.display = 'none';
-            if (notesSection) {
-                notesSection.classList.remove('hidden');
+            if (patientWrapper) patientWrapper.classList.add('hidden');
+            if (notesWrapper) {
+                notesWrapper.classList.remove('hidden');
                 notesText.textContent = apt.clinicalNotes;
             }
         }

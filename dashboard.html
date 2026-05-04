@@ -123,9 +123,9 @@
                         </div>
                     </div>
 
-                    <div class="modal-section">
+                    <div class="modal-section" id="modal-patient-wrapper">
                         <div class="section-title"><i class="fa-regular fa-user"></i> Patient Information</div>
-                        <div class="info-grid" id="modal-details-section">
+                        <div class="info-grid">
                             <div class="info-item">
                                 <label>Patient Name</label>
                                 <strong id="modal-patient-name">...</strong>
@@ -147,11 +147,13 @@
                                 <strong id="modal-patient-reason">...</strong>
                             </div>
                         </div>
-                        
-                        <div id="modal-notes-section" class="info-grid hidden mt-3">
+                    </div>
+                    
+                    <div class="modal-section hidden" id="modal-notes-wrapper">
+                        <div class="section-title"><i class="fa-solid fa-notes-medical"></i> Doctor's Clinical Notes</div>
+                        <div class="info-grid">
                             <div class="info-item full-width">
-                                <label>Clinical Notes</label>
-                                <strong id="modal-notes-text" style="color: var(--primary-blue);">...</strong>
+                                <strong id="modal-notes-text" style="color: var(--primary-blue); font-size: 1.05rem; line-height: 1.5;">...</strong>
                             </div>
                         </div>
                     </div>
