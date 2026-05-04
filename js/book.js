@@ -40,21 +40,20 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const docImgEl = document.getElementById('dyn-doc-img');
     if(docImgEl) {
-        // 🚨 BUG FIX: Bulletproof UI-Avatars Fallback (No more broken layout!)
-        const fallbackUrl = `https://ui-avatars.com/api/?name=${encodeURIComponent(docName)}&background=1E293B&color=fff&size=128`;
+        const parentDiv = docImgEl.parentElement; 
         
         if (!rawImg || rawImg.includes('default-avatar') || rawImg.includes('default-doc')) {
-            docImgEl.src = fallbackUrl;
+            parentDiv.classList.add('doc-icon-fallback');
+            parentDiv.innerHTML = `<i class="fa-solid fa-user-doctor"></i>`;
         } else {
             docImgEl.onerror = function() {
-                this.onerror = null;
-                this.src = fallbackUrl;
+                parentDiv.classList.add('doc-icon-fallback');
+                parentDiv.innerHTML = `<i class="fa-solid fa-user-doctor"></i>`;
             };
             docImgEl.src = rawImg.startsWith('http') ? rawImg : `${API_BASE}${rawImg}`;
         }
     }
 
-    // Hide entire address block via CSS classes instead of inline style
     const addressBlock = document.getElementById('address-block');
     if (addressBlock) {
         if (visitType === 'Video Consult' || visitType.includes('Video')) {
@@ -67,10 +66,11 @@ document.addEventListener('DOMContentLoaded', () => {
     if(document.getElementById('dyn-doc-name')) document.getElementById('dyn-doc-name').textContent = docName;
     if(document.getElementById('dyn-doc-spec')) document.getElementById('dyn-doc-spec').textContent = docSpec;
     
-    // 🚨 BUG FIX: Removed location symbol from the badge!
     const visitBadge = document.getElementById('dyn-visit-type');
     if (visitBadge) {
-        visitBadge.textContent = visitType;
+        visitBadge.innerHTML = visitType.includes('Video') 
+            ? `<i class="fa-solid fa-video"></i> ${visitType}`
+            : `<i class="fa-solid fa-location-dot"></i> ${visitType}`;
     }
     
     if(document.getElementById('sum-doc-name')) document.getElementById('sum-doc-name').textContent = docName;
@@ -187,9 +187,7 @@ document.addEventListener('DOMContentLoaded', () => {
                             s.classList.remove('active');
                         });
                         
-                        // Let CSS handle the active state coloring
                         e.target.classList.add('active');
-                        
                         selectedTime = time;
                         updateSummaryUI(); 
                     });
@@ -255,24 +253,31 @@ document.addEventListener('DOMContentLoaded', () => {
             const localDateTime = `${selectedDateAPI}T${convertTo24Hour(selectedTime)}:00`;
             const genderNode = document.querySelector('input[name="gender"]:checked');
             
-            // 🚨 GRAB THE NEW SEPARATED ADDRESS FIELDS
-            const buildingVal = document.getElementById('building-name') ? document.getElementById('building-name').value.trim() : "Online";
+            // 🚨 FIX: Address Construction Logic that handles empty fields gracefully
             const flatVal = document.getElementById('flat-number') ? document.getElementById('flat-number').value.trim() : "Online";
+            const buildingVal = document.getElementById('building-name') ? document.getElementById('building-name').value.trim() : "Online";
             const landmarkVal = document.getElementById('landmark') ? document.getElementById('landmark').value.trim() : "Online";
             const addressVal = document.getElementById('patient-address') ? document.getElementById('patient-address').value.trim() : "Online";
             
             let finalAddress = "Online";
             if (visitType !== 'Video Consult' && !visitType.includes('Video')) {
-                finalAddress = `${flatVal}, ${buildingVal}, ${landmarkVal}, ${addressVal}`;
+                const addressParts = [];
+                // Only push if the string actually has text and isn't our "Online" default
+                if (flatVal && flatVal !== "Online") addressParts.push(flatVal);
+                if (buildingVal && buildingVal !== "Online") addressParts.push(buildingVal);
+                if (landmarkVal && landmarkVal !== "Online") addressParts.push(landmarkVal);
+                if (addressVal && addressVal !== "Online") addressParts.push(addressVal);
+                
+                finalAddress = addressParts.join(', ');
             }
 
             const bookingPayload = {
                 provider_id: currentProviderId, 
                 scheduled_time: localDateTime,
                 delivery_address: finalAddress,
-                building_name: buildingVal,
-                flat_number: flatVal,
-                landmark: landmarkVal,
+                building_name: buildingVal || "Online",
+                flat_number: flatVal || "Online",
+                landmark: landmarkVal || "Online",
                 patient_name: document.getElementById('patient-name').value,
                 patient_age: parseInt(document.getElementById('patient-age').value) || 0,
                 patient_gender: genderNode ? genderNode.value : "Other",
@@ -313,9 +318,6 @@ document.addEventListener('DOMContentLoaded', () => {
         return `${String(hours).padStart(2, '0')}:${minutes}`;
     }
 });
-//====================================================================
-//LOcation autocomplete
-//====================================================================
 
 let autocomplete;
 window.initAutocomplete = function() {
