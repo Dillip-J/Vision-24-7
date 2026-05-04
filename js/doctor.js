@@ -1,7 +1,6 @@
 // js/doctors.js
 document.addEventListener('DOMContentLoaded', () => {
     
-    // Ensure API_BASE is defined
     const API_BASE = window.API_BASE || 'https://backend-depolyment-3.onrender.com';
 
     const doctorList = document.getElementById('doctor-list');
@@ -9,17 +8,12 @@ document.addEventListener('DOMContentLoaded', () => {
     const searchInput = document.getElementById('doctor-search');
     const filterSpecialty = document.getElementById('filter-specialty');
     
-    // 🚨 FIX: Re-added the missing dropdown elements!
     const filterType = document.getElementById('filter-type'); 
     const sortFilter = document.getElementById('sort-filter');
 
-    // --- 1. GLOBAL MEMORY (Get Lat/Lon) ---
     let userLat = parseFloat(localStorage.getItem('user_lat')) || 0.0;
     let userLon = parseFloat(localStorage.getItem('user_lon')) || 0.0;
 
-    // ==========================================
-    // --- 2. THE MESSENGER ---
-    // ==========================================
     const autoSpecialty = localStorage.getItem('autoSearchSpecialty');
     if (autoSpecialty && filterSpecialty) {
         const searchStr = autoSpecialty.trim().toLowerCase();
@@ -38,9 +32,6 @@ document.addEventListener('DOMContentLoaded', () => {
         searchInput.value = autoQuery.trim(); 
     }
 
-    // ==========================================
-    // --- 3. FASTAPI DATA FETCH ---
-    // ==========================================
     async function fetchApprovedDoctors() {
         try {
             const response = await fetch(`${API_BASE}/home/nearest?lat=${userLat}&lon=${userLon}&category=Doctor`);
@@ -56,9 +47,6 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    // ==========================================
-    // --- 4. DYNAMIC RENDER & FILTER ---
-    // ==========================================
     async function renderDoctors() {
         const providers = await fetchApprovedDoctors();
         
@@ -76,7 +64,6 @@ document.addEventListener('DOMContentLoaded', () => {
             const nameMatch = searchTerm === '' || docName.includes(searchTerm) || docCat.includes(searchTerm);
             const specMatch = selectedSpecialty === 'all' || docCat === selectedSpecialty || docCat.includes(selectedSpecialty);
             
-            // 🚨 FIX: Restored Type Filtering Logic
             let hasVideo = false;
             let hasHome = false;
             if (doc.doctor_services && doc.doctor_services.length > 0) {
@@ -93,7 +80,6 @@ document.addEventListener('DOMContentLoaded', () => {
             return nameMatch && specMatch && typeMatch;
         });
 
-        // 🚨 FIX: Restored Sorting Logic
         if (selectedSort === 'closest') {
             filtered.sort((a, b) => (a.distance_km === 'Unknown' ? 999 : a.distance_km) - (b.distance_km === 'Unknown' ? 999 : b.distance_km));
         } else if (selectedSort === 'price_low') {
@@ -121,8 +107,6 @@ document.addEventListener('DOMContentLoaded', () => {
         filtered.forEach(doc => {
             const safeName = doc.name.replace(/'/g, "\\'");
 
-            // 🚨 FIX: Bulletproof Image Fallback
-            // Default icon if no photo exists
             let avatarHtml = `<div style="width:100%; height:100%; display:flex; align-items:center; justify-content:center; background:#1E293B; color:#fff; border-radius:12px; font-size:2rem;"><i class="fa-solid fa-user-doctor"></i></div>`;
             let imgUrl = "";
 
@@ -131,7 +115,6 @@ document.addEventListener('DOMContentLoaded', () => {
                     ? doc.profile_photo_url 
                     : `${API_BASE}${doc.profile_photo_url}`;
                 
-                // If photo URL exists but breaks, fallback to UI Avatars with their initials
                 avatarHtml = `<img src="${imgUrl}" alt="${safeName}" style="width:100%; height:100%; object-fit:cover; border-radius:12px;" onerror="this.onerror=null; this.src='https://ui-avatars.com/api/?name=${encodeURIComponent(doc.name)}&background=1E293B&color=fff&size=128';">`;
             }
 
@@ -145,7 +128,6 @@ document.addEventListener('DOMContentLoaded', () => {
             let showVideo = false;
             let showHome = false;
 
-            // Check if the backend sent the doctor's custom catalog
             if (doc.doctor_services && doc.doctor_services.length > 0) {
                 const videoService = doc.doctor_services.find(s => s.service_name.toLowerCase().includes("video"));
                 if (videoService) {
@@ -166,7 +148,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 visitCharge = parseFloat(doc.home_visit_charge) || 200; 
             }
 
-            // Build Action Buttons Dynamically based on what they sell
             let actionButtons = '';
             
             if (showVideo) {
@@ -185,7 +166,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 `;
             }
 
-            // If the doctor deleted everything, disable booking
             if (!showVideo && !showHome) {
                 actionButtons = `<button class="btn-outline" disabled style="opacity: 0.5; cursor: not-allowed;"><i class="fa-solid fa-ban"></i> No Services Available</button>`;
             }
@@ -217,8 +197,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
     if (searchInput) searchInput.addEventListener('input', renderDoctors);
     if (filterSpecialty) filterSpecialty.addEventListener('change', renderDoctors);
-    
-    // 🚨 FIX: Actually listen for changes on Type and Sort dropdowns!
     if (filterType) filterType.addEventListener('change', renderDoctors);
     if (sortFilter) sortFilter.addEventListener('change', renderDoctors);
 
@@ -228,10 +206,6 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 });
 
-// ==========================================
-// --- 5. DYNAMIC GLOBAL ROUTING ---
-// ==========================================
-// 🚨 FIX: Removed platformFee argument
 window.initiateDocBooking = function(docId, type, docName, docCat, docImg, fee, visitFee) {
     const bookingData = {
         provider_id: docId, 
@@ -249,6 +223,7 @@ window.initiateDocBooking = function(docId, type, docName, docCat, docImg, fee, 
     const token = localStorage.getItem('access_token');
     if (!token) {
         alert("Please log in or create an account to complete your booking.");
+        // 🚨 FIX: Corrected your typo right here!
         localStorage.setItem('redirectAfterAuth', 'book.html');
         window.location.href = 'index.html'; 
         return; 

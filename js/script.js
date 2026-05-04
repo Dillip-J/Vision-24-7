@@ -13,10 +13,7 @@
 // ==========================================
 // --- 1. Global Navigation Logic ---
 // ==========================================
-const activeUserSession = localStorage.getItem('currentUser');
-
 document.addEventListener('DOMContentLoaded', () => {
-    // Standard Navigation
     document.querySelectorAll('[data-nav]').forEach(element => {
         element.addEventListener('click', (e) => {
             e.preventDefault(); 
@@ -32,85 +29,7 @@ window.goToLogin = function() {
 };
 
 // ==========================================
-// --- 2. DYNAMIC NAVBAR & THEME TOGGLE ---
-// ==========================================
-document.addEventListener('DOMContentLoaded', () => {
-    
-    const themeToggleBtn = document.getElementById('theme-toggle');
-    const themeIcon = document.getElementById('theme-icon');
-
-    if (themeToggleBtn && themeIcon) {
-        if (document.documentElement.getAttribute('data-theme') === 'dark') {
-            themeIcon.className = 'fa-solid fa-sun';
-        } else {
-            themeIcon.className = 'fa-regular fa-moon';
-        }
-
-        themeToggleBtn.addEventListener('click', (e) => {
-            e.preventDefault();
-            if (document.documentElement.getAttribute('data-theme') === 'dark') {
-                document.documentElement.removeAttribute('data-theme');
-                localStorage.setItem('theme', 'light');
-                themeIcon.className = 'fa-regular fa-moon';
-            } else {
-                document.documentElement.setAttribute('data-theme', 'dark');
-                localStorage.setItem('theme', 'dark');
-                themeIcon.className = 'fa-solid fa-sun';
-            }
-        });
-    }
-
-    const navActions = document.getElementById('nav-actions');
-
-    if (navActions) {
-        if (activeUserSession) {
-            navActions.innerHTML = `
-                <a href="dashboard.html" class="icon-btn" style="text-decoration:none;" title="Dashboard"><i class="fa-solid fa-border-all"></i></a>
-                <a href="profile.html" class="icon-btn" style="text-decoration:none;" title="Profile"><i class="fa-regular fa-user"></i></a>
-                <button class="icon-btn" id="theme-toggle-dynamic" title="Toggle Theme"><i class="fa-regular fa-moon" id="theme-icon-dynamic"></i></button>
-                <button class="icon-btn" id="logout-btn" title="Logout" style="color: #EF4444;"><i class="fa-solid fa-arrow-right-from-bracket"></i></button>
-            `;
-
-            document.getElementById('logout-btn').addEventListener('click', (e) => {
-                e.preventDefault();
-                localStorage.removeItem('currentUser'); 
-                localStorage.removeItem('access_token'); 
-                window.location.replace('index.html'); 
-            });
-
-        } else {
-            navActions.innerHTML = `
-                <button class="icon-btn" id="theme-toggle-dynamic" title="Toggle Theme"><i class="fa-regular fa-moon" id="theme-icon-dynamic"></i></button>
-                <button onclick="goToLogin()" style="border: none; cursor: pointer; display:flex; align-items:center; gap:8px; padding: 8px 16px; border-radius: 8px; background-color: var(--brand-blue); color: white; font-size: 0.9rem; font-weight: 600;">
-                    <i class="fa-solid fa-right-to-bracket"></i> Login / Sign Up
-                </button>
-            `;
-        }
-
-        const dynThemeBtn = document.getElementById('theme-toggle-dynamic');
-        const dynThemeIcon = document.getElementById('theme-icon-dynamic');
-        
-        if (dynThemeBtn && dynThemeIcon) {
-            if (document.documentElement.getAttribute('data-theme') === 'dark') {
-                dynThemeIcon.className = 'fa-solid fa-sun';
-            }
-            dynThemeBtn.addEventListener('click', () => {
-                if (document.documentElement.getAttribute('data-theme') === 'dark') {
-                    document.documentElement.removeAttribute('data-theme');
-                    localStorage.setItem('theme', 'light');
-                    dynThemeIcon.className = 'fa-regular fa-moon';
-                } else {
-                    document.documentElement.setAttribute('data-theme', 'dark');
-                    localStorage.setItem('theme', 'dark');
-                    dynThemeIcon.className = 'fa-solid fa-sun';
-                }
-            });
-        }
-    }
-});
-
-// ==========================================
-// --- 3. Auth Form Submissions ---
+// --- 2. Auth Form Submissions ---
 // ==========================================
 const loginFormEl = document.getElementById('form-login');
 const signupFormEl = document.getElementById('form-signup');
@@ -212,7 +131,6 @@ if (loginFormEl) {
             localStorage.setItem('access_token', data.access_token);
             localStorage.setItem('currentUser', JSON.stringify(data.user));
 
-            // 🚨 We let auth_guard handle the redirect on reload!
             window.location.reload();
 
         } catch (err) {
@@ -226,7 +144,7 @@ if (loginFormEl) {
 }
 
 // ==========================================
-// --- 4. Tab Switching Logic (Index Page) ---
+// --- 3. Tab Switching Logic (Index Page) ---
 // ==========================================
 const tabLogin = document.getElementById('tab-login');
 const tabSignup = document.getElementById('tab-signup');
@@ -256,7 +174,7 @@ if (tabLogin && tabSignup) {
 }
 
 // ==========================================
-// --- 5. Global Search Logic ---
+// --- 4. Global Search Logic ---
 // ==========================================
 const searchInput = document.getElementById('global-search');
 const resultsDropdown = document.getElementById('search-results');
@@ -283,55 +201,12 @@ if (searchInput) {
                         </div>`;
                     });
                 }
-
-                if (data.services) {
-                    data.services.forEach(ser => {
-                        resultsDropdown.innerHTML += `<div onclick="location.href='services.html?id=${ser.service_id}'">
-                            Service: ${ser.service_name}
-                        </div>`;
-                    });
-                }
-            }
-            
-            if (typeof renderUserSearchResults === 'function') {
-                renderUserSearchResults(data);
             }
         } catch (err) {
             console.error("Search Error:", err);
         }
     });
 }
-
-// ==========================================
-// --- 6. GLOBAL OFFLINE DETECTOR ---
-// ==========================================
-window.addEventListener('offline', () => showNetworkToast(false));
-window.addEventListener('online', () => showNetworkToast(true));
-
-function showNetworkToast(isOnline) {
-    let toast = document.getElementById('network-toast');
-    if (!toast) {
-        toast = document.createElement('div');
-        toast.id = 'network-toast';
-        toast.style.cssText = 'position:fixed; bottom:20px; left:50%; transform:translateX(-50%); padding:12px 24px; border-radius:8px; color:#fff; font-weight:600; z-index:9999; transition:all 0.3s ease; box-shadow: 0 4px 6px rgba(0,0,0,0.1);';
-        document.body.appendChild(toast);
-    }
-    
-    if (isOnline) {
-        toast.style.backgroundColor = 'var(--success-green, #10B981)'; 
-        toast.innerHTML = '<i class="fa-solid fa-wifi"></i> Back Online';
-        setTimeout(() => { 
-            toast.style.opacity = '0'; 
-            setTimeout(() => toast.remove(), 300); 
-        }, 3000);
-    } else {
-        toast.style.backgroundColor = 'var(--danger-red, #EF4444)';
-        toast.style.opacity = '1';
-        toast.innerHTML = '<i class="fa-solid fa-plane-up"></i> You are offline. Showing cached data.';
-    }
-}
-
-if (!navigator.onLine) showNetworkToast(false);
 
 // ==========================================
 // --- Universal Password Visibility Toggle ---
