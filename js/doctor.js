@@ -1,7 +1,6 @@
 // js/doctors.js
 document.addEventListener('DOMContentLoaded', () => {
     
-    // Ensure API_BASE is defined (Use the globally defined config)
     const API_BASE = window.API_BASE;
     if (!API_BASE) {
         console.error("FATAL: window.API_BASE is missing.");
@@ -14,17 +13,12 @@ document.addEventListener('DOMContentLoaded', () => {
     const searchInput = document.getElementById('doctor-search');
     const filterSpecialty = document.getElementById('filter-specialty');
     
-    // dropdown elements
     const filterType = document.getElementById('filter-type'); 
     const sortFilter = document.getElementById('sort-filter');
 
-    // --- 1. GLOBAL MEMORY (Get Lat/Lon) ---
     let userLat = parseFloat(localStorage.getItem('user_lat')) || 0.0;
     let userLon = parseFloat(localStorage.getItem('user_lon')) || 0.0;
 
-    // ==========================================
-    // --- 2. THE MESSENGER ---
-    // ==========================================
     const autoSpecialty = localStorage.getItem('autoSearchSpecialty');
     if (autoSpecialty && filterSpecialty) {
         const searchStr = autoSpecialty.trim().toLowerCase();
@@ -43,9 +37,6 @@ document.addEventListener('DOMContentLoaded', () => {
         searchInput.value = autoQuery.trim(); 
     }
 
-    // ==========================================
-    // --- 3. FASTAPI DATA FETCH ---
-    // ==========================================
     async function fetchApprovedDoctors() {
         try {
             const response = await fetch(`${API_BASE}/home/nearest?lat=${userLat}&lon=${userLon}&category=Doctor`);
@@ -61,9 +52,6 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    // ==========================================
-    // --- 4. DYNAMIC RENDER & FILTER ---
-    // ==========================================
     async function renderDoctors() {
         const providers = await fetchApprovedDoctors();
         
@@ -81,13 +69,12 @@ document.addEventListener('DOMContentLoaded', () => {
             const nameMatch = searchTerm === '' || docName.includes(searchTerm) || docCat.includes(searchTerm);
             const specMatch = selectedSpecialty === 'all' || docCat === selectedSpecialty || docCat.includes(selectedSpecialty);
             
-            let hasVideo = false;
-            let hasHome = false;
+            let hasVideo = true;
+            let hasHome = true;
+            
             if (doc.doctor_services && doc.doctor_services.length > 0) {
                 hasVideo = !!doc.doctor_services.find(s => s.service_name.toLowerCase().includes("video"));
                 hasHome = !!doc.doctor_services.find(s => s.service_name.toLowerCase().includes("home"));
-            } else {
-                hasVideo = true; hasHome = true; 
             }
 
             let typeMatch = true;
@@ -97,13 +84,8 @@ document.addEventListener('DOMContentLoaded', () => {
             return nameMatch && specMatch && typeMatch;
         });
 
-        // Sorting Logic (Uses the base consultation fee)
         if (selectedSort === 'closest') {
             filtered.sort((a, b) => (a.distance_km === 'Unknown' ? 999 : a.distance_km) - (b.distance_km === 'Unknown' ? 999 : b.distance_km));
-        } else if (selectedSort === 'price_low') {
-            filtered.sort((a, b) => parseFloat(a.consultation_fee || 500) - parseFloat(b.consultation_fee || 500));
-        } else if (selectedSort === 'price_high') {
-            filtered.sort((a, b) => parseFloat(b.consultation_fee || 500) - parseFloat(a.consultation_fee || 500));
         }
 
         if(doctorCountDisplay) doctorCountDisplay.textContent = filtered.length;
@@ -125,7 +107,6 @@ document.addEventListener('DOMContentLoaded', () => {
         filtered.forEach(doc => {
             const safeName = doc.name.replace(/'/g, "\\'");
 
-            // Image Fallback
             let avatarHtml = `<div style="width:100%; height:100%; display:flex; align-items:center; justify-content:center; background:#1E293B; color:#fff; border-radius:12px; font-size:2rem;"><i class="fa-solid fa-user-doctor"></i></div>`;
             let imgUrl = "";
 
@@ -141,29 +122,16 @@ document.addEventListener('DOMContentLoaded', () => {
             const displayCategory = doc.category || 'Specialist';
             const distance = doc.distance_km !== "Unknown" ? `${doc.distance_km} km away` : "";
 
-            // 🚨 STRICT FIX: Blindly trust the database! No more custom math.
-            let exactVideoFee = parseFloat(doc.consultation_fee) || 500;
-            let exactHomeFee = exactVideoFee + 200; // Default travel if no DB entry exists
+            // 🚨 STRICT FIX: Hardcoded pricing logic
+            let exactVideoFee = 500;
+            let exactHomeFee = 700;
             
-            let showVideo = false;
-            let showHome = false;
+            let showVideo = true;
+            let showHome = true;
 
             if (doc.doctor_services && doc.doctor_services.length > 0) {
-                const videoService = doc.doctor_services.find(s => s.service_name.toLowerCase().includes("video"));
-                if (videoService) {
-                    showVideo = true;
-                    exactVideoFee = parseFloat(videoService.price); 
-                }
-
-                const homeService = doc.doctor_services.find(s => s.service_name.toLowerCase().includes("home"));
-                if (homeService) {
-                    showHome = true;
-                    exactHomeFee = parseFloat(homeService.price); 
-                }
-            } else {
-                // If the doctor has no services listed, assume both are available at the base rate
-                showVideo = true;
-                showHome = true;
+                showVideo = !!doc.doctor_services.find(s => s.service_name.toLowerCase().includes("video"));
+                showHome = !!doc.doctor_services.find(s => s.service_name.toLowerCase().includes("home"));
             }
 
             let actionButtons = '';
@@ -177,9 +145,8 @@ document.addEventListener('DOMContentLoaded', () => {
             }
             
             if (showHome) {
-                // We send exactHomeFee as the base fee, and 0 as the visit charge, to ensure total is strictly the DB price
                 actionButtons += `
-                    <button class="btn-outline" onclick="initiateDocBooking('${providerId}', 'Home Visit', '${safeName}', '${displayCategory}', '${imgUrl}', ${exactHomeFee}, 0)">
+                    <button class="btn-outline" onclick="initiateDocBooking('${providerId}', 'Home Visit', '${safeName}', '${displayCategory}', '${imgUrl}', ${exactVideoFee}, 200)">
                         <i class="fa-solid fa-location-dot"></i> Home - ₹${exactHomeFee}
                     </button>
                 `;
@@ -225,9 +192,6 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 });
 
-// ==========================================
-// --- 5. DYNAMIC GLOBAL ROUTING ---
-// ==========================================
 window.initiateDocBooking = function(docId, type, docName, docCat, docImg, fee, visitFee) {
     const bookingData = {
         provider_id: docId, 
@@ -236,7 +200,7 @@ window.initiateDocBooking = function(docId, type, docName, docCat, docImg, fee, 
         visitType: type, 
         doctorImage: docImg, 
         consultationFee: fee, 
-        visitCharge: visitFee, // Note: This is now 0 because the base fee handles the total
+        visitCharge: visitFee,
         address: type === 'Home Visit' ? (localStorage.getItem('user_address') || "Location not set") : "Platform Default"
     };
     
