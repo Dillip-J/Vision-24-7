@@ -30,11 +30,18 @@ document.addEventListener('DOMContentLoaded', () => {
             if (apt.status === 'canceled') {
                 // If the backend marked it canceled, but it's not in our fake refund DB yet, add it!
                 if (!refundData[apt.rawId]) {
+                    // 🚨 EXACT PRICE EXTRACTION
+                    let exactPrice = 500;
+                    if (apt.raw.total_amount) exactPrice = apt.raw.total_amount;
+                    else if (apt.raw.amount) exactPrice = apt.raw.amount;
+                    else if (apt.raw.price) exactPrice = apt.raw.price;
+                    else if (apt.raw.provider && apt.raw.provider.price) exactPrice = apt.raw.provider.price;
+
                     // For testing, refund takes 12 SECONDS instead of 12 hours.
                     refundData[apt.rawId] = {
                         initiatedAt: now,
                         refundTime: now + (12 * 1000), // 12 seconds
-                        amount: apt.raw.total_amount || 500,
+                        amount: exactPrice,
                         status: 'initiated'
                     };
                     hasChanges = true;
@@ -403,12 +410,20 @@ document.addEventListener('DOMContentLoaded', () => {
             if (response.ok) {
                 // Instantly trigger the local refund tracking
                 const apt = myBookings.find(b => b.rawId === rawId);
+                
+                // 🚨 EXACT PRICE EXTRACTION
+                let exactPrice = 500;
+                if (apt.raw.total_amount) exactPrice = apt.raw.total_amount;
+                else if (apt.raw.amount) exactPrice = apt.raw.amount;
+                else if (apt.raw.price) exactPrice = apt.raw.price;
+                else if (apt.raw.provider && apt.raw.provider.price) exactPrice = apt.raw.provider.price;
+
                 const refundData = JSON.parse(localStorage.getItem('simulated_refunds') || '{}');
                 const now = new Date().getTime();
                 refundData[rawId] = {
                     initiatedAt: now,
                     refundTime: now + (12 * 1000), // 12 seconds for testing
-                    amount: apt.raw.total_amount || 500,
+                    amount: exactPrice,
                     status: 'initiated'
                 };
                 localStorage.setItem('simulated_refunds', JSON.stringify(refundData));
