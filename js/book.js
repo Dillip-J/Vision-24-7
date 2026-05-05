@@ -373,6 +373,7 @@ document.addEventListener('DOMContentLoaded', () => {
 //         addressInput.value = place.formatted_address;
 //     }
 // }
+
 // let autocomplete;
 
 // window.initAutocomplete = function() {

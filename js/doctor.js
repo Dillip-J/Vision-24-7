@@ -1,8 +1,13 @@
 // js/doctors.js
 document.addEventListener('DOMContentLoaded', () => {
     
-    // Ensure API_BASE is defined
-    const API_BASE = window.API_BASE || 'https://backend-depolyment-3.onrender.com';
+    // Ensure API_BASE is defined (Use the globally defined config)
+    const API_BASE = window.API_BASE;
+    if (!API_BASE) {
+        console.error("FATAL: window.API_BASE is missing.");
+        alert("Configuration Error: Cannot connect to server.");
+        return;
+    }
 
     const doctorList = document.getElementById('doctor-list');
     const doctorCountDisplay = document.getElementById('doctor-count');
@@ -76,7 +81,6 @@ document.addEventListener('DOMContentLoaded', () => {
             const nameMatch = searchTerm === '' || docName.includes(searchTerm) || docCat.includes(searchTerm);
             const specMatch = selectedSpecialty === 'all' || docCat === selectedSpecialty || docCat.includes(selectedSpecialty);
             
-            // 🚨 RESTORED: Type Filtering Logic
             let hasVideo = false;
             let hasHome = false;
             if (doc.doctor_services && doc.doctor_services.length > 0) {
@@ -93,13 +97,13 @@ document.addEventListener('DOMContentLoaded', () => {
             return nameMatch && specMatch && typeMatch;
         });
 
-        // Sorting Logic
+        // Sorting Logic (Uses the base consultation fee)
         if (selectedSort === 'closest') {
             filtered.sort((a, b) => (a.distance_km === 'Unknown' ? 999 : a.distance_km) - (b.distance_km === 'Unknown' ? 999 : b.distance_km));
         } else if (selectedSort === 'price_low') {
-            filtered.sort((a, b) => (a.price || 500) - (b.price || 500));
+            filtered.sort((a, b) => parseFloat(a.consultation_fee || 500) - parseFloat(b.consultation_fee || 500));
         } else if (selectedSort === 'price_high') {
-            filtered.sort((a, b) => (b.price || 500) - (a.price || 500));
+            filtered.sort((a, b) => parseFloat(b.consultation_fee || 500) - parseFloat(a.consultation_fee || 500));
         }
 
         if(doctorCountDisplay) doctorCountDisplay.textContent = filtered.length;
@@ -137,8 +141,9 @@ document.addEventListener('DOMContentLoaded', () => {
             const displayCategory = doc.category || 'Specialist';
             const distance = doc.distance_km !== "Unknown" ? `${doc.distance_km} km away` : "";
 
-            let consultFee = 500;
-            let visitCharge = 200;
+            // 🚨 STRICT FIX: Blindly trust the database! No more custom math.
+            let exactVideoFee = parseFloat(doc.consultation_fee) || 500;
+            let exactHomeFee = exactVideoFee + 200; // Default travel if no DB entry exists
             
             let showVideo = false;
             let showHome = false;
@@ -147,36 +152,35 @@ document.addEventListener('DOMContentLoaded', () => {
                 const videoService = doc.doctor_services.find(s => s.service_name.toLowerCase().includes("video"));
                 if (videoService) {
                     showVideo = true;
-                    consultFee = parseFloat(videoService.price);
+                    exactVideoFee = parseFloat(videoService.price); 
                 }
 
                 const homeService = doc.doctor_services.find(s => s.service_name.toLowerCase().includes("home"));
                 if (homeService) {
                     showHome = true;
-                    visitCharge = parseFloat(homeService.price) - consultFee;
-                    if (visitCharge < 0) visitCharge = 0; 
+                    exactHomeFee = parseFloat(homeService.price); 
                 }
             } else {
+                // If the doctor has no services listed, assume both are available at the base rate
                 showVideo = true;
                 showHome = true;
-                consultFee = parseFloat(doc.price) || parseFloat(doc.base_price) || 500;
-                visitCharge = parseFloat(doc.home_visit_charge) || 200; 
             }
 
             let actionButtons = '';
             
             if (showVideo) {
                 actionButtons += `
-                    <button class="btn-primary" onclick="initiateDocBooking('${providerId}', 'Video Consult', '${safeName}', '${displayCategory}', '${imgUrl}', ${consultFee}, 0)">
-                        <i class="fa-solid fa-video"></i> Video - ₹${consultFee}
+                    <button class="btn-primary" onclick="initiateDocBooking('${providerId}', 'Video Consult', '${safeName}', '${displayCategory}', '${imgUrl}', ${exactVideoFee}, 0)">
+                        <i class="fa-solid fa-video"></i> Video - ₹${exactVideoFee}
                     </button>
                 `;
             }
             
             if (showHome) {
+                // We send exactHomeFee as the base fee, and 0 as the visit charge, to ensure total is strictly the DB price
                 actionButtons += `
-                    <button class="btn-outline" onclick="initiateDocBooking('${providerId}', 'Home Visit', '${safeName}', '${displayCategory}', '${imgUrl}', ${consultFee}, ${visitCharge})">
-                        <i class="fa-solid fa-location-dot"></i> Home - ₹${consultFee + visitCharge}
+                    <button class="btn-outline" onclick="initiateDocBooking('${providerId}', 'Home Visit', '${safeName}', '${displayCategory}', '${imgUrl}', ${exactHomeFee}, 0)">
+                        <i class="fa-solid fa-location-dot"></i> Home - ₹${exactHomeFee}
                     </button>
                 `;
             }
@@ -232,7 +236,7 @@ window.initiateDocBooking = function(docId, type, docName, docCat, docImg, fee, 
         visitType: type, 
         doctorImage: docImg, 
         consultationFee: fee, 
-        visitCharge: visitFee, 
+        visitCharge: visitFee, // Note: This is now 0 because the base fee handles the total
         address: type === 'Home Visit' ? (localStorage.getItem('user_address') || "Location not set") : "Platform Default"
     };
     

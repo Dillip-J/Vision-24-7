@@ -20,7 +20,6 @@ document.addEventListener('DOMContentLoaded', () => {
         return parts.length >= 2 ? `${parts[0][0]}${parts[1][0]}`.toUpperCase() : `${cleanName[0]}X`.toUpperCase();
     };
 
-    // 🚨 NEW FIX: The Background Refund Processor
     function processSimulatedRefunds() {
         let hasChanges = false;
         let refundData = JSON.parse(localStorage.getItem('simulated_refunds') || '{}');
@@ -28,25 +27,21 @@ document.addEventListener('DOMContentLoaded', () => {
 
         myBookings.forEach(apt => {
             if (apt.status === 'canceled') {
-                // If the backend marked it canceled, but it's not in our fake refund DB yet, add it!
                 if (!refundData[apt.rawId]) {
-                    // 🚨 EXACT PRICE EXTRACTION
                     let exactPrice = 500;
                     if (apt.raw.total_amount) exactPrice = apt.raw.total_amount;
                     else if (apt.raw.amount) exactPrice = apt.raw.amount;
                     else if (apt.raw.price) exactPrice = apt.raw.price;
                     else if (apt.raw.provider && apt.raw.provider.price) exactPrice = apt.raw.provider.price;
 
-                    // For testing, refund takes 12 SECONDS instead of 12 hours.
                     refundData[apt.rawId] = {
                         initiatedAt: now,
-                        refundTime: now + (12 * 1000), // 12 seconds
+                        refundTime: now + (12 * 1000), 
                         amount: exactPrice,
                         status: 'initiated'
                     };
                     hasChanges = true;
                 } else if (refundData[apt.rawId].status === 'initiated' && now >= refundData[apt.rawId].refundTime) {
-                    // 12 seconds have passed! Fire the notification and update DB
                     refundData[apt.rawId].status = 'completed';
                     hasChanges = true;
                     showRefundNotification(apt.rawId, refundData[apt.rawId].amount);
@@ -56,7 +51,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         if (hasChanges) {
             localStorage.setItem('simulated_refunds', JSON.stringify(refundData));
-            renderAllLists(); // Re-render the UI so the badges update
+            renderAllLists(); 
         }
     }
 
@@ -86,7 +81,6 @@ document.addEventListener('DOMContentLoaded', () => {
         setTimeout(() => { toast.remove(); }, 5000);
     }
 
-    // 🚨 NEW FIX: Check for refunds every 3 seconds in the background
     setInterval(processSimulatedRefunds, 3000);
 
     window.fetchDashboardData = async function() {
@@ -144,7 +138,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 };
             });
 
-            processSimulatedRefunds(); // Check for any changes
+            processSimulatedRefunds(); 
             renderStats();
             renderAllLists();
 
@@ -214,6 +208,12 @@ document.addEventListener('DOMContentLoaded', () => {
                 actionButtonsHtml += `<button class="btn-action-outline" style="color: #F59E0B; border-color: #F59E0B;"><i class="fa-regular fa-clock"></i> Awaiting</button>`;
             } 
             
+            // 🚨 FIX: Direct "View Report" button injected for completed appointments
+            if (apt.status === 'completed' && apt.hasReport) {
+                const fullReportUrl = apt.reportUrl.startsWith('http') ? apt.reportUrl : `${API_BASE}${apt.reportUrl}`;
+                actionButtonsHtml += `<button class="btn-action-outline" onclick="window.open('${fullReportUrl}', '_blank')" style="color: #3B82F6; border-color: #3B82F6;"><i class="fa-solid fa-file-prescription"></i> View Report</button>`;
+            }
+
             actionButtonsHtml += `<button class="btn-action-outline" onclick="openBookingModal('${apt.rawId}', 'details')" style="margin-left: 8px;"><i class="fa-solid fa-circle-info"></i> Details</button>`;
 
             if (apt.status === 'active') {
@@ -223,7 +223,6 @@ document.addEventListener('DOMContentLoaded', () => {
             let statusClass = `status-${apt.status}`;
             if (apt.status === 'canceled') statusClass = 'status-canceled'; 
 
-            // 🚨 NEW FIX: Dynamic Refund Badges in the List
             let refundBadgeHtml = '';
             if (apt.status === 'canceled') {
                 const rData = refundData[apt.rawId];
@@ -305,47 +304,64 @@ document.addEventListener('DOMContentLoaded', () => {
         document.getElementById('modal-time').textContent = apt.time;
 
         const patientWrapper = document.getElementById('modal-patient-wrapper'); 
-        const notesWrapper = document.getElementById('modal-notes-wrapper');
+        const notesContainer = document.getElementById('modal-notes-container');
         const notesText = document.getElementById('modal-notes-text');
 
-        if (viewType === 'details') {
-            if (patientWrapper) patientWrapper.classList.remove('hidden');
-            if (notesWrapper) notesWrapper.classList.add('hidden');
-            
-            document.getElementById('modal-patient-name').textContent = apt.raw.patient_name || "Self";
-            
-            const ageEl = document.getElementById('modal-patient-age');
-            if(ageEl) ageEl.textContent = apt.raw.patient_age || "N/A";
-            
-            const genderEl = document.getElementById('modal-patient-gender');
-            if(genderEl) genderEl.textContent = apt.raw.patient_gender || "N/A";
-            
-            const addressEl = document.getElementById('modal-patient-address');
-            if (addressEl) {
-                const addressRow = addressEl.parentElement;
-                if (apt.visitType === 'Video Consult' || apt.visitType.includes('Video')) {
-                    addressRow.style.display = 'none'; 
-                } else {
-                    addressRow.style.display = 'flex'; 
-                    addressEl.textContent = apt.raw.delivery_address || "Platform Default";
-                }
+        if (patientWrapper) patientWrapper.classList.remove('hidden');
+        
+        document.getElementById('modal-patient-name').textContent = apt.raw.patient_name || "Self";
+        
+        const ageEl = document.getElementById('modal-patient-age');
+        if(ageEl) ageEl.textContent = apt.raw.patient_age || "N/A";
+        
+        const genderEl = document.getElementById('modal-patient-gender');
+        if(genderEl) genderEl.textContent = apt.raw.patient_gender || "N/A";
+        
+        const addressEl = document.getElementById('modal-patient-address');
+        if (addressEl) {
+            const addressRow = addressEl.parentElement;
+            if (apt.visitType === 'Video Consult' || apt.visitType.includes('Video')) {
+                addressRow.style.display = 'none'; 
+            } else {
+                addressRow.style.display = 'flex'; 
+                addressEl.textContent = apt.raw.delivery_address || "Platform Default";
             }
-            
-            const reasonEl = document.getElementById('modal-patient-reason');
-            if(reasonEl) reasonEl.textContent = apt.raw.symptoms || "None provided";
+        }
+        
+        const reasonEl = document.getElementById('modal-patient-reason');
+        if(reasonEl) reasonEl.textContent = apt.raw.symptoms || "None provided";
 
-        } else if (viewType === 'notes') {
-            if (patientWrapper) patientWrapper.classList.add('hidden');
-            if (notesWrapper) {
-                notesWrapper.classList.remove('hidden');
+        if (notesContainer) {
+            if (apt.status === 'completed' && apt.clinicalNotes && apt.clinicalNotes !== "No clinical notes provided by the doctor.") {
+                notesContainer.style.display = 'block';
                 notesText.textContent = apt.clinicalNotes;
+
+                let imgTag = document.getElementById('modal-report-image');
+                if (!imgTag) {
+                    imgTag = document.createElement('img');
+                    imgTag.id = 'modal-report-image';
+                    imgTag.style.cssText = "display: none; max-width: 100%; border-radius: 8px; margin-top: 16px; border: 1px solid var(--card-border); cursor: pointer;";
+                    notesContainer.querySelector('.info-grid').appendChild(imgTag);
+                    
+                    imgTag.addEventListener('click', function() {
+                        window.open(this.src, '_blank');
+                    });
+                }
+
+                if (apt.reportUrl) {
+                    imgTag.style.display = 'block';
+                    imgTag.src = apt.reportUrl.startsWith('http') ? apt.reportUrl : `${API_BASE}${apt.reportUrl}`;
+                } else {
+                    imgTag.style.display = 'none';
+                }
+            } else {
+                notesContainer.style.display = 'none';
             }
         }
         
         modal.classList.remove('hidden');
     };
 
-    // 🚨 NEW FIX: The Refund Receipt Modal Injection
     window.openRefundReceipt = function(rawId) {
         const apt = myBookings.find(b => b.rawId === rawId);
         const refundData = JSON.parse(localStorage.getItem('simulated_refunds') || '{}');
@@ -362,7 +378,6 @@ document.addEventListener('DOMContentLoaded', () => {
         const initDate = new Date(rData.initiatedAt).toLocaleString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
         const compDate = isComplete ? new Date(rData.refundTime).toLocaleString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }) : "Pending";
 
-        // Build the HTML dynamically so we don't need to change index.html
         let receiptDiv = document.createElement('div');
         receiptDiv.className = 'modal-overlay';
         receiptDiv.innerHTML = `
@@ -408,10 +423,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 headers: { 'Authorization': `Bearer ${token}` }
             });
             if (response.ok) {
-                // Instantly trigger the local refund tracking
                 const apt = myBookings.find(b => b.rawId === rawId);
                 
-                // 🚨 EXACT PRICE EXTRACTION
                 let exactPrice = 500;
                 if (apt.raw.total_amount) exactPrice = apt.raw.total_amount;
                 else if (apt.raw.amount) exactPrice = apt.raw.amount;
@@ -422,7 +435,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 const now = new Date().getTime();
                 refundData[rawId] = {
                     initiatedAt: now,
-                    refundTime: now + (12 * 1000), // 12 seconds for testing
+                    refundTime: now + (12 * 1000), 
                     amount: exactPrice,
                     status: 'initiated'
                 };
