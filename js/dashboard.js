@@ -20,6 +20,68 @@ document.addEventListener('DOMContentLoaded', () => {
         return parts.length >= 2 ? `${parts[0][0]}${parts[1][0]}`.toUpperCase() : `${cleanName[0]}X`.toUpperCase();
     };
 
+    // 🚨 NEW FIX: The Background Refund Processor
+    function processSimulatedRefunds() {
+        let hasChanges = false;
+        let refundData = JSON.parse(localStorage.getItem('simulated_refunds') || '{}');
+        const now = new Date().getTime();
+
+        myBookings.forEach(apt => {
+            if (apt.status === 'canceled') {
+                // If the backend marked it canceled, but it's not in our fake refund DB yet, add it!
+                if (!refundData[apt.rawId]) {
+                    // For testing, refund takes 12 SECONDS instead of 12 hours.
+                    refundData[apt.rawId] = {
+                        initiatedAt: now,
+                        refundTime: now + (12 * 1000), // 12 seconds
+                        amount: apt.raw.total_amount || 500,
+                        status: 'initiated'
+                    };
+                    hasChanges = true;
+                } else if (refundData[apt.rawId].status === 'initiated' && now >= refundData[apt.rawId].refundTime) {
+                    // 12 seconds have passed! Fire the notification and update DB
+                    refundData[apt.rawId].status = 'completed';
+                    hasChanges = true;
+                    showRefundNotification(apt.rawId, refundData[apt.rawId].amount);
+                }
+            }
+        });
+
+        if (hasChanges) {
+            localStorage.setItem('simulated_refunds', JSON.stringify(refundData));
+            renderAllLists(); // Re-render the UI so the badges update
+        }
+    }
+
+    function showRefundNotification(bookingId, amount) {
+        const shortId = bookingId.split('-')[0].substring(0, 8).toUpperCase();
+        let toast = document.createElement('div');
+        toast.className = 'refund-toast';
+        toast.innerHTML = `
+            <div style="background: var(--card-bg); border: 1px solid #10B981; padding: 16px; border-radius: 12px; box-shadow: 0 10px 25px rgba(0,0,0,0.2); display: flex; align-items: center; gap: 16px; cursor: pointer;">
+                <div style="background: rgba(16, 185, 129, 0.1); color: #10B981; width: 40px; height: 40px; border-radius: 50%; display: flex; justify-content: center; align-items: center; font-size: 1.2rem;">
+                    <i class="fa-solid fa-money-bill-transfer"></i>
+                </div>
+                <div>
+                    <h4 style="margin: 0; color: var(--text-main); font-size: 1rem;">Refund Processed</h4>
+                    <p style="margin: 4px 0 0 0; color: var(--text-muted); font-size: 0.85rem;">₹${amount} for BKG-${shortId}</p>
+                </div>
+            </div>
+        `;
+        toast.style.cssText = 'position: fixed; top: 20px; right: 20px; z-index: 9999; animation: slideIn 0.3s ease-out;';
+        document.body.appendChild(toast);
+
+        toast.addEventListener('click', () => {
+            openRefundReceipt(bookingId);
+            toast.remove();
+        });
+
+        setTimeout(() => { toast.remove(); }, 5000);
+    }
+
+    // 🚨 NEW FIX: Check for refunds every 3 seconds in the background
+    setInterval(processSimulatedRefunds, 3000);
+
     window.fetchDashboardData = async function() {
         try {
             const [activeRes, historyRes] = await Promise.all([
@@ -75,6 +137,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 };
             });
 
+            processSimulatedRefunds(); // Check for any changes
             renderStats();
             renderAllLists();
 
@@ -122,6 +185,8 @@ document.addEventListener('DOMContentLoaded', () => {
             container.innerHTML = `<div class="empty-state"><i class="fa-regular fa-folder-open"></i><p>${emptyMessage}</p></div>`; return;
         }
 
+        const refundData = JSON.parse(localStorage.getItem('simulated_refunds') || '{}');
+
         dataArray.forEach(apt => {
             const initials = getInitials(apt.doctorName);
             const isOnline = apt.visitType === 'Video Consult';
@@ -142,10 +207,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 actionButtonsHtml += `<button class="btn-action-outline" style="color: #F59E0B; border-color: #F59E0B;"><i class="fa-regular fa-clock"></i> Awaiting</button>`;
             } 
             
-            if (apt.status === 'completed') {
-                actionButtonsHtml += `<button class="btn-action-outline" onclick="openBookingModal('${apt.rawId}', 'notes')"><i class="fa-solid fa-notes-medical"></i> View Notes</button>`;
-            }
-
             actionButtonsHtml += `<button class="btn-action-outline" onclick="openBookingModal('${apt.rawId}', 'details')" style="margin-left: 8px;"><i class="fa-solid fa-circle-info"></i> Details</button>`;
 
             if (apt.status === 'active') {
@@ -155,9 +216,17 @@ document.addEventListener('DOMContentLoaded', () => {
             let statusClass = `status-${apt.status}`;
             if (apt.status === 'canceled') statusClass = 'status-canceled'; 
 
+            // 🚨 NEW FIX: Dynamic Refund Badges in the List
             let refundBadgeHtml = '';
             if (apt.status === 'canceled') {
-                refundBadgeHtml = `<div style="margin-top: 12px; font-size: 0.85rem; color: #10B981; display: flex; align-items: center; gap: 6px; font-weight: 600;"><i class="fa-solid fa-money-bill-transfer"></i> Payment Refunded </div>`;
+                const rData = refundData[apt.rawId];
+                if (rData) {
+                    if (rData.status === 'completed') {
+                        refundBadgeHtml = `<button onclick="openRefundReceipt('${apt.rawId}')" style="margin-top: 12px; background: transparent; border: none; font-size: 0.85rem; color: #10B981; display: flex; align-items: center; gap: 6px; font-weight: 600; cursor: pointer; padding: 0;"><i class="fa-solid fa-money-bill-transfer"></i> Refunded: ₹${rData.amount} (View)</button>`;
+                    } else {
+                        refundBadgeHtml = `<button onclick="openRefundReceipt('${apt.rawId}')" style="margin-top: 12px; background: transparent; border: none; font-size: 0.85rem; color: #F59E0B; display: flex; align-items: center; gap: 6px; font-weight: 600; cursor: pointer; padding: 0;"><i class="fa-solid fa-spinner fa-spin"></i> Refund Initiated (View Status)</button>`;
+                    }
+                }
             }
 
             container.innerHTML += `
@@ -228,7 +297,6 @@ document.addEventListener('DOMContentLoaded', () => {
         document.getElementById('modal-date').textContent = apt.date;
         document.getElementById('modal-time').textContent = apt.time;
 
-        // 🚨 FIX: Grab the wrappers we just built in the HTML
         const patientWrapper = document.getElementById('modal-patient-wrapper'); 
         const notesWrapper = document.getElementById('modal-notes-wrapper');
         const notesText = document.getElementById('modal-notes-text');
@@ -270,6 +338,54 @@ document.addEventListener('DOMContentLoaded', () => {
         modal.classList.remove('hidden');
     };
 
+    // 🚨 NEW FIX: The Refund Receipt Modal Injection
+    window.openRefundReceipt = function(rawId) {
+        const apt = myBookings.find(b => b.rawId === rawId);
+        const refundData = JSON.parse(localStorage.getItem('simulated_refunds') || '{}');
+        const rData = refundData[rawId];
+
+        if (!apt || !rData) return;
+
+        const shortId = apt.bookingId;
+        const isComplete = rData.status === 'completed';
+        const color = isComplete ? '#10B981' : '#F59E0B';
+        const icon = isComplete ? '<i class="fa-solid fa-check-circle"></i>' : '<i class="fa-solid fa-spinner fa-spin"></i>';
+        const statusText = isComplete ? 'Refund Successful' : 'Processing Refund (Est: 12 Hours)';
+
+        const initDate = new Date(rData.initiatedAt).toLocaleString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
+        const compDate = isComplete ? new Date(rData.refundTime).toLocaleString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }) : "Pending";
+
+        // Build the HTML dynamically so we don't need to change index.html
+        let receiptDiv = document.createElement('div');
+        receiptDiv.className = 'modal-overlay';
+        receiptDiv.innerHTML = `
+            <div class="modal-container" style="max-width: 400px; text-align: center; padding: 32px 24px;">
+                <button class="modal-close" onclick="this.closest('.modal-overlay').remove()"><i class="fa-solid fa-xmark"></i></button>
+                <div style="width: 64px; height: 64px; border-radius: 50%; background: ${color}20; color: ${color}; font-size: 2rem; display: flex; justify-content: center; align-items: center; margin: 0 auto 16px auto;">
+                    ${icon}
+                </div>
+                <h2 style="margin: 0 0 8px 0;">${statusText}</h2>
+                <p style="color: var(--text-muted); margin: 0 0 24px 0; font-size: 0.95rem;">For Booking ID: ${shortId}</p>
+                
+                <div style="background: var(--section-bg); border-radius: 12px; padding: 16px; text-align: left; border: 1px solid var(--card-border);">
+                    <div style="display: flex; justify-content: space-between; margin-bottom: 12px;">
+                        <span style="color: var(--text-muted); font-size: 0.9rem;">Amount</span>
+                        <strong style="color: var(--text-main);">₹${rData.amount}</strong>
+                    </div>
+                    <div style="display: flex; justify-content: space-between; margin-bottom: 12px;">
+                        <span style="color: var(--text-muted); font-size: 0.9rem;">Initiated</span>
+                        <strong style="color: var(--text-main); font-size: 0.9rem;">${initDate}</strong>
+                    </div>
+                    <div style="display: flex; justify-content: space-between;">
+                        <span style="color: var(--text-muted); font-size: 0.9rem;">Completed</span>
+                        <strong style="color: var(--text-main); font-size: 0.9rem;">${compDate}</strong>
+                    </div>
+                </div>
+            </div>
+        `;
+        document.body.appendChild(receiptDiv);
+    };
+
     window.addEventListener('click', (e) => { 
         if (e.target === modal) modal.classList.add('hidden'); 
     });
@@ -285,7 +401,19 @@ document.addEventListener('DOMContentLoaded', () => {
                 headers: { 'Authorization': `Bearer ${token}` }
             });
             if (response.ok) {
-                alert("Booking successfully canceled. Any payment made will be refunded.");
+                // Instantly trigger the local refund tracking
+                const apt = myBookings.find(b => b.rawId === rawId);
+                const refundData = JSON.parse(localStorage.getItem('simulated_refunds') || '{}');
+                const now = new Date().getTime();
+                refundData[rawId] = {
+                    initiatedAt: now,
+                    refundTime: now + (12 * 1000), // 12 seconds for testing
+                    amount: apt.raw.total_amount || 500,
+                    status: 'initiated'
+                };
+                localStorage.setItem('simulated_refunds', JSON.stringify(refundData));
+
+                alert("Booking successfully canceled. Refund has been initiated and will process within 12 hours.");
                 if(window.fetchDashboardData) window.fetchDashboardData(); 
             } else {
                 alert("Failed to cancel booking.");

@@ -31,7 +31,7 @@
         </nav>
         
         <div class="nav-actions" id="nav-actions">
-            </div>
+        </div>
     </header>
 
     <main class="content-wrapper booking-layout">
@@ -85,17 +85,17 @@
                 <form class="patient-form" id="patient-form">
                     <div class="form-row two-col">
                         <div class="input-group">
-                            <label>Full Name </label>
+                            <label>Full Name *</label>
                             <input type="text" id="patient-name" class="form-control" placeholder="Full Name" required>
                         </div>
                         <div class="input-group">
-                            <label>Age </label>
+                            <label>Age *</label>
                             <input type="number" id="patient-age" class="form-control" placeholder="Age" required>
                         </div>
                     </div>
 
                     <div class="form-row">
-                        <label>Gender </label>
+                        <label>Gender *</label>
                         <div class="radio-group">
                             <label class="radio-label"><input type="radio" name="gender" value="Male" required> Male</label>
                             <label class="radio-label"><input type="radio" name="gender" value="Female"> Female</label>
@@ -104,14 +104,14 @@
                     </div>
 
                     <div class="form-row">
-                        <label>Symptoms / Reason for Visit </label>
+                        <label>Symptoms / Reason for Visit *</label>
                         <textarea id="patient-symptoms" class="form-control" rows="3" placeholder="Describe your symptoms or reason for consultation..." required></textarea>
                     </div>
 
                     <div class="form-row form-group address-group" id="address-block">
                         <div class="input-group">
-                            <label>Flat / House Number </label>
-                            <input type="text" id="flat-number" class="form-control" placeholder="e.g., House No. 42" required>
+                            <label>Flat / House Number</label>
+                            <input type="text" id="flat-number" class="form-control" placeholder="e.g., House No. 42">
                         </div>
 
                         <div class="input-group mt-spacing">
@@ -120,13 +120,13 @@
                         </div>
 
                         <div class="input-group mt-spacing">
-                            <label>Landmark </label>
-                            <input type="text" id="landmark" class="form-control" placeholder="e.g., Near Metro Station" required>
+                            <label>Landmark</label>
+                            <input type="text" id="landmark" class="form-control" placeholder="e.g., Near Metro Station">
                         </div>
 
                         <div class="input-group mt-spacing">
-                            <label>Enter your area / address via Map </label>
-                            <input id="patient-address" class="form-control" type="text" placeholder="Please enter your address" required />
+                            <label>Enter your area / address via Map</label>
+                            <input id="patient-address" class="form-control" type="text" placeholder="Please enter your address" />
                         </div>
                     </div>
                 </form>
@@ -195,6 +195,7 @@
     </main>
 
     <script src="js/config.js"></script> 
+    <script src="js/auth_guard.js"></script>
     <script src="js/script.js"></script>
     <script src="js/book.js"></script>
     <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyA4BQN5ky7wehZWFwcwLMvM_89GXDn5IxQ&libraries=places&callback=initAutocomplete" async defer></script>  

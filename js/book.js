@@ -27,7 +27,6 @@ document.addEventListener('DOMContentLoaded', () => {
     const visitType = doctorData.visitType || doctorData.visit_type || "Home Visit";
     const rawImg = doctorData.doctorImage || doctorData.doctor_image || fullDocData.profile_photo_url || "";
 
-    // 🚨 FIX 1: Generate clean initials for the fallback avatar
     const getInitials = (name) => {
         if(!name) return 'DR';
         const cleanName = name.replace(/^Dr\.\s*/i, '');
@@ -35,19 +34,16 @@ document.addEventListener('DOMContentLoaded', () => {
         return parts.length >= 2 ? `${parts[0][0]}${parts[1][0]}`.toUpperCase() : `${cleanName[0]}X`.toUpperCase();
     };
 
-    // 🚨 FIX 2: Smart Bio Fallback (Hides the ugly "unavailable" error)
     const bioEl = document.getElementById('dyn-doc-bio');
     if (bioEl) {
         const actualBio = fullDocData.bio || doctorData.bio;
         if (actualBio && actualBio.trim() !== "") {
             bioEl.textContent = actualBio;
         } else {
-            // Professional fallback if the doctor didn't write a bio
             bioEl.textContent = `A dedicated ${docSpec} committed to providing excellent and compassionate healthcare services to all patients.`;
         }
     }
 
-    // 🚨 FIX 3: Bulletproof Image URL compiler
     const docImgEl = document.getElementById('dyn-doc-img');
     if(docImgEl) {
         const initials = getInitials(docName);
@@ -56,16 +52,15 @@ document.addEventListener('DOMContentLoaded', () => {
         if (!rawImg || rawImg.includes('default-avatar') || rawImg.includes('default-doc')) {
             docImgEl.src = fallbackUrl;
         } else {
-            // Safely combine API_BASE and rawImg ensuring exactly one slash between them
             let finalImgUrl = rawImg;
             if (!rawImg.startsWith('http')) {
-                const cleanBase = API_BASE.replace(/\/$/, ''); // Remove trailing slash
-                const cleanImg = rawImg.replace(/^\//, '');    // Remove leading slash
+                const cleanBase = API_BASE.replace(/\/$/, '');
+                const cleanImg = rawImg.replace(/^\//, '');    
                 finalImgUrl = `${cleanBase}/${cleanImg}`;
             }
 
             docImgEl.onerror = function() {
-                this.onerror = null; // Prevent infinite loops
+                this.onerror = null; 
                 this.src = fallbackUrl;
             };
             docImgEl.src = finalImgUrl;
@@ -265,28 +260,41 @@ document.addEventListener('DOMContentLoaded', () => {
 
             const form = document.getElementById('patient-form');
             if (form && !form.checkValidity()) { form.reportValidity(); return; }
-            
-            proceedBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Securing...';
-            proceedBtn.disabled = true;
 
-            const localDateTime = `${selectedDateAPI}T${convertTo24Hour(selectedTime)}:00`;
-            const genderNode = document.querySelector('input[name="gender"]:checked');
-            
-            const flatVal = document.getElementById('flat-number') ? document.getElementById('flat-number').value.trim() : "";
-            const buildingVal = document.getElementById('building-name') ? document.getElementById('building-name').value.trim() : "";
-            const landmarkVal = document.getElementById('landmark') ? document.getElementById('landmark').value.trim() : "";
-            const addressVal = document.getElementById('patient-address') ? document.getElementById('patient-address').value.trim() : "Online";
+            // 🚨 FIX: Strict IF/ELSE to validate addresses manually ONLY if it's a Home Visit
+            const flatNode = document.getElementById('flat-number');
+            const bNameNode = document.getElementById('building-name');
+            const landNode = document.getElementById('landmark');
+            const addrNode = document.getElementById('patient-address');
+
+            const flatVal = flatNode ? flatNode.value.trim() : "";
+            const buildingVal = bNameNode ? bNameNode.value.trim() : "";
+            const landmarkVal = landNode ? landNode.value.trim() : "";
+            const addressVal = addrNode ? addrNode.value.trim() : "";
             
             let finalAddress = "Online";
-            if (visitType !== 'Video Consult' && !visitType.includes('Video')) {
+
+            if (visitType === 'Home Visit' || !visitType.includes('Video')) {
+                // If Home Visit, Flat and Address Map are required!
+                if (!flatVal || !addressVal) {
+                    alert("Please provide your Flat/House Number and Area Address for the Home Visit.");
+                    return;
+                }
+
                 const addrParts = [];
                 if (flatVal) addrParts.push(flatVal);
                 if (buildingVal) addrParts.push(buildingVal); 
                 if (landmarkVal) addrParts.push(landmarkVal);
                 if (addressVal) addrParts.push(addressVal);
                 
-                finalAddress = addrParts.length > 0 ? addrParts.join(', ') : "Address not provided";
+                finalAddress = addrParts.join(', ');
             }
+            
+            proceedBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Securing...';
+            proceedBtn.disabled = true;
+
+            const localDateTime = `${selectedDateAPI}T${convertTo24Hour(selectedTime)}:00`;
+            const genderNode = document.querySelector('input[name="gender"]:checked');
 
             const bookingPayload = {
                 provider_id: currentProviderId, 
@@ -336,33 +344,33 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 });
 
-let autocomplete;
-window.initAutocomplete = function() {
-    const addressInput = document.getElementById("patient-address");
-    if (!addressInput) return;
+// let autocomplete;
+// window.initAutocomplete = function() {
+//     const addressInput = document.getElementById("patient-address");
+//     if (!addressInput) return;
 
-    autocomplete = new google.maps.places.Autocomplete(
-        addressInput,
-        {
-            types: ["geocode", "establishment"], 
-            componentRestrictions: { 'country': ['in'] },
-            fields: ['place_id', 'geometry', 'formatted_address']
-        }
-    );
+//     autocomplete = new google.maps.places.Autocomplete(
+//         addressInput,
+//         {
+//             types: ["geocode", "establishment"], 
+//             componentRestrictions: { 'country': ['in'] },
+//             fields: ['place_id', 'geometry', 'formatted_address']
+//         }
+//     );
     
-    autocomplete.addListener('place_changed', onPlaceChanged);
-};
+//     autocomplete.addListener('place_changed', onPlaceChanged);
+// };
 
-function onPlaceChanged() {
-    let place = autocomplete.getPlace();
-    const addressInput = document.getElementById('patient-address');
+// function onPlaceChanged() {
+//     let place = autocomplete.getPlace();
+//     const addressInput = document.getElementById('patient-address');
     
-    if (!place.geometry) {
-        addressInput.placeholder = "Enter your Address";
-    } else {
-        addressInput.value = place.formatted_address;
-    }
-}
+//     if (!place.geometry) {
+//         addressInput.placeholder = "Enter your Address";
+//     } else {
+//         addressInput.value = place.formatted_address;
+//     }
+// }
 // let autocomplete;
 
 // window.initAutocomplete = function() {
