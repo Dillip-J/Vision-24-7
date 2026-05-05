@@ -1,221 +1,380 @@
-// js/doctors.js
+// js/book.js
 document.addEventListener('DOMContentLoaded', () => {
+
+    const API_BASE = window.API_BASE || 'https://backend-depolyment-3.onrender.com';
     
-    const API_BASE = window.API_BASE;
     if (!API_BASE) {
         console.error("FATAL: window.API_BASE is missing.");
         alert("Configuration Error: Cannot connect to server.");
         return;
     }
 
-    const doctorList = document.getElementById('doctor-list');
-    const doctorCountDisplay = document.getElementById('doctor-count');
-    const searchInput = document.getElementById('doctor-search');
-    const filterSpecialty = document.getElementById('filter-specialty');
-    
-    const filterType = document.getElementById('filter-type'); 
-    const sortFilter = document.getElementById('sort-filter');
-
-    let userLat = parseFloat(localStorage.getItem('user_lat')) || 0.0;
-    let userLon = parseFloat(localStorage.getItem('user_lon')) || 0.0;
-
-    const autoSpecialty = localStorage.getItem('autoSearchSpecialty');
-    if (autoSpecialty && filterSpecialty) {
-        const searchStr = autoSpecialty.trim().toLowerCase();
-        let matchFound = Array.from(filterSpecialty.options).find(opt => opt.value.trim().toLowerCase() === searchStr);
-        
-        if (matchFound) {
-            filterSpecialty.value = matchFound.value; 
-        } else {
-            filterSpecialty.add(new Option(autoSpecialty.trim(), autoSpecialty.trim()));
-            filterSpecialty.value = autoSpecialty.trim();
-        }
-    }
-    
-    const autoQuery = localStorage.getItem('autoSearchQuery');
-    if (autoQuery && searchInput) {
-        searchInput.value = autoQuery.trim(); 
-    }
-
-    async function fetchApprovedDoctors() {
-        try {
-            const response = await fetch(`${API_BASE}/home/nearest?lat=${userLat}&lon=${userLon}&category=Doctor`);
-            if (!response.ok) throw new Error("API Offline");
-            
-            const freshData = await response.json();
-            localStorage.setItem('eterna_cache_doctors', JSON.stringify(freshData));
-            return freshData;
-        } catch (err) {
-            console.warn("Network Error: Loading real doctors from local cache...");
-            const cachedData = localStorage.getItem('eterna_cache_doctors');
-            return cachedData ? JSON.parse(cachedData) : []; 
-        }
-    }
-
-    async function renderDoctors() {
-        const providers = await fetchApprovedDoctors();
-        
-        const doctorsOnly = providers.filter(p => p.provider_type === 'Doctor' || p.type === 'Doctor' || (!p.provider_type && !p.type));
-        
-        const searchTerm = searchInput ? searchInput.value.trim().toLowerCase() : '';
-        const selectedSpecialty = filterSpecialty ? filterSpecialty.value.trim().toLowerCase() : 'all';
-        const selectedType = filterType ? filterType.value.toLowerCase() : 'all';
-        const selectedSort = sortFilter ? sortFilter.value : 'closest';
-
-        const filtered = doctorsOnly.filter(doc => {
-            const docName = (doc.name || '').trim().toLowerCase();
-            const docCat = (doc.category || '').trim().toLowerCase();
-            
-            const nameMatch = searchTerm === '' || docName.includes(searchTerm) || docCat.includes(searchTerm);
-            const specMatch = selectedSpecialty === 'all' || docCat === selectedSpecialty || docCat.includes(selectedSpecialty);
-            
-            let hasVideo = true;
-            let hasHome = true;
-            
-            if (doc.doctor_services && doc.doctor_services.length > 0) {
-                hasVideo = !!doc.doctor_services.find(s => s.service_name.toLowerCase().includes("video"));
-                hasHome = !!doc.doctor_services.find(s => s.service_name.toLowerCase().includes("home"));
-            }
-
-            let typeMatch = true;
-            if (selectedType === 'video' && !hasVideo) typeMatch = false;
-            if (selectedType === 'home' && !hasHome) typeMatch = false;
-
-            return nameMatch && specMatch && typeMatch;
-        });
-
-        if (selectedSort === 'closest') {
-            filtered.sort((a, b) => (a.distance_km === 'Unknown' ? 999 : a.distance_km) - (b.distance_km === 'Unknown' ? 999 : b.distance_km));
-        }
-
-        if(doctorCountDisplay) doctorCountDisplay.textContent = filtered.length;
-        
-        if (filtered.length === 0) {
-            if(doctorList) {
-                doctorList.innerHTML = `
-                    <div style="text-align: center; padding: 60px 20px; background: var(--card-bg); border-radius: 12px; border: 1px dashed var(--border-color);">
-                        <i class="fa-solid fa-user-doctor" style="font-size: 3rem; color: var(--text-secondary); margin-bottom: 16px;"></i>
-                        <h3 style="color: var(--text-primary); margin-bottom: 8px;">No providers found</h3>
-                        <p style="color: var(--text-secondary);">There are currently no approved doctors matching your search criteria.</p>
-                    </div>`;
-            }
-            return;
-        }
-
-        if(doctorList) doctorList.innerHTML = '';
-        
-        filtered.forEach(doc => {
-            const safeName = doc.name.replace(/'/g, "\\'");
-
-            let avatarHtml = `<div style="width:100%; height:100%; display:flex; align-items:center; justify-content:center; background:#1E293B; color:#fff; border-radius:12px; font-size:2rem;"><i class="fa-solid fa-user-doctor"></i></div>`;
-            let imgUrl = "";
-
-            if (doc.profile_photo_url) {
-                imgUrl = doc.profile_photo_url.startsWith('http') 
-                    ? doc.profile_photo_url 
-                    : `${API_BASE}${doc.profile_photo_url}`;
-                
-                avatarHtml = `<img src="${imgUrl}" alt="${safeName}" style="width:100%; height:100%; object-fit:cover; border-radius:12px;" onerror="this.onerror=null; this.src='https://ui-avatars.com/api/?name=${encodeURIComponent(doc.name)}&background=1E293B&color=fff&size=128';">`;
-            }
-
-            const providerId = doc.provider_id || doc.id; 
-            const displayCategory = doc.category || 'Specialist';
-            const distance = doc.distance_km !== "Unknown" ? `${doc.distance_km} km away` : "";
-
-            // 🚨 STRICT FIX: Hardcoded pricing logic
-            let exactVideoFee = 500;
-            let exactHomeFee = 700;
-            
-            let showVideo = true;
-            let showHome = true;
-
-            if (doc.doctor_services && doc.doctor_services.length > 0) {
-                showVideo = !!doc.doctor_services.find(s => s.service_name.toLowerCase().includes("video"));
-                showHome = !!doc.doctor_services.find(s => s.service_name.toLowerCase().includes("home"));
-            }
-
-            let actionButtons = '';
-            
-            if (showVideo) {
-                actionButtons += `
-                    <button class="btn-primary" onclick="initiateDocBooking('${providerId}', 'Video Consult', '${safeName}', '${displayCategory}', '${imgUrl}', ${exactVideoFee}, 0)">
-                        <i class="fa-solid fa-video"></i> Video - ₹${exactVideoFee}
-                    </button>
-                `;
-            }
-            
-            if (showHome) {
-                actionButtons += `
-                    <button class="btn-outline" onclick="initiateDocBooking('${providerId}', 'Home Visit', '${safeName}', '${displayCategory}', '${imgUrl}', ${exactVideoFee}, 200)">
-                        <i class="fa-solid fa-location-dot"></i> Home - ₹${exactHomeFee}
-                    </button>
-                `;
-            }
-
-            if (!showVideo && !showHome) {
-                actionButtons = `<button class="btn-outline" disabled style="opacity: 0.5; cursor: not-allowed;"><i class="fa-solid fa-ban"></i> No Services Available</button>`;
-            }
-
-            const card = `
-                <div class="doctor-card">
-                    <div class="doc-avatar">
-                        ${avatarHtml}
-                        <div class="verified-badge"><i class="fa-solid fa-check"></i></div>
-                    </div>
-                    <div class="doc-info">
-                        <div class="doc-title-row">
-                            <h2>${doc.name.includes('Dr.') ? doc.name : 'Dr. ' + doc.name}</h2>
-                            <span class="exp-badge"><i class="fa-solid fa-shield-halved"></i> Verified</span>
-                        </div>
-                        <div class="doc-specialty">
-                            ${displayCategory} 
-                            ${distance ? `<span style="font-size:0.85rem; color: var(--text-secondary); margin-left:10px;"><i class="fa-solid fa-location-dot"></i> ${distance}</span>` : ''}
-                        </div>
-                        <div class="doc-actions" style="margin-top: 12px;">
-                            ${actionButtons}
-                        </div>
-                    </div>
-                </div>
-            `;
-            doctorList.insertAdjacentHTML('beforeend', card);
-        });
-    }
-
-    if (searchInput) searchInput.addEventListener('input', renderDoctors);
-    if (filterSpecialty) filterSpecialty.addEventListener('change', renderDoctors);
-    if (filterType) filterType.addEventListener('change', renderDoctors);
-    if (sortFilter) sortFilter.addEventListener('change', renderDoctors);
-
-    renderDoctors().then(() => {
-        localStorage.removeItem('autoSearchSpecialty'); 
-        localStorage.removeItem('autoSearchQuery'); 
-    });
-});
-
-window.initiateDocBooking = function(docId, type, docName, docCat, docImg, fee, visitFee) {
-    const bookingData = {
-        provider_id: docId, 
-        doctorName: docName.includes('Dr.') ? docName : 'Dr. ' + docName, 
-        doctorSpecialty: docCat, 
-        visitType: type, 
-        doctorImage: docImg, 
-        consultationFee: fee, 
-        visitCharge: visitFee,
-        address: type === 'Home Visit' ? (localStorage.getItem('user_address') || "Location not set") : "Platform Default"
-    };
-    
-    localStorage.setItem('pendingBooking', JSON.stringify(bookingData));
-
+    const savedService = JSON.parse(localStorage.getItem('pendingBooking'));
     const token = localStorage.getItem('access_token');
-    if (!token) {
-        alert("Please log in or create an account to complete your booking.");
-        localStorage.setItem('redirectAfterAuth', 'book.html');
-        window.location.href = 'index.html'; 
+    
+    if (!token || !savedService) {
+        window.location.replace('index.html');
         return; 
     }
 
-    window.location.href = 'book.html';
+    const doctorData = savedService;
+    const currentProviderId = doctorData.provider_id || doctorData.id;
+
+    const cachedDoctors = JSON.parse(localStorage.getItem('eterna_cache_doctors') || '[]');
+    const fullDocData = cachedDoctors.find(d => (d.provider_id || d.id) === currentProviderId) || {};
+    
+    const docName = doctorData.doctorName || doctorData.name || fullDocData.name || "Doctor";
+    const docSpec = doctorData.doctorSpecialty || doctorData.specialty || doctorData.category || fullDocData.category || "Specialist";
+    const visitType = doctorData.visitType || doctorData.visit_type || "Home Visit";
+    const rawImg = doctorData.doctorImage || doctorData.doctor_image || fullDocData.profile_photo_url || "";
+
+    const getInitials = (name) => {
+        if(!name) return 'DR';
+        const cleanName = name.replace(/^Dr\.\s*/i, '');
+        const parts = cleanName.split(' ');
+        return parts.length >= 2 ? `${parts[0][0]}${parts[1][0]}`.toUpperCase() : `${cleanName[0]}X`.toUpperCase();
+    };
+
+    // 🚨 BIO LOGIC: Strict check, falls back to "Details not provided"
+    const bioEl = document.getElementById('dyn-doc-bio');
+    if (bioEl) {
+        const actualBio = fullDocData.bio || doctorData.bio;
+        if (actualBio && actualBio.trim() !== "") {
+            bioEl.textContent = actualBio;
+        } else {
+            bioEl.textContent = `Details not provided`;
+        }
+    }
+
+    const docImgEl = document.getElementById('dyn-doc-img');
+    if(docImgEl) {
+        const initials = getInitials(docName);
+        const fallbackUrl = `https://ui-avatars.com/api/?name=${initials}&background=1E293B&color=fff&size=128`;
+        
+        if (!rawImg || rawImg.includes('default-avatar') || rawImg.includes('default-doc')) {
+            docImgEl.src = fallbackUrl;
+        } else {
+            let finalImgUrl = rawImg;
+            if (!rawImg.startsWith('http')) {
+                const cleanBase = API_BASE.replace(/\/$/, '');
+                const cleanImg = rawImg.replace(/^\//, '');    
+                finalImgUrl = `${cleanBase}/${cleanImg}`;
+            }
+
+            docImgEl.onerror = function() {
+                this.onerror = null; 
+                this.src = fallbackUrl;
+            };
+            docImgEl.src = finalImgUrl;
+        }
+    }
+
+    const isVideoConsult = visitType.toLowerCase().includes('video');
+    const addressBlock = document.getElementById('address-block');
+    
+    if (addressBlock) {
+        if (isVideoConsult) {
+            addressBlock.style.display = 'none'; 
+        } else {
+            addressBlock.style.display = 'block'; 
+        }
+    }
+
+    if(document.getElementById('dyn-doc-name')) document.getElementById('dyn-doc-name').textContent = docName;
+    if(document.getElementById('dyn-doc-spec')) document.getElementById('dyn-doc-spec').textContent = docSpec;
+    
+    const visitBadge = document.getElementById('dyn-visit-type');
+    if (visitBadge) {
+        visitBadge.innerHTML = isVideoConsult 
+            ? `<i class="fa-solid fa-video"></i> ${visitType}`
+            : `<i class="fa-solid fa-location-dot"></i> ${visitType}`;
+    }
+    
+    if(document.getElementById('sum-doc-name')) document.getElementById('sum-doc-name').textContent = docName;
+    if(document.getElementById('sum-type')) document.getElementById('sum-type').textContent = visitType;
+
+    // 🚨 PRICING LOGIC: Forced to exactly 500 for Video, 700 for Home (500 + 200)
+    const fee = 500;
+    const visit = visitType === 'Home Visit' ? 200 : 0;
+    const total = fee + visit;
+    
+    if(document.getElementById('sum-fee')) document.getElementById('sum-fee').textContent = `₹${fee}`;
+    if(document.getElementById('sum-visit')) document.getElementById('sum-visit').textContent = `₹${visit}`;
+    if(document.getElementById('sum-total')) document.getElementById('sum-total').textContent = `₹${total}`;
+
+    // 🚨 PATIENT NAME: Forces the input field to be completely blank so the user MUST type it
+    if(document.getElementById('patient-name')) {
+        document.getElementById('patient-name').value = "";
+    }
+
+    const backBtn = document.getElementById("backbtn");
+    if (backBtn) backBtn.addEventListener("click", (e) => { e.preventDefault(); window.history.back(); });
+
+    let selectedTime = null; 
+    let selectedDateAPI = null; 
+    let selectedDateDisplay = null; 
+    
+    const dateContainer = document.getElementById('date-container');
+    const timeSlotContainer = document.getElementById('time-container'); 
+
+    const formatDateForAPI = (d) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+
+    const proceedBtn = document.getElementById('proceed-btn');
+
+    const updateSummaryUI = () => {
+        if(document.getElementById('sum-date')) document.getElementById('sum-date').textContent = selectedDateDisplay || "Select a date";
+        
+        const sumTimeEl = document.getElementById('sum-time');
+        const sumTimeRow = document.getElementById('sum-time-row');
+
+        if (selectedTime) {
+            if(sumTimeEl) sumTimeEl.textContent = selectedTime;
+            if(sumTimeRow) sumTimeRow.classList.remove('hidden'); 
+            if(proceedBtn) {
+                proceedBtn.disabled = false; 
+                proceedBtn.classList.remove('disabled');
+            }
+        } else {
+            if(sumTimeEl) sumTimeEl.textContent = "Select a time";
+            if(sumTimeRow) sumTimeRow.classList.add('hidden'); 
+            if(proceedBtn) {
+                proceedBtn.disabled = true; 
+                proceedBtn.classList.add('disabled');
+            }
+        }
+    };
+
+    async function fetchAndRenderTimeSlots(apiDateString) {
+        if (!timeSlotContainer) return;
+        selectedTime = null; 
+        updateSummaryUI();
+        
+        timeSlotContainer.innerHTML = '<div class="empty-state">Loading available slots...</div>'; 
+
+        try {
+            const response = await fetch(`${API_BASE}/providers/${currentProviderId}/available-slots?date=${apiDateString}`, {
+                headers: { 'Authorization': `Bearer ${token}` }
+            });
+
+            if (!response.ok) throw new Error("Failed to fetch slots");
+            
+            const availableSlots = await response.json();
+            
+            availableSlots.sort((a, b) => {
+                const parseTime = (timeStr) => {
+                    const [time, modifier] = timeStr.split(' ');
+                    let [hoursStr, minutesStr] = time.split(':');
+                    let hours = parseInt(hoursStr, 10);
+                    let minutes = parseInt(minutesStr, 10);
+                    if (hours === 12) hours = 0;
+                    if (modifier === 'PM') hours += 12;
+                    return hours * 60 + minutes;
+                };
+                return parseTime(a) - parseTime(b);
+            });
+
+            timeSlotContainer.innerHTML = ''; 
+
+            if (availableSlots.length === 0) {
+                timeSlotContainer.innerHTML = '<div class="empty-state">No slots available on this date.</div>';
+                return;
+            }
+
+            const now = new Date();
+            const cutoffTime = new Date(now.getTime() + (5 * 60 * 60 * 1000)); 
+            
+            let validSlotsCount = 0;
+
+            availableSlots.forEach(time => {
+                const slotDateTime = new Date(`${apiDateString} ${time}`);
+                const slotBtn = document.createElement('button');
+                slotBtn.type = 'button'; 
+                slotBtn.textContent = time;
+
+                if (slotDateTime < cutoffTime) {
+                    slotBtn.className = `time-slot disabled-slot`;
+                    slotBtn.disabled = true;
+                    slotBtn.title = "Must book at least 5 hours in advance";
+                } else {
+                    slotBtn.className = `time-slot`;
+                    validSlotsCount++;
+                    
+                    slotBtn.addEventListener('click', (e) => {
+                        document.querySelectorAll('.time-slot').forEach(s => {
+                            s.classList.remove('active');
+                        });
+                        
+                        e.target.classList.add('active');
+                        
+                        selectedTime = time;
+                        updateSummaryUI(); 
+                    });
+                }
+                
+                timeSlotContainer.appendChild(slotBtn);
+            });
+
+            if (validSlotsCount === 0) {
+                timeSlotContainer.innerHTML += `<div class="empty-state text-red">
+                    <i class="fa-solid fa-circle-exclamation"></i> Remaining slots are less than 5 hours away. Please select tomorrow.
+                </div>`;
+            }
+
+        } catch (error) {
+            console.error(error);
+            timeSlotContainer.innerHTML = '<div class="empty-state text-red">Error loading time slots. Please try again.</div>';
+        }
+    }
+
+    if (dateContainer) {
+        dateContainer.innerHTML = ''; 
+        // 🚨 CALENDAR FIX: Generates exactly 14 days (2 weeks)
+        for (let i = 0; i < 14; i++) {
+            const d = new Date();
+            d.setDate(d.getDate() + i);
+            
+            const apiDateString = formatDateForAPI(d);
+            const displayDateString = d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+            const dayName = d.toLocaleDateString('en-US', { weekday: 'short' });
+            
+            const dateBtn = document.createElement('div');
+            dateBtn.className = `date-card ${i === 0 ? 'active' : ''}`;
+            dateBtn.innerHTML = `<span>${dayName}</span><strong>${d.getDate()}</strong>`;
+            
+            if (i === 0) {
+                selectedDateAPI = apiDateString;
+                selectedDateDisplay = displayDateString;
+                fetchAndRenderTimeSlots(apiDateString);
+            }
+            
+            dateBtn.addEventListener('click', () => {
+                document.querySelectorAll('.date-card').forEach(c => c.classList.remove('active'));
+                dateBtn.classList.add('active');
+                selectedDateAPI = apiDateString;
+                selectedDateDisplay = displayDateString;
+                fetchAndRenderTimeSlots(apiDateString);
+            });
+            dateContainer.appendChild(dateBtn);
+        }
+    }
+
+    if (proceedBtn) {
+        proceedBtn.addEventListener('click', async (e) => {
+            e.preventDefault(); 
+            if (!selectedTime) { alert("Please select a time slot."); return; }
+
+            const form = document.getElementById('patient-form');
+            if (form && !form.checkValidity()) { form.reportValidity(); return; }
+
+            const flatNode = document.getElementById('flat-number');
+            const bNameNode = document.getElementById('building-name');
+            const landNode = document.getElementById('landmark');
+            const addrNode = document.getElementById('patient-address');
+
+            const flatVal = flatNode ? flatNode.value.trim() : "";
+            const buildingVal = bNameNode ? bNameNode.value.trim() : "";
+            const landmarkVal = landNode ? landNode.value.trim() : "";
+            const addressVal = addrNode ? addrNode.value.trim() : "";
+            
+            let finalAddress = "Online";
+
+            if (!isVideoConsult) {
+                if (!flatVal || !addressVal) {
+                    alert("Please provide your Flat/House Number and Area Address for the Home Visit.");
+                    return;
+                }
+
+                const addrParts = [];
+                if (flatVal) addrParts.push(flatVal);
+                if (buildingVal) addrParts.push(buildingVal); 
+                if (landmarkVal) addrParts.push(landmarkVal);
+                if (addressVal) addrParts.push(addressVal);
+                
+                finalAddress = addrParts.length > 0 ? addrParts.join(', ') : "Address not provided";
+            }
+            
+            proceedBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Securing...';
+            proceedBtn.disabled = true;
+
+            const localDateTime = `${selectedDateAPI}T${convertTo24Hour(selectedTime)}:00`;
+            const genderNode = document.querySelector('input[name="gender"]:checked');
+
+            const bookingPayload = {
+                provider_id: currentProviderId, 
+                scheduled_time: localDateTime,
+                delivery_address: finalAddress,
+                building_name: isVideoConsult ? "Online" : (buildingVal || "N/A"), 
+                flat_number: isVideoConsult ? "Online" : (flatVal || "N/A"),
+                landmark: isVideoConsult ? "Online" : (landmarkVal || "N/A"),
+                patient_name: document.getElementById('patient-name').value,
+                patient_age: parseInt(document.getElementById('patient-age').value) || 0,
+                patient_gender: genderNode ? genderNode.value : "Other",
+                symptoms: document.getElementById('patient-symptoms').value || "None",
+                total_amount: total 
+            };
+
+            try {
+                const response = await fetch(`${API_BASE}/bookings/`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+                    body: JSON.stringify(bookingPayload)
+                });
+
+                const data = await response.json();
+                if (!response.ok) throw new Error(data.detail || "Booking failed");
+
+                localStorage.setItem('activeBookingId', data.booking_id || data.id);
+                localStorage.setItem('paymentTotalAmount', total);
+                localStorage.setItem('bookedDate', selectedDateDisplay);
+                localStorage.setItem('bookedTime', selectedTime);
+                
+                window.location.href = "payment.html"; 
+
+            } catch (error) {
+                alert(error.message);
+                proceedBtn.innerHTML = '<i class="fa-regular fa-circle-check"></i> Proceed to Payment';
+                proceedBtn.disabled = false;
+            }
+        });
+    }
+
+    function convertTo24Hour(timeStr) {
+        const [time, modifier] = timeStr.split(' ');
+        let [hours, minutes] = time.split(':');
+        if (hours === '12') hours = '00';
+        if (modifier === 'PM') hours = parseInt(hours, 10) + 12;
+        return `${String(hours).padStart(2, '0')}:${minutes}`;
+    }
+});
+
+let autocomplete;
+window.initAutocomplete = function() {
+    const addressInput = document.getElementById("patient-address");
+    if (!addressInput) return;
+
+    autocomplete = new google.maps.places.Autocomplete(
+        addressInput,
+        {
+            types: ["geocode", "establishment"], 
+            componentRestrictions: { 'country': ['in'] },
+            fields: ['place_id', 'geometry', 'formatted_address']
+        }
+    );
+    
+    autocomplete.addListener('place_changed', onPlaceChanged);
 };
+
+function onPlaceChanged() {
+    let place = autocomplete.getPlace();
+    const addressInput = document.getElementById('patient-address');
+    
+    if (!place.geometry) {
+        addressInput.placeholder = "Enter your Address";
+    } else {
+        addressInput.value = place.formatted_address;
+    }
+}
+
 // let autocomplete;
 // window.initAutocomplete = function() {
 //     const addressInput = document.getElementById("patient-address");
