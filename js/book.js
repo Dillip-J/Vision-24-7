@@ -67,12 +67,15 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
+    // 🚨 FIX: Bulletproof display logic to physically hide the address block for video calls
+    const isVideoConsult = visitType.toLowerCase().includes('video');
     const addressBlock = document.getElementById('address-block');
+    
     if (addressBlock) {
-        if (visitType === 'Video Consult' || visitType.includes('Video')) {
-            addressBlock.classList.add('hidden'); 
+        if (isVideoConsult) {
+            addressBlock.style.display = 'none'; // Forces it to hide, ignoring CSS conflicts
         } else {
-            addressBlock.classList.remove('hidden'); 
+            addressBlock.style.display = 'block'; // Shows it for Home Visits
         }
     }
 
@@ -81,7 +84,7 @@ document.addEventListener('DOMContentLoaded', () => {
     
     const visitBadge = document.getElementById('dyn-visit-type');
     if (visitBadge) {
-        visitBadge.innerHTML = visitType.includes('Video') 
+        visitBadge.innerHTML = isVideoConsult 
             ? `<i class="fa-solid fa-video"></i> ${visitType}`
             : `<i class="fa-solid fa-location-dot"></i> ${visitType}`;
     }
@@ -261,7 +264,6 @@ document.addEventListener('DOMContentLoaded', () => {
             const form = document.getElementById('patient-form');
             if (form && !form.checkValidity()) { form.reportValidity(); return; }
 
-            // 🚨 FIX: Strict IF/ELSE to validate addresses manually ONLY if it's a Home Visit
             const flatNode = document.getElementById('flat-number');
             const bNameNode = document.getElementById('building-name');
             const landNode = document.getElementById('landmark');
@@ -274,8 +276,8 @@ document.addEventListener('DOMContentLoaded', () => {
             
             let finalAddress = "Online";
 
-            if (visitType === 'Home Visit' || !visitType.includes('Video')) {
-                // If Home Visit, Flat and Address Map are required!
+            // 🚨 FIX: Strict validation that ignores address fields for Video Consults completely
+            if (!isVideoConsult) {
                 if (!flatVal || !addressVal) {
                     alert("Please provide your Flat/House Number and Area Address for the Home Visit.");
                     return;
@@ -287,7 +289,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (landmarkVal) addrParts.push(landmarkVal);
                 if (addressVal) addrParts.push(addressVal);
                 
-                finalAddress = addrParts.join(', ');
+                finalAddress = addrParts.length > 0 ? addrParts.join(', ') : "Address not provided";
             }
             
             proceedBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Securing...';
@@ -300,9 +302,9 @@ document.addEventListener('DOMContentLoaded', () => {
                 provider_id: currentProviderId, 
                 scheduled_time: localDateTime,
                 delivery_address: finalAddress,
-                building_name: buildingVal || "N/A", 
-                flat_number: flatVal || "Online",
-                landmark: landmarkVal || "Online",
+                building_name: isVideoConsult ? "Online" : (buildingVal || "N/A"), 
+                flat_number: isVideoConsult ? "Online" : (flatVal || "N/A"),
+                landmark: isVideoConsult ? "Online" : (landmarkVal || "N/A"),
                 patient_name: document.getElementById('patient-name').value,
                 patient_age: parseInt(document.getElementById('patient-age').value) || 0,
                 patient_gender: genderNode ? genderNode.value : "Other",
