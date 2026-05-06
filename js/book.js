@@ -346,33 +346,33 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 });
 
-let autocomplete;
-window.initAutocomplete = function() {
-    const addressInput = document.getElementById("patient-address");
-    if (!addressInput) return;
+// let autocomplete;
+// window.initAutocomplete = function() {
+//     const addressInput = document.getElementById("patient-address");
+//     if (!addressInput) return;
 
-    autocomplete = new google.maps.places.Autocomplete(
-        addressInput,
-        {
-            types: ["geocode", "establishment"], 
-            componentRestrictions: { 'country': ['in'] },
-            fields: ['place_id', 'geometry', 'formatted_address']
-        }
-    );
+//     autocomplete = new google.maps.places.Autocomplete(
+//         addressInput,
+//         {
+//             types: ["geocode", "establishment"], 
+//             componentRestrictions: { 'country': ['in'] },
+//             fields: ['place_id', 'geometry', 'formatted_address']
+//         }
+//     );
     
-    autocomplete.addListener('place_changed', onPlaceChanged);
-};
+//     autocomplete.addListener('place_changed', onPlaceChanged);
+// };
 
-function onPlaceChanged() {
-    let place = autocomplete.getPlace();
-    const addressInput = document.getElementById('patient-address');
+// function onPlaceChanged() {
+//     let place = autocomplete.getPlace();
+//     const addressInput = document.getElementById('patient-address');
     
-    if (!place.geometry) {
-        addressInput.placeholder = "Enter your Address";
-    } else {
-        addressInput.value = place.formatted_address;
-    }
-}
+//     if (!place.geometry) {
+//         addressInput.placeholder = "Enter your Address";
+//     } else {
+//         addressInput.value = place.formatted_address;
+//     }
+// }
 
 // let autocomplete;
 // window.initAutocomplete = function() {

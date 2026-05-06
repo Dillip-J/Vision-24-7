@@ -4,12 +4,11 @@ document.addEventListener('DOMContentLoaded', () => {
     const API_BASE = window.API_BASE || 'https://backend-depolyment-3.onrender.com';
     if (!API_BASE) {
         console.error("FATAL: window.API_BASE is missing.");
-        alert("Configuration Error: Cannot connect to server.");
         return;
     }
 
+    // 🚨 FIX: Removed Auth Guard Redirect. It will no longer kick users to index.html
     const token = localStorage.getItem('access_token');
-    if (!token) { window.location.replace('index.html'); return; }
 
     let myBookings = [];
 
@@ -84,15 +83,18 @@ document.addEventListener('DOMContentLoaded', () => {
     setInterval(processSimulatedRefunds, 3000);
 
     window.fetchDashboardData = async function() {
+        if (!token) {
+            renderStats(); renderAllLists();
+            return;
+        }
+
         try {
             const [activeRes, historyRes] = await Promise.all([
                 fetch(`${API_BASE}/bookings/me/active`, { headers: { 'Authorization': `Bearer ${token}` } }).catch(() => null),
                 fetch(`${API_BASE}/bookings/me/history`, { headers: { 'Authorization': `Bearer ${token}` } }).catch(() => null)
             ]);
 
-            if ((activeRes && activeRes.status === 401) || (historyRes && historyRes.status === 401)) {
-                localStorage.removeItem('access_token'); window.location.replace('index.html'); return;
-            }
+            // 🚨 FIX: Removed 401 Redirect. If token is invalid, it just won't load data, no redirect.
 
             let activeData = []; let historyData = [];
             if (activeRes && activeRes.ok) activeData = await activeRes.json();
@@ -131,8 +133,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     date: dateStr,
                     time: timeStr,
                     visitType: vType,
-                    hasReport: mappedStatus === 'completed' && !!apt.report_url, 
-                    reportUrl: apt.report_url, 
+                    // 🚨 FIX: Removed all reportUrl references
                     clinicalNotes: apt.notes || apt.clinical_notes || "No clinical notes provided by the doctor.",
                     raw: apt 
                 };
@@ -208,12 +209,9 @@ document.addEventListener('DOMContentLoaded', () => {
                 actionButtonsHtml += `<button class="btn-action-outline" style="color: #F59E0B; border-color: #F59E0B;"><i class="fa-regular fa-clock"></i> Awaiting</button>`;
             } 
             
-            if (apt.status === 'completed' && apt.hasReport) {
-                const fullReportUrl = apt.reportUrl.startsWith('http') ? apt.reportUrl : `${API_BASE}${apt.reportUrl}`;
-                actionButtonsHtml += `<button class="btn-action-outline" onclick="window.open('${fullReportUrl}', '_blank')" style="color: #3B82F6; border-color: #3B82F6;"><i class="fa-solid fa-file-prescription"></i> View Report</button>`;
-            }
+            // 🚨 FIX: Removed the "View Report" button entirely
 
-            actionButtonsHtml += `<button class="btn-action-outline" onclick="openBookingModal('${apt.rawId}')" style="margin-left: 8px;"><i class="fa-solid fa-circle-info"></i> Details</button>`;
+            actionButtonsHtml += `<button class="btn-action-outline" onclick="openBookingModal('${apt.rawId}', 'details')" style="margin-left: 8px;"><i class="fa-solid fa-circle-info"></i> Details</button>`;
 
             if (apt.status === 'active') {
                 actionButtonsHtml += `<button class="btn-action-outline" onclick="cancelBooking('${apt.rawId}')" style="margin-left: 8px; color: #EF4444; border-color: #EF4444;"><i class="fa-solid fa-ban"></i> Cancel</button>`;
@@ -322,9 +320,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         const patientWrapper = document.getElementById('modal-patient-wrapper'); 
         
-        // 🚨 FIX: Explicitly grabbing the notes wrappers
         const notesWrapper = document.getElementById('modal-notes-wrapper');
-        const notesContainer = document.getElementById('modal-notes-container');
         const notesText = document.getElementById('modal-notes-text');
 
         if (patientWrapper) patientWrapper.classList.remove('hidden');
@@ -351,34 +347,15 @@ document.addEventListener('DOMContentLoaded', () => {
         const reasonEl = document.getElementById('modal-patient-reason');
         if(reasonEl) reasonEl.textContent = apt.raw.symptoms || "None provided";
 
-        // 🚨 FIX: Explicit logic to show notes if the appointment is completed
         if (apt.status === 'completed') {
             if (notesWrapper) notesWrapper.classList.remove('hidden');
             
             if (notesText) {
                 notesText.textContent = apt.clinicalNotes;
             }
+            
+            // 🚨 FIX: Removed Image Rendering Logic Entirely
 
-            if (notesContainer) {
-                let imgTag = document.getElementById('modal-report-image');
-                if (!imgTag) {
-                    imgTag = document.createElement('img');
-                    imgTag.id = 'modal-report-image';
-                    imgTag.style.cssText = "display: none; max-width: 100%; border-radius: 8px; margin-top: 16px; border: 1px solid var(--card-border); cursor: pointer;";
-                    notesContainer.appendChild(imgTag);
-                    
-                    imgTag.addEventListener('click', function() {
-                        window.open(this.src, '_blank');
-                    });
-                }
-
-                if (apt.reportUrl) {
-                    imgTag.style.display = 'block';
-                    imgTag.src = apt.reportUrl.startsWith('http') ? apt.reportUrl : `${API_BASE}${apt.reportUrl}`;
-                } else {
-                    imgTag.style.display = 'none';
-                }
-            }
         } else {
             if (notesWrapper) notesWrapper.classList.add('hidden');
         }
@@ -476,6 +453,9 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     };
 
+    // =========================================================================
+    // 🚨 PREMIUM 8x8 JaaS REDIRECT FOR PATIENT (GUEST MODE)
+    // =========================================================================
     window.joinSecureVideoCall = async function(bookingId) {
         const safeRoomName = "VisionApt_" + bookingId.replace(/[^a-zA-Z0-9]/g, "");
         
@@ -485,7 +465,11 @@ document.addEventListener('DOMContentLoaded', () => {
             if (user && user.name) patientName = user.name;
         } catch(e) {}
         
-        const jitsiUrl = `https://meet.jit.si/${safeRoomName}#config.prejoinPageEnabled=false&userInfo.displayName="${encodeURIComponent(patientName)}"`;
+        const tenantId = "vpaas-magic-cookie-386018f4d6bf45cd9bcf28b57f8d4de9";
+        
+        // Notice: NO JWT TOKEN HERE. The patient enters safely as a standard guest!
+        const jitsiUrl = `https://8x8.vc/${tenantId}/${safeRoomName}#config.prejoinPageEnabled=false&userInfo.displayName="${encodeURIComponent(patientName)}"`;
+        
         window.open(jitsiUrl, '_blank');
     };
 });
