@@ -45,7 +45,6 @@ document.addEventListener('DOMContentLoaded', () => {
             bioEl.textContent = `Details not provided`;
         }
     }
-
     const docImgEl = document.getElementById('dyn-doc-img');
     if(docImgEl) {
         const initials = getInitials(docName);
@@ -400,32 +399,5 @@ function onPlaceChanged() {
 //         addressInput.placeholder = "Enter your Address";
 //     } else {
 //         addressInput.value = place.formatted_address;
-//     }
-// }
-
-// let autocomplete;
-
-// window.initAutocomplete = function() {
-//     const addressInput = document.getElementById("patient-address");
-//     if (!addressInput) return;
-
-//     // Create element (no arguments)
-//     autocomplete = new google.maps.places.PlaceAutocompleteElement();
-
-//     // Attach it to your input
-//     autocomplete.inputElement = addressInput;
-
-//     // Listen for selection
-//     autocomplete.addEventListener('placechange', onPlaceChanged);
-// };
-
-// function onPlaceChanged(event) {
-//     const place = event.detail.place;
-//     const addressInput = document.getElementById('patient-address');
-
-//     if (!place || !place.location) {
-//         addressInput.placeholder = "Enter your Address";
-//     } else {
-//         addressInput.value = place.formattedAddress;
 //     }
 // }

@@ -1,7 +1,7 @@
 // js/dashboard.js
 document.addEventListener('DOMContentLoaded', () => {
 
-    const API_BASE = window.API_BASE;
+    const API_BASE = window.API_BASE || 'https://backend-depolyment-3.onrender.com';
     if (!API_BASE) {
         console.error("FATAL: window.API_BASE is missing.");
         alert("Configuration Error: Cannot connect to server.");
@@ -203,18 +203,17 @@ document.addEventListener('DOMContentLoaded', () => {
             let actionButtonsHtml = '';
             
             if (apt.status === 'active' && isOnline) {
-                actionButtonsHtml += `<button class="btn-action" onclick="window.open('video-room.html?room=${apt.rawId}&role=patient', '_blank')"><i class="fa-solid fa-video"></i> Join Call</button>`;
+                actionButtonsHtml += `<button class="btn-action" onclick="joinSecureVideoCall('${apt.rawId}')"><i class="fa-solid fa-video"></i> Join Call</button>`;
             } else if (apt.status === 'active') {
                 actionButtonsHtml += `<button class="btn-action-outline" style="color: #F59E0B; border-color: #F59E0B;"><i class="fa-regular fa-clock"></i> Awaiting</button>`;
             } 
             
-            // 🚨 FIX: Direct "View Report" button injected for completed appointments
             if (apt.status === 'completed' && apt.hasReport) {
                 const fullReportUrl = apt.reportUrl.startsWith('http') ? apt.reportUrl : `${API_BASE}${apt.reportUrl}`;
                 actionButtonsHtml += `<button class="btn-action-outline" onclick="window.open('${fullReportUrl}', '_blank')" style="color: #3B82F6; border-color: #3B82F6;"><i class="fa-solid fa-file-prescription"></i> View Report</button>`;
             }
 
-            actionButtonsHtml += `<button class="btn-action-outline" onclick="openBookingModal('${apt.rawId}', 'details')" style="margin-left: 8px;"><i class="fa-solid fa-circle-info"></i> Details</button>`;
+            actionButtonsHtml += `<button class="btn-action-outline" onclick="openBookingModal('${apt.rawId}')" style="margin-left: 8px;"><i class="fa-solid fa-circle-info"></i> Details</button>`;
 
             if (apt.status === 'active') {
                 actionButtonsHtml += `<button class="btn-action-outline" onclick="cancelBooking('${apt.rawId}')" style="margin-left: 8px; color: #EF4444; border-color: #EF4444;"><i class="fa-solid fa-ban"></i> Cancel</button>`;
@@ -260,6 +259,24 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
+    function loadUserProfile() {
+        try {
+            const userStr = localStorage.getItem('currentUser');
+            if (userStr) {
+                const user = JSON.parse(userStr);
+                const nameEl = document.getElementById('user-prof-name');
+                const emailEl = document.getElementById('user-prof-email');
+                const phoneEl = document.getElementById('user-prof-phone');
+                
+                if(nameEl) nameEl.value = user.name || "N/A";
+                if(emailEl) emailEl.value = user.email || "N/A";
+                if(phoneEl) phoneEl.value = user.phone || "N/A";
+            }
+        } catch(e) {}
+    }
+    
+    loadUserProfile();
+
     const tabs = document.querySelectorAll('.dash-tab');
     const tabContents = document.querySelectorAll('.tab-content');
     const sectionTitle = document.getElementById('dynamic-section-title');
@@ -285,7 +302,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     if (closeModalBtn) closeModalBtn.addEventListener('click', () => modal.classList.add('hidden'));
 
-    window.openBookingModal = function(rawId, viewType = 'details') {
+    window.openBookingModal = function(rawId) {
         const apt = myBookings.find(b => b.rawId === rawId);
         if (!apt) return;
 
@@ -304,6 +321,9 @@ document.addEventListener('DOMContentLoaded', () => {
         document.getElementById('modal-time').textContent = apt.time;
 
         const patientWrapper = document.getElementById('modal-patient-wrapper'); 
+        
+        // 🚨 FIX: Explicitly grabbing the notes wrappers
+        const notesWrapper = document.getElementById('modal-notes-wrapper');
         const notesContainer = document.getElementById('modal-notes-container');
         const notesText = document.getElementById('modal-notes-text');
 
@@ -331,17 +351,21 @@ document.addEventListener('DOMContentLoaded', () => {
         const reasonEl = document.getElementById('modal-patient-reason');
         if(reasonEl) reasonEl.textContent = apt.raw.symptoms || "None provided";
 
-        if (notesContainer) {
-            if (apt.status === 'completed' && apt.clinicalNotes && apt.clinicalNotes !== "No clinical notes provided by the doctor.") {
-                notesContainer.style.display = 'block';
+        // 🚨 FIX: Explicit logic to show notes if the appointment is completed
+        if (apt.status === 'completed') {
+            if (notesWrapper) notesWrapper.classList.remove('hidden');
+            
+            if (notesText) {
                 notesText.textContent = apt.clinicalNotes;
+            }
 
+            if (notesContainer) {
                 let imgTag = document.getElementById('modal-report-image');
                 if (!imgTag) {
                     imgTag = document.createElement('img');
                     imgTag.id = 'modal-report-image';
                     imgTag.style.cssText = "display: none; max-width: 100%; border-radius: 8px; margin-top: 16px; border: 1px solid var(--card-border); cursor: pointer;";
-                    notesContainer.querySelector('.info-grid').appendChild(imgTag);
+                    notesContainer.appendChild(imgTag);
                     
                     imgTag.addEventListener('click', function() {
                         window.open(this.src, '_blank');
@@ -354,9 +378,9 @@ document.addEventListener('DOMContentLoaded', () => {
                 } else {
                     imgTag.style.display = 'none';
                 }
-            } else {
-                notesContainer.style.display = 'none';
             }
+        } else {
+            if (notesWrapper) notesWrapper.classList.add('hidden');
         }
         
         modal.classList.remove('hidden');
@@ -450,5 +474,18 @@ document.addEventListener('DOMContentLoaded', () => {
             console.error(e);
             alert("Network Error while canceling.");
         }
+    };
+
+    window.joinSecureVideoCall = async function(bookingId) {
+        const safeRoomName = "VisionApt_" + bookingId.replace(/[^a-zA-Z0-9]/g, "");
+        
+        let patientName = "Patient";
+        try {
+            const user = JSON.parse(localStorage.getItem('currentUser'));
+            if (user && user.name) patientName = user.name;
+        } catch(e) {}
+        
+        const jitsiUrl = `https://meet.jit.si/${safeRoomName}#config.prejoinPageEnabled=false&userInfo.displayName="${encodeURIComponent(patientName)}"`;
+        window.open(jitsiUrl, '_blank');
     };
 });
